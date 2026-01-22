@@ -1,4 +1,5 @@
-import { Building, MapPin, CheckCircle, Calendar, Percent, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Building, MapPin, CheckCircle, Calendar, Percent, FileText, History } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,8 @@ import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { CondoDocumentUpload } from "@/components/ui/condo-document-upload";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
 
 interface Condo {
   id: string;
@@ -41,6 +44,16 @@ interface Condo {
   updated_at: string;
 }
 
+interface CondoChangeLog {
+  id: string;
+  field_name: string;
+  old_value: string | null;
+  new_value: string | null;
+  changed_by: string | null;
+  changed_by_name?: string;
+  created_at: string;
+}
+
 interface CondoDetailDialogProps {
   condo: Condo | null;
   isOpen: boolean;
@@ -57,14 +70,100 @@ const reviewTypeOptions = [
   { value: "Restricted", label: "Restricted" }
 ];
 
+const formatFieldName = (fieldName: string): string => {
+  return fieldName
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase())
+    .replace('Doc', 'Document')
+    .replace('Uwm', 'UWM')
+    .replace('Ad', 'A&D');
+};
+
 export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated, onPreview }: CondoDetailDialogProps) {
   const { toast } = useToast();
+  const [activityLogs, setActivityLogs] = useState<CondoChangeLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && condo?.id) {
+      fetchActivityLogs(condo.id);
+    }
+  }, [isOpen, condo?.id]);
+
+  const fetchActivityLogs = async (condoId: string) => {
+    setLoadingLogs(true);
+    try {
+      const { data, error } = await supabase
+        .from('condo_change_logs')
+        .select(`
+          *,
+          user:users!condo_change_logs_changed_by_fkey(first_name, last_name)
+        `)
+        .eq('condo_id', condoId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      
+      if (error) throw error;
+      
+      const transformedLogs = (data || []).map((log: any) => ({
+        ...log,
+        changed_by_name: log.user 
+          ? `${log.user.first_name || ''} ${log.user.last_name || ''}`.trim()
+          : 'Unknown',
+        user: undefined,
+      }));
+      
+      setActivityLogs(transformedLogs);
+    } catch (error) {
+      console.error('Error fetching activity logs:', error);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  const getCurrentUserId = async (): Promise<string | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) return null;
+    
+    const { data } = await supabase
+      .from('users')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .single();
+    
+    return data?.id || null;
+  };
+
+  const logCondoChange = async (condoId: string, field: string, oldValue: any, newValue: any) => {
+    const userId = await getCurrentUserId();
+    try {
+      await supabase.from('condo_change_logs').insert({
+        condo_id: condoId,
+        field_name: field,
+        old_value: oldValue?.toString() || null,
+        new_value: newValue?.toString() || null,
+        changed_by: userId
+      });
+      // Refresh activity logs
+      fetchActivityLogs(condoId);
+    } catch (error) {
+      console.error('Error logging condo change:', error);
+    }
+  };
 
   const handleFieldUpdate = async (field: string, value: any) => {
     if (!condo?.id) return;
+    
+    const oldValue = condo[field as keyof Condo];
+    if (oldValue === value) return;
 
     try {
-      await databaseService.updateCondo(condo.id, { [field]: value });
+      const userId = await getCurrentUserId();
+      await databaseService.updateCondo(condo.id, { [field]: value, updated_by: userId });
+      
+      // Log the change
+      await logCondoChange(condo.id, field, oldValue, value);
+      
       onCondoUpdated();
       toast({
         title: "Updated",
@@ -87,9 +186,12 @@ export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated, onPr
     uploadedBy?: string
   ) => {
     if (!condo?.id) return;
+    
+    const oldValue = condo[field as keyof Condo];
 
     try {
-      const updates: Record<string, any> = { [field]: path };
+      const userId = await getCurrentUserId();
+      const updates: Record<string, any> = { [field]: path, updated_by: userId };
       
       if (uploadedAt) {
         updates[`${field}_uploaded_at`] = uploadedAt;
@@ -104,6 +206,10 @@ export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated, onPr
       }
       
       await databaseService.updateCondo(condo.id, updates);
+      
+      // Log the change
+      await logCondoChange(condo.id, field, oldValue ? 'document' : null, path ? 'document uploaded' : null);
+      
       onCondoUpdated();
       toast({
         title: path ? "Uploaded" : "Deleted",
@@ -413,6 +519,49 @@ export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated, onPr
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Activity Log */}
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <History className="h-4 w-4" />
+                Activity Log
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 max-h-48 overflow-y-auto">
+              {loadingLogs ? (
+                <p className="text-sm text-muted-foreground">Loading activity...</p>
+              ) : activityLogs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No activity recorded yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {activityLogs.map((log) => (
+                    <div key={log.id} className="flex items-start gap-2 text-xs border-b pb-2 last:border-0">
+                      <Avatar className="h-5 w-5">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-[8px]">
+                          {log.changed_by_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <span className="font-medium">{log.changed_by_name}</span>
+                        <span className="text-muted-foreground"> changed </span>
+                        <span className="font-medium">{formatFieldName(log.field_name)}</span>
+                        {log.old_value && (
+                          <span className="text-muted-foreground"> from "{log.old_value}"</span>
+                        )}
+                        {log.new_value && (
+                          <span className="text-muted-foreground"> to "{log.new_value}"</span>
+                        )}
+                        <span className="text-muted-foreground ml-2">
+                          {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

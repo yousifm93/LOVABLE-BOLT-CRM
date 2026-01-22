@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Building, Plus, Search, Filter, CheckCircle } from "lucide-react";
+import { Building, Plus, Search, Filter, CheckCircle, Clock } from "lucide-react";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
@@ -11,9 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CondoDetailDialog } from "@/components/CondoDetailDialog";
 import { CondoDocumentUpload } from "@/components/ui/condo-document-upload";
 import { DocumentPreviewModal } from "@/components/lead-details/DocumentPreviewModal";
+import { CreateCondoModal } from "@/components/modals/CreateCondoModal";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
 
 interface Condo {
   id: string;
@@ -36,6 +39,8 @@ interface Condo {
   mip_doc_uploaded_at: string | null;
   cq_doc_uploaded_at: string | null;
   updated_at: string;
+  updated_by: string | null;
+  updated_by_name?: string | null;
 }
 
 const reviewTypeOptions = [
@@ -45,6 +50,15 @@ const reviewTypeOptions = [
   { value: "Conventional Full", label: "Conventional Full" },
   { value: "Restricted", label: "Restricted" }
 ];
+
+const formatRelativeTime = (dateString: string | null) => {
+  if (!dateString) return "—";
+  try {
+    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+  } catch {
+    return "—";
+  }
+};
 
 const createColumns = (
   handleUpdate: (id: string, field: string, value: any) => void,
@@ -268,6 +282,29 @@ const createColumns = (
       />
     ),
   },
+  {
+    accessorKey: "updated_at",
+    header: "Last Updated",
+    cell: ({ row }) => {
+      const date = row.original.updated_at;
+      const updatedBy = row.original.updated_by_name;
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-default">
+              <Clock className="h-3 w-3" />
+              <span>{formatRelativeTime(date)}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{new Date(date).toLocaleString()}</p>
+            {updatedBy && <p className="text-muted-foreground">by {updatedBy}</p>}
+          </TooltipContent>
+        </Tooltip>
+      );
+    },
+    sortable: true,
+  },
 ];
 
 export default function Condolist() {
@@ -279,6 +316,7 @@ export default function Condolist() {
   const [reviewTypeFilter, setReviewTypeFilter] = useState<string>("all");
   const [selectedCondo, setSelectedCondo] = useState<Condo | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
   // Document preview state
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -295,8 +333,27 @@ export default function Condolist() {
   const loadCondos = async () => {
     try {
       setLoading(true);
-      const data = await databaseService.getCondos();
-      setCondos(data || []);
+      // Fetch condos with updated_by user name
+      const { data, error } = await supabase
+        .from('condos')
+        .select(`
+          *,
+          updated_by_user:users!condos_updated_by_fkey(first_name, last_name)
+        `)
+        .order('updated_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Transform data to include updated_by_name
+      const transformedData = (data || []).map((condo: any) => ({
+        ...condo,
+        updated_by_name: condo.updated_by_user 
+          ? `${condo.updated_by_user.first_name || ''} ${condo.updated_by_user.last_name || ''}`.trim()
+          : null,
+        updated_by_user: undefined, // Remove the nested object
+      }));
+      
+      setCondos(transformedData);
     } catch (error) {
       console.error('Error loading condos:', error);
       toast({
@@ -309,13 +366,51 @@ export default function Condolist() {
     }
   };
 
-  const handleUpdate = async (id: string, field: string, value: any) => {
+  const getCurrentUserId = async (): Promise<string | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) return null;
+    
+    const { data } = await supabase
+      .from('users')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .single();
+    
+    return data?.id || null;
+  };
+
+  const logCondoChange = async (condoId: string, field: string, oldValue: any, newValue: any) => {
+    const userId = await getCurrentUserId();
     try {
-      await databaseService.updateCondo(id, { [field]: value });
+      await supabase.from('condo_change_logs').insert({
+        condo_id: condoId,
+        field_name: field,
+        old_value: oldValue?.toString() || null,
+        new_value: newValue?.toString() || null,
+        changed_by: userId
+      });
+    } catch (error) {
+      console.error('Error logging condo change:', error);
+    }
+  };
+
+  const handleUpdate = async (id: string, field: string, value: any) => {
+    const condo = condos.find(c => c.id === id);
+    const oldValue = condo?.[field as keyof Condo];
+    
+    // Skip if value hasn't changed
+    if (oldValue === value) return;
+    
+    try {
+      const userId = await getCurrentUserId();
+      await databaseService.updateCondo(id, { [field]: value, updated_by: userId });
+      
+      // Log the change
+      await logCondoChange(id, field, oldValue, value);
       
       // Update local state optimistically
       setCondos(prev => prev.map(condo => 
-        condo.id === id ? { ...condo, [field]: value } : condo
+        condo.id === id ? { ...condo, [field]: value, updated_at: new Date().toISOString() } : condo
       ));
 
       toast({
@@ -340,8 +435,12 @@ export default function Condolist() {
     uploadedAt?: string, 
     uploadedBy?: string
   ) => {
+    const condo = condos.find(c => c.id === id);
+    const oldValue = condo?.[field as keyof Condo];
+    
     try {
-      const updates: Record<string, any> = { [field]: path };
+      const userId = await getCurrentUserId();
+      const updates: Record<string, any> = { [field]: path, updated_by: userId };
       
       // Add metadata fields if provided
       if (uploadedAt) {
@@ -359,9 +458,12 @@ export default function Condolist() {
       
       await databaseService.updateCondo(id, updates);
       
+      // Log the change
+      await logCondoChange(id, field, oldValue ? 'document' : null, path ? 'document uploaded' : null);
+      
       // Update local state
       setCondos(prev => prev.map(condo => 
-        condo.id === id ? { ...condo, ...updates } : condo
+        condo.id === id ? { ...condo, ...updates, updated_at: new Date().toISOString() } : condo
       ));
 
       toast({
@@ -395,45 +497,12 @@ export default function Condolist() {
     }
   };
 
-  const handleAddCondo = async () => {
-    try {
-      const newCondo: Partial<Condo> = {
-        condo_name: "New Condo",
-        street_address: "",
-        city: "",
-        state: "",
-        zip: "",
-        source_uwm: false,
-        source_ad: false,
-        review_type: null,
-        primary_down: null,
-        second_down: null,
-        investment_down: null
-      };
-      
-      const created = await databaseService.createCondo(newCondo);
-      setCondos(prev => [created as Condo, ...prev]);
-      
-      toast({
-        title: "Created",
-        description: "New condo added successfully",
-      });
-    } catch (error) {
-      console.error('Error creating condo:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create condo",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleViewDetails = (condo: Condo) => {
     setSelectedCondo(condo);
     setIsDialogOpen(true);
   };
 
-  // Filter condos based on selected filters
+  // Filter and sort condos (most recently updated first)
   const filteredCondos = useMemo(() => {
     let result = condos;
     
@@ -451,7 +520,10 @@ export default function Condolist() {
       result = result.filter(condo => condo.review_type === reviewTypeFilter);
     }
     
-    return result;
+    // Sort by updated_at DESC (already sorted from DB, but re-sort for local updates)
+    return result.sort((a, b) => 
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
   }, [condos, targetMarketFilter, reviewTypeFilter]);
 
   const columns = createColumns(handleUpdate, handleDocUpdate, handlePreview);
@@ -551,7 +623,7 @@ export default function Condolist() {
                 className="w-64"
               />
             </div>
-            <Button onClick={handleAddCondo} className="flex items-center gap-2">
+            <Button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Add Condo
             </Button>
@@ -579,6 +651,12 @@ export default function Condolist() {
         onClose={() => setIsDialogOpen(false)}
         onCondoUpdated={loadCondos}
         onPreview={handlePreview}
+      />
+
+      <CreateCondoModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onCondoCreated={loadCondos}
       />
 
       <DocumentPreviewModal
