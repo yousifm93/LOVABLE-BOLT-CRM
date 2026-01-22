@@ -1,9 +1,10 @@
 import { Label } from "@/components/ui/label";
-import { Building2, MessageSquare, ExternalLink, Calendar, Check } from "lucide-react";
+import { Building2, MessageSquare, ExternalLink, Calendar, Check, FileText } from "lucide-react";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { InlineEditCondo } from "@/components/ui/inline-edit-condo";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { CondoDocumentUpload } from "@/components/ui/condo-document-upload";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +33,9 @@ interface CondoDetails {
   primary_down: string | null;
   second_down: string | null;
   investment_down: string | null;
+  budget_doc: string | null;
+  mip_doc: string | null;
+  cq_doc: string | null;
 }
 
 const condoStatusOptions = [
@@ -68,7 +72,7 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
     setLoading(true);
     const { data: condo, error } = await supabase
       .from("condos")
-      .select("id, condo_name, source_uwm, source_ad, review_type, approval_expiration_date, primary_down, second_down, investment_down")
+      .select("id, condo_name, source_uwm, source_ad, review_type, approval_expiration_date, primary_down, second_down, investment_down, budget_doc, mip_doc, cq_doc")
       .eq("id", data.condo_id)
       .single();
 
@@ -87,6 +91,19 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
       }
     }
     setLoading(false);
+  };
+
+  const handleCondoDocUpdate = async (field: string, path: string | null) => {
+    if (!condoDetails?.id) return;
+    
+    const { error } = await supabase
+      .from('condos')
+      .update({ [field]: path })
+      .eq('id', condoDetails.id);
+    
+    if (!error) {
+      loadCondoDetails(); // Refresh to show updated doc
+    }
   };
 
   return (
@@ -212,6 +229,46 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
                 {condoDetails.investment_down && (
                   <span><span className="text-muted-foreground">Investment:</span> {condoDetails.investment_down}</span>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Condo Documents */}
+          <div className="pt-2 border-t border-border/50">
+            <div className="flex items-center gap-1.5 mb-2">
+              <FileText className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Condo Documents</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-muted-foreground">Budget</span>
+                <CondoDocumentUpload
+                  condoId={condoDetails.id}
+                  fieldName="budget_doc"
+                  currentFile={condoDetails.budget_doc}
+                  onUpload={(path) => handleCondoDocUpdate('budget_doc', path)}
+                  compact={true}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-muted-foreground">MIP</span>
+                <CondoDocumentUpload
+                  condoId={condoDetails.id}
+                  fieldName="mip_doc"
+                  currentFile={condoDetails.mip_doc}
+                  onUpload={(path) => handleCondoDocUpdate('mip_doc', path)}
+                  compact={true}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-muted-foreground">CQ</span>
+                <CondoDocumentUpload
+                  condoId={condoDetails.id}
+                  fieldName="cq_doc"
+                  currentFile={condoDetails.cq_doc}
+                  onUpload={(path) => handleCondoDocUpdate('cq_doc', path)}
+                  compact={true}
+                />
               </div>
             </div>
           </div>

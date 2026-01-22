@@ -9,7 +9,8 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditBoolean } from "@/components/ui/inline-edit-boolean";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CondoDetailDrawer } from "@/components/CondoDetailDrawer";
+import { CondoDetailDialog } from "@/components/CondoDetailDialog";
+import { CondoDocumentUpload } from "@/components/ui/condo-document-upload";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,6 +28,9 @@ interface Condo {
   primary_down: string | null;
   second_down: string | null;
   investment_down: string | null;
+  budget_doc: string | null;
+  mip_doc: string | null;
+  cq_doc: string | null;
   updated_at: string;
 }
 
@@ -211,6 +215,45 @@ const createColumns = (
     },
     sortable: true,
   },
+  {
+    accessorKey: "budget_doc",
+    header: "Budget",
+    cell: ({ row }) => (
+      <CondoDocumentUpload
+        condoId={row.original.id}
+        fieldName="budget_doc"
+        currentFile={row.original.budget_doc}
+        onUpload={(path) => handleUpdate(row.original.id, "budget_doc", path)}
+        compact={true}
+      />
+    ),
+  },
+  {
+    accessorKey: "mip_doc",
+    header: "MIP",
+    cell: ({ row }) => (
+      <CondoDocumentUpload
+        condoId={row.original.id}
+        fieldName="mip_doc"
+        currentFile={row.original.mip_doc}
+        onUpload={(path) => handleUpdate(row.original.id, "mip_doc", path)}
+        compact={true}
+      />
+    ),
+  },
+  {
+    accessorKey: "cq_doc",
+    header: "CQ",
+    cell: ({ row }) => (
+      <CondoDocumentUpload
+        condoId={row.original.id}
+        fieldName="cq_doc"
+        currentFile={row.original.cq_doc}
+        onUpload={(path) => handleUpdate(row.original.id, "cq_doc", path)}
+        compact={true}
+      />
+    ),
+  },
 ];
 
 export default function Condolist() {
@@ -221,7 +264,7 @@ export default function Condolist() {
   const [targetMarketFilter, setTargetMarketFilter] = useState<string>("all");
   const [reviewTypeFilter, setReviewTypeFilter] = useState<string>("all");
   const [selectedCondo, setSelectedCondo] = useState<Condo | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -304,7 +347,7 @@ export default function Condolist() {
 
   const handleViewDetails = (condo: Condo) => {
     setSelectedCondo(condo);
-    setIsDrawerOpen(true);
+    setIsDialogOpen(true);
   };
 
   // Filter condos based on selected filters
@@ -447,10 +490,10 @@ export default function Condolist() {
         </CardContent>
       </Card>
 
-      <CondoDetailDrawer
+      <CondoDetailDialog
         condo={selectedCondo}
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
         onCondoUpdated={loadCondos}
       />
     </div>

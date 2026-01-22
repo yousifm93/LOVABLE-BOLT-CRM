@@ -883,11 +883,14 @@ export type Database = {
       condos: {
         Row: {
           approval_expiration_date: string | null
+          budget_doc: string | null
           city: string | null
           condo_name: string
+          cq_doc: string | null
           created_at: string
           id: string
           investment_down: string | null
+          mip_doc: string | null
           primary_down: string | null
           review_type: string | null
           second_down: string | null
@@ -900,11 +903,14 @@ export type Database = {
         }
         Insert: {
           approval_expiration_date?: string | null
+          budget_doc?: string | null
           city?: string | null
           condo_name: string
+          cq_doc?: string | null
           created_at?: string
           id?: string
           investment_down?: string | null
+          mip_doc?: string | null
           primary_down?: string | null
           review_type?: string | null
           second_down?: string | null
@@ -917,11 +923,14 @@ export type Database = {
         }
         Update: {
           approval_expiration_date?: string | null
+          budget_doc?: string | null
           city?: string | null
           condo_name?: string
+          cq_doc?: string | null
           created_at?: string
           id?: string
           investment_down?: string | null
+          mip_doc?: string | null
           primary_down?: string | null
           review_type?: string | null
           second_down?: string | null
