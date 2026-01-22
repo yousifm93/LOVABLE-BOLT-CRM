@@ -42,12 +42,12 @@ export function useDocumentReviewCounts(leadIds: string[]) {
       
       const taskIds = tasks.map(t => t.id);
       
-      // Get documents pending review
+      // Get documents pending review (check multiple status variants)
       const { data: docs, error: docsError } = await supabase
         .from('borrower_documents')
         .select('task_id')
         .in('task_id', taskIds)
-        .eq('status', 'pending_review');
+        .in('status', ['pending_review', 'in_review', 'in review']);
       
       if (docsError) {
         console.error('Error fetching borrower documents:', docsError);
