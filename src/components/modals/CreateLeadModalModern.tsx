@@ -355,8 +355,16 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
           if (data.notes) {
             updates.notes = formData.notes ? `${formData.notes}\n\n${data.notes}` : data.notes;
           }
-          if (data.referral_method) updates.referred_via = data.referral_method;
-          if (data.referral_source) updates.source = data.referral_source;
+          // Validate enum values before setting form state
+          const validReferredVia = ['Phone', 'Email', 'Social', 'Personal', 'Text', 'Call', 'Web', 'In Person'];
+          const validReferralSource = ['Agent', 'New Agent', 'Past Client', 'Personal', 'Social', 'Miscellaneous'];
+          
+          if (data.referral_method && validReferredVia.includes(data.referral_method)) {
+            updates.referred_via = data.referral_method;
+          }
+          if (data.referral_source && validReferralSource.includes(data.referral_source)) {
+            updates.source = data.referral_source;
+          }
 
           // Match agent by name
           if (data.agent_name && buyerAgents.length > 0) {
