@@ -314,6 +314,8 @@ export default function Condolist() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [targetMarketFilter, setTargetMarketFilter] = useState<string>("all");
   const [reviewTypeFilter, setReviewTypeFilter] = useState<string>("all");
+  const [uwmFilter, setUwmFilter] = useState<string>("all");
+  const [adFilter, setAdFilter] = useState<string>("all");
   const [selectedCondo, setSelectedCondo] = useState<Condo | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -333,19 +335,35 @@ export default function Condolist() {
   const loadCondos = async () => {
     try {
       setLoading(true);
-      // Fetch condos with updated_by user name
-      const { data, error } = await supabase
-        .from('condos')
-        .select(`
-          *,
-          updated_by_user:users!condos_updated_by_fkey(first_name, last_name)
-        `)
-        .order('updated_at', { ascending: false });
-      
-      if (error) throw error;
+      const PAGE_SIZE = 1000;
+      let allCondos: any[] = [];
+      let hasMore = true;
+      let offset = 0;
+
+      // Fetch all condos with pagination to bypass the 1000 row limit
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('condos')
+          .select(`
+            *,
+            updated_by_user:users!condos_updated_by_fkey(first_name, last_name)
+          `)
+          .order('updated_at', { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1);
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allCondos = [...allCondos, ...data];
+          offset += PAGE_SIZE;
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
       
       // Transform data to include updated_by_name
-      const transformedData = (data || []).map((condo: any) => ({
+      const transformedData = allCondos.map((condo: any) => ({
         ...condo,
         updated_by_name: condo.updated_by_user 
           ? `${condo.updated_by_user.first_name || ''} ${condo.updated_by_user.last_name || ''}`.trim()
@@ -506,6 +524,20 @@ export default function Condolist() {
   const filteredCondos = useMemo(() => {
     let result = condos;
     
+    // UWM filter
+    if (uwmFilter === "yes") {
+      result = result.filter(condo => condo.source_uwm === true);
+    } else if (uwmFilter === "no") {
+      result = result.filter(condo => condo.source_uwm !== true);
+    }
+    
+    // A&D filter
+    if (adFilter === "yes") {
+      result = result.filter(condo => condo.source_ad === true);
+    } else if (adFilter === "no") {
+      result = result.filter(condo => condo.source_ad !== true);
+    }
+    
     // Target Market filter (zip codes 33125-33181)
     if (targetMarketFilter === "target") {
       result = result.filter(condo => {
@@ -524,13 +556,15 @@ export default function Condolist() {
     return result.sort((a, b) => 
       new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
-  }, [condos, targetMarketFilter, reviewTypeFilter]);
+  }, [condos, targetMarketFilter, reviewTypeFilter, uwmFilter, adFilter]);
 
   const columns = createColumns(handleUpdate, handleDocUpdate, handlePreview);
 
   const activeFiltersCount = [
     targetMarketFilter !== "all",
-    reviewTypeFilter !== "all"
+    reviewTypeFilter !== "all",
+    uwmFilter !== "all",
+    adFilter !== "all"
   ].filter(Boolean).length;
 
   if (loading) {
@@ -584,6 +618,28 @@ export default function Condolist() {
               </SelectContent>
             </Select>
 
+            <Select value={uwmFilter} onValueChange={setUwmFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="UWM" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All UWM</SelectItem>
+                <SelectItem value="yes">UWM Approved</SelectItem>
+                <SelectItem value="no">Not UWM</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={adFilter} onValueChange={setAdFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="A&D" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All A&D</SelectItem>
+                <SelectItem value="yes">A&D Approved</SelectItem>
+                <SelectItem value="no">Not A&D</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Select value={reviewTypeFilter} onValueChange={setReviewTypeFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Review Type" />
@@ -605,6 +661,8 @@ export default function Condolist() {
                 onClick={() => {
                   setTargetMarketFilter("all");
                   setReviewTypeFilter("all");
+                  setUwmFilter("all");
+                  setAdFilter("all");
                 }}
               >
                 Clear filters
