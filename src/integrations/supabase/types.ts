@@ -820,6 +820,51 @@ export type Database = {
           },
         ]
       }
+      condo_change_logs: {
+        Row: {
+          changed_by: string | null
+          condo_id: string
+          created_at: string | null
+          field_name: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          changed_by?: string | null
+          condo_id: string
+          created_at?: string | null
+          field_name: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          changed_by?: string | null
+          condo_id?: string
+          created_at?: string | null
+          field_name?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condo_change_logs_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "condo_change_logs_condo_id_fkey"
+            columns: ["condo_id"]
+            isOneToOne: false
+            referencedRelation: "condos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       condo_searches: {
         Row: {
           city: string | null
@@ -905,6 +950,7 @@ export type Database = {
           state: string | null
           street_address: string | null
           updated_at: string
+          updated_by: string | null
           zip: string | null
         }
         Insert: {
@@ -931,6 +977,7 @@ export type Database = {
           state?: string | null
           street_address?: string | null
           updated_at?: string
+          updated_by?: string | null
           zip?: string | null
         }
         Update: {
@@ -957,6 +1004,7 @@ export type Database = {
           state?: string | null
           street_address?: string | null
           updated_at?: string
+          updated_by?: string | null
           zip?: string | null
         }
         Relationships: [
@@ -977,6 +1025,13 @@ export type Database = {
           {
             foreignKeyName: "condos_mip_doc_uploaded_by_fkey"
             columns: ["mip_doc_uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "condos_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
