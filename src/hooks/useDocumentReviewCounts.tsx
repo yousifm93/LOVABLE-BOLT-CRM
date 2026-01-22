@@ -15,14 +15,18 @@ export function useDocumentReviewCounts(leadIds: string[]) {
       return;
     }
 
+    console.log('[DEBUG] useDocumentReviewCounts - Fetching for lead IDs:', leadIds.slice(0, 5), '...');
+
     try {
       setLoading(true);
       
       // Get all borrower_tasks for these leads to get task IDs
       const { data: tasks, error: tasksError } = await supabase
         .from('borrower_tasks')
-        .select('id, lead_id')
+        .select('id, lead_id, status')
         .in('lead_id', leadIds);
+      
+      console.log('[DEBUG] borrower_tasks result:', { count: tasks?.length, error: tasksError });
       
       if (tasksError) {
         console.error('Error fetching borrower tasks:', tasksError);
@@ -30,6 +34,7 @@ export function useDocumentReviewCounts(leadIds: string[]) {
       }
       
       if (!tasks || tasks.length === 0) {
+        console.log('[DEBUG] No borrower_tasks found for these leads');
         setCounts({});
         return;
       }
@@ -45,9 +50,11 @@ export function useDocumentReviewCounts(leadIds: string[]) {
       // Get documents pending review (check multiple status variants)
       const { data: docs, error: docsError } = await supabase
         .from('borrower_documents')
-        .select('task_id')
+        .select('task_id, status')
         .in('task_id', taskIds)
         .in('status', ['pending_review', 'in_review', 'in review']);
+      
+      console.log('[DEBUG] borrower_documents result:', { count: docs?.length, statuses: docs?.map(d => d.status), error: docsError });
       
       if (docsError) {
         console.error('Error fetching borrower documents:', docsError);
@@ -65,6 +72,7 @@ export function useDocumentReviewCounts(leadIds: string[]) {
         }
       });
       
+      console.log('[DEBUG] Final counts map:', countMap);
       setCounts(countMap);
     } catch (error) {
       console.error('Error fetching document review counts:', error);

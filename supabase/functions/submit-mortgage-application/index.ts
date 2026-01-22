@@ -966,32 +966,39 @@ Deno.serve(async (req) => {
     // Create "Screen" task assigned to Herman Daza
     // Task can only be completed by moving to Pre-qualified stage
     try {
-      console.log('Creating "Screen" task...');
+      console.log('Creating "Screen" task for lead:', result.id);
       const taskDueDate = new Date();
       taskDueDate.setDate(taskDueDate.getDate() + 1);
       
+      const taskPayload = {
+        title: 'Screen new application',
+        description: `Screen the new mortgage application for ${personalInfo.firstName} ${personalInfo.lastName}`,
+        borrower_id: result.id,
+        assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman Daza
+        status: 'To Do',
+        priority: 'High',
+        due_date: taskDueDate.toISOString().split('T')[0],
+        completion_requirement_type: 'status_change:pipeline_stage_id=09162eec-d2b2-48e5-86d0-9e66ee8b2af7',
+      };
+      
+      console.log('Task payload:', JSON.stringify(taskPayload));
+      
       const { data: taskData, error: taskError } = await supabase
         .from('tasks')
-        .insert({
-          title: 'Screen new application',
-          description: `Screen the new mortgage application for ${personalInfo.firstName} ${personalInfo.lastName}`,
-          borrower_id: result.id,
-          assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman Daza
-          status: 'To Do',
-          priority: 'High',
-          due_date: taskDueDate.toISOString().split('T')[0], // Date only, not full timestamp
-          completion_requirement_type: 'status_change:pipeline_stage_id=09162eec-d2b2-48e5-86d0-9e66ee8b2af7', // Requires Pre-qualified
-        })
+        .insert(taskPayload)
         .select()
         .single();
       
       if (taskError) {
-        console.error('Error creating Screen task:', taskError);
+        console.error('Error creating Screen task - Code:', taskError.code);
+        console.error('Error creating Screen task - Message:', taskError.message);
+        console.error('Error creating Screen task - Details:', taskError.details);
+        console.error('Error creating Screen task - Hint:', taskError.hint);
       } else {
-        console.log('Successfully created Screen task:', taskData?.id);
+        console.log('Successfully created Screen task with ID:', taskData?.id);
       }
     } catch (taskCreationError) {
-      console.error('Failed to create Screen task:', taskCreationError);
+      console.error('Failed to create Screen task - Exception:', taskCreationError);
       // Don't fail the entire submission if task creation fails
     }
 
