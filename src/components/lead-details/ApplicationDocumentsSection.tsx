@@ -19,10 +19,11 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { databaseService } from "@/services/database";
-import { formatDistance } from "date-fns";
+import { formatDistance, format } from "date-fns";
 import { AddBorrowerTaskModal } from "@/components/modals/AddBorrowerTaskModal";
 import { supabase } from "@/integrations/supabase/client";
 import { DocumentPreviewModal } from "./DocumentPreviewModal";
+import { DocumentRejectionModal } from "@/components/modals/DocumentRejectionModal";
 
 interface BorrowerTask {
   id: string;
@@ -35,6 +36,8 @@ interface BorrowerTask {
   user_id: string | null;
   created_at: string | null;
   updated_at: string | null;
+  rejection_notes: string | null;
+  reviewed_at: string | null;
 }
 
 interface BorrowerDocument {
@@ -47,6 +50,9 @@ interface BorrowerDocument {
   status: string | null;
   uploaded_at: string | null;
   file_size: number | null;
+  approved_at: string | null;
+  reviewed_at: string | null;
+  rejection_notes: string | null;
 }
 
 interface ApplicationDocumentsSectionProps {
@@ -66,6 +72,7 @@ const getStatusBadge = (status: string) => {
       );
     case 'in_review':
     case 'in review':
+    case 'pending_review':
       return (
         <Badge className="bg-blue-100 text-blue-700 border-blue-200">
           <AlertCircle className="h-3 w-3 mr-1" />
@@ -106,6 +113,11 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
     mimeType: string;
     pdfData?: ArrayBuffer;
   }>({ name: '', url: null, mimeType: '' });
+  
+  // Rejection modal state
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+  const [documentToReject, setDocumentToReject] = useState<BorrowerDocument | null>(null);
+  
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -280,43 +292,146 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
     }
   };
 
-  const handleUpdateDocStatus = async (docId: string, status: string) => {
+  const handleDownloadDocument = async (doc: BorrowerDocument) => {
+    if (!doc.document_url) {
+      toast({
+        title: "Error",
+        description: "Document URL not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      const { error } = await supabase
+      let documentUrl = doc.document_url;
+      
+      // If it's a relative path (not starting with http), generate signed URL
+      if (!documentUrl.startsWith('http')) {
+        const { data, error } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(documentUrl, 3600);
+        if (error) throw error;
+        documentUrl = data.signedUrl;
+      }
+      
+      // Fetch and download
+      const response = await fetch(documentUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.file_name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download Started",
+        description: `Downloading ${doc.file_name}`
+      });
+    } catch (error: any) {
+      console.error('Error downloading document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download document",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleApproveDocument = async (doc: BorrowerDocument) => {
+    try {
+      const now = new Date().toISOString();
+      
+      // Update document status
+      const { error: docError } = await supabase
         .from('borrower_documents')
-        .update({ status })
-        .eq('id', docId);
+        .update({ 
+          status: 'approved',
+          approved_at: now,
+          reviewed_at: now
+        })
+        .eq('id', doc.id);
       
-      if (error) throw error;
+      if (docError) throw docError;
       
-      // Also update the task status based on document status
-      const doc = documents.find(d => d.id === docId);
-      if (doc?.task_id) {
-        if (status === 'approved') {
-          await supabase
-            .from('borrower_tasks')
-            .update({ status: 'completed' })
-            .eq('id', doc.task_id);
-        } else if (status === 'rejected') {
-          await supabase
-            .from('borrower_tasks')
-            .update({ status: 'rejected' })
-            .eq('id', doc.task_id);
-        }
+      // Update task status to completed
+      if (doc.task_id) {
+        await supabase
+          .from('borrower_tasks')
+          .update({ 
+            status: 'completed',
+            reviewed_at: now
+          })
+          .eq('id', doc.task_id);
       }
       
       toast({
-        title: "Status Updated",
-        description: `Document ${status === 'approved' ? 'approved' : 'rejected'}`
+        title: "Document Approved",
+        description: `${doc.file_name} has been approved`
       });
       
       await loadData();
       onDocumentsChange?.();
     } catch (error: any) {
-      console.error('Error updating document status:', error);
+      console.error('Error approving document:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update document status",
+        description: error.message || "Failed to approve document",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRejectClick = (doc: BorrowerDocument) => {
+    setDocumentToReject(doc);
+    setRejectionModalOpen(true);
+  };
+
+  const handleRejectDocument = async (rejectionNotes: string) => {
+    if (!documentToReject) return;
+    
+    try {
+      const now = new Date().toISOString();
+      
+      // Update document status with rejection notes
+      const { error: docError } = await supabase
+        .from('borrower_documents')
+        .update({ 
+          status: 'rejected',
+          rejection_notes: rejectionNotes,
+          reviewed_at: now
+        })
+        .eq('id', documentToReject.id);
+      
+      if (docError) throw docError;
+      
+      // Update task status back to pending (re-requested) with rejection notes
+      if (documentToReject.task_id) {
+        await supabase
+          .from('borrower_tasks')
+          .update({ 
+            status: 'pending', // Back to pending so borrower can re-upload
+            rejection_notes: rejectionNotes,
+            reviewed_at: now
+          })
+          .eq('id', documentToReject.task_id);
+      }
+      
+      toast({
+        title: "Document Rejected",
+        description: "The borrower will be notified to upload a revised document"
+      });
+      
+      setDocumentToReject(null);
+      await loadData();
+      onDocumentsChange?.();
+    } catch (error: any) {
+      console.error('Error rejecting document:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject document",
         variant: "destructive"
       });
     }
@@ -357,7 +472,8 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
           borrowerName: `${leadData.first_name || ''} ${leadData.last_name || ''}`.trim(),
           pendingTasks: pendingItems.map(t => ({
             name: t.task_name,
-            description: t.task_description
+            description: t.task_description,
+            rejectionNotes: t.rejection_notes // Include rejection notes if re-requesting
           })),
           portalUrl: 'https://mortgagebolt.org/apply'
         }
@@ -411,6 +527,12 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
                 Requested {formatDistance(new Date(task.created_at), new Date(), { addSuffix: true })}
               </p>
             )}
+            {/* Show rejection notes if task was previously rejected */}
+            {task.rejection_notes && task.status === 'pending' && (
+              <div className="mt-2 ml-6 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                <span className="font-medium">Revision requested:</span> {task.rejection_notes}
+              </div>
+            )}
           </div>
           
           <Button
@@ -433,12 +555,35 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
           <div className="mt-2 ml-6 space-y-1">
             {taskDocs.map(doc => (
               <div key={doc.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-xs">
-                <FileText className="h-3.5 w-3.5 text-blue-500" />
-                <span className="flex-1 truncate">{doc.file_name}</span>
-                <Badge variant="outline" className="text-[10px]">
-                  {doc.status || 'Uploaded'}
+                <FileText className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="truncate block">{doc.file_name}</span>
+                  {/* Upload timestamp */}
+                  {doc.uploaded_at && (
+                    <span className="text-[10px] text-muted-foreground">
+                      Uploaded {formatDistance(new Date(doc.uploaded_at), new Date(), { addSuffix: true })}
+                    </span>
+                  )}
+                  {/* Approval timestamp */}
+                  {doc.status === 'approved' && doc.approved_at && (
+                    <span className="text-[10px] text-green-600 ml-2">
+                      • Approved {formatDistance(new Date(doc.approved_at), new Date(), { addSuffix: true })}
+                    </span>
+                  )}
+                  {/* Rejection notes */}
+                  {doc.status === 'rejected' && doc.rejection_notes && (
+                    <p className="text-[10px] text-red-600 mt-0.5">
+                      Rejected: {doc.rejection_notes}
+                    </p>
+                  )}
+                </div>
+                <Badge variant="outline" className="text-[10px] flex-shrink-0">
+                  {doc.status === 'approved' ? 'Approved' : 
+                   doc.status === 'rejected' ? 'Rejected' : 
+                   doc.status === 'pending_review' ? 'In Review' :
+                   'Uploaded'}
                 </Badge>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5 flex-shrink-0">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -448,13 +593,22 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
                   >
                     <Eye className="h-3 w-3" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => handleDownloadDocument(doc)}
+                    title="Download"
+                  >
+                    <Download className="h-3 w-3" />
+                  </Button>
                   {doc.status !== 'approved' && doc.status !== 'rejected' && (
                     <>
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0 text-green-600 hover:text-green-700"
-                        onClick={() => handleUpdateDocStatus(doc.id, 'approved')}
+                        onClick={() => handleApproveDocument(doc)}
                         title="Approve"
                       >
                         <CheckCircle2 className="h-3 w-3" />
@@ -463,7 +617,7 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                        onClick={() => handleUpdateDocStatus(doc.id, 'rejected')}
+                        onClick={() => handleRejectClick(doc)}
                         title="Reject"
                       >
                         <XCircle className="h-3 w-3" />
@@ -598,6 +752,13 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
         documentUrl={previewDoc.url}
         mimeType={previewDoc.mimeType}
         pdfData={previewDoc.pdfData}
+      />
+      
+      <DocumentRejectionModal
+        open={rejectionModalOpen}
+        onOpenChange={setRejectionModalOpen}
+        documentName={documentToReject?.file_name || ''}
+        onConfirm={handleRejectDocument}
       />
     </>
   );

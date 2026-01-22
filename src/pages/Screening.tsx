@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useFields } from "@/contexts/FieldsContext";
-import { Search, Plus, Filter, Phone, Mail, Clock, X } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, Clock, X, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { usePipelineView } from "@/hooks/usePipelineView";
+import { useDocumentReviewCounts } from "@/hooks/useDocumentReviewCounts";
 import { ButtonFilterBuilder, FilterCondition } from "@/components/ui/button-filter-builder";
 import { countActiveFilters } from "@/utils/filterUtils";
 // Sheet removed - using inline filters
@@ -32,6 +33,7 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { TaskDueDateDisplay } from "@/components/ui/task-due-date-display";
 import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import {
   AlertDialog,
@@ -180,6 +182,10 @@ const allAvailableColumns = useMemo(() => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
+
+  // Get lead IDs for document review counts
+  const leadIds = useMemo(() => leads.map(l => l.id), [leads]);
+  const { counts: documentReviewCounts } = useDocumentReviewCounts(leadIds);
 
   // Get saved column widths from pipeline view
   const { columnWidths: savedColumnWidths } = usePipelineView('screening');
@@ -670,18 +676,37 @@ const allAvailableColumns = useMemo(() => {
       sortable: true,
       className: "text-left",
       headerClassName: "text-left",
-      cell: ({ row }) => (
-        <span 
-          className="cursor-pointer hover:text-primary transition-colors font-medium"
-          onClick={(e) => {
-            e.stopPropagation();
-            const lead = leads.find(l => l.id === row.original.id);
-            if (lead) handleRowClick(lead);
-          }}
-        >
-          {row.original.name}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const docCount = documentReviewCounts[row.original.id] || 0;
+        return (
+          <div className="flex items-center gap-1.5">
+            <span 
+              className="cursor-pointer hover:text-primary transition-colors font-medium"
+              onClick={(e) => {
+                e.stopPropagation();
+                const lead = leads.find(l => l.id === row.original.id);
+                if (lead) handleRowClick(lead);
+              }}
+            >
+              {row.original.name}
+            </span>
+            {docCount > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge className="h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-red-500 hover:bg-red-600 text-white rounded-full cursor-pointer">
+                      {docCount}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{docCount} document{docCount > 1 ? 's' : ''} awaiting review</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "appCompleteOn",

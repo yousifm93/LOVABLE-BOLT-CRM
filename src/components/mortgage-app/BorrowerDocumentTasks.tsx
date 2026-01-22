@@ -10,7 +10,8 @@ import {
   Clock, 
   AlertCircle,
   Loader2,
-  X
+  Download,
+  AlertTriangle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +26,8 @@ interface BorrowerTask {
   due_date: string | null;
   lead_id: string | null;
   created_at: string | null;
+  rejection_notes: string | null;
+  reviewed_at: string | null;
 }
 
 interface BorrowerDocument {
@@ -34,6 +37,8 @@ interface BorrowerDocument {
   document_url: string;
   status: string | null;
   uploaded_at: string | null;
+  approved_at: string | null;
+  rejection_notes: string | null;
 }
 
 interface BorrowerDocumentTasksProps {
@@ -41,7 +46,7 @@ interface BorrowerDocumentTasksProps {
   leadId?: string;
 }
 
-const getStatusBadge = (status: string) => {
+const getStatusBadge = (status: string, hasRejectionNotes?: boolean) => {
   switch (status.toLowerCase()) {
     case 'completed':
     case 'approved':
@@ -63,11 +68,26 @@ const getStatusBadge = (status: string) => {
     case 'rejected':
       return (
         <Badge className="bg-red-100 text-red-700 border-red-200">
-          <AlertCircle className="h-3 w-3 mr-1" />
+          <AlertTriangle className="h-3 w-3 mr-1" />
           Needs Revision
         </Badge>
       );
     case 'pending':
+      // If pending but has rejection notes, it's a re-request
+      if (hasRejectionNotes) {
+        return (
+          <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Re-Requested
+          </Badge>
+        );
+      }
+      return (
+        <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+          <Clock className="h-3 w-3 mr-1" />
+          Pending
+        </Badge>
+      );
     default:
       return (
         <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
@@ -175,10 +195,13 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
       
       if (docError) throw docError;
       
-      // Update task status to in_review
+      // Update task status to in_review and clear rejection notes
       await supabase
         .from('borrower_tasks')
-        .update({ status: 'in_review' })
+        .update({ 
+          status: 'in_review',
+          rejection_notes: null // Clear old rejection notes on re-upload
+        })
         .eq('id', uploadingTaskId);
       
       toast({
@@ -202,6 +225,30 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
     }
   };
 
+  const handleDownloadDocument = async (doc: BorrowerDocument) => {
+    if (!doc.document_url) return;
+    
+    try {
+      const response = await fetch(doc.document_url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.file_name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast({
+        title: "Download Failed",
+        description: "Could not download the document",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getTaskDocuments = (taskId: string) => documents.filter(d => d.task_id === taskId);
 
   // Group tasks by status
@@ -212,8 +259,6 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
 
   // Active tasks = pending + rejected (need action from borrower)
   const activeTasks = [...pendingTasks, ...rejectedTasks];
-  // All uploaded docs
-  const allDocuments = documents;
 
   if (loading) {
     return (
@@ -229,9 +274,10 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
     return null; // Don't show if no tasks
   }
 
-  const renderTaskCard = (task: BorrowerTask) => {
+  const renderTaskCard = (task: BorrowerTask, showUploadButton: boolean = true) => {
     const taskDocs = getTaskDocuments(task.id);
     const needsUpload = task.status === 'pending' || task.status === 'rejected';
+    const hasRejectionNotes = !!task.rejection_notes;
     
     return (
       <div key={task.id} className="border rounded-lg p-4 bg-card">
@@ -240,7 +286,7 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
             <div className="flex items-center gap-2 mb-2">
               <FileText className="h-4 w-4 text-primary" />
               <span className="font-medium">{task.task_name}</span>
-              {getStatusBadge(task.status)}
+              {getStatusBadge(task.status, hasRejectionNotes)}
             </div>
             {task.task_description && (
               <p className="text-sm text-muted-foreground mb-2">
@@ -254,7 +300,7 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
             )}
           </div>
           
-          {needsUpload && (
+          {showUploadButton && needsUpload && (
             <Button
               size="sm"
               onClick={() => handleUploadClick(task.id)}
@@ -265,33 +311,65 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
               ) : (
                 <>
                   <Upload className="h-4 w-4 mr-1" />
-                  Upload
+                  {hasRejectionNotes ? 'Re-Upload' : 'Upload'}
                 </>
               )}
             </Button>
           )}
         </div>
         
+        {/* Show rejection notes prominently if present */}
+        {hasRejectionNotes && task.status === 'pending' && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-red-800 mb-1">Revision Requested</p>
+                <p className="text-sm text-red-700">{task.rejection_notes}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Show uploaded documents */}
         {taskDocs.length > 0 && (
           <div className="mt-3 pt-3 border-t space-y-2">
             {taskDocs.map(doc => (
               <div key={doc.id} className="flex items-center gap-2 text-sm p-2 bg-muted/50 rounded">
-                <FileText className="h-4 w-4 text-blue-500" />
-                <span className="flex-1 truncate">{doc.file_name}</span>
-                <Badge variant="outline" className="text-xs">
+                <FileText className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="truncate block">{doc.file_name}</span>
+                  {doc.uploaded_at && (
+                    <span className="text-xs text-muted-foreground">
+                      Uploaded {formatDistance(new Date(doc.uploaded_at), new Date(), { addSuffix: true })}
+                    </span>
+                  )}
+                  {doc.status === 'approved' && doc.approved_at && (
+                    <span className="text-xs text-green-600 ml-2">
+                      • Approved {formatDistance(new Date(doc.approved_at), new Date(), { addSuffix: true })}
+                    </span>
+                  )}
+                </div>
+                <Badge variant={
+                  doc.status === 'approved' ? 'default' : 
+                  doc.status === 'rejected' ? 'destructive' : 
+                  'secondary'
+                } className="text-xs flex-shrink-0">
                   {doc.status === 'approved' ? 'Approved' : 
-                   doc.status === 'rejected' ? 'Revision Needed' : 
+                   doc.status === 'rejected' ? 'Needs Revision' : 
                    'In Review'}
                 </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => handleDownloadDocument(doc)}
+                  title="Download"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </Button>
               </div>
             ))}
-          </div>
-        )}
-        
-        {task.status === 'rejected' && (
-          <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-            This document needs revision. Please upload an updated version.
           </div>
         )}
       </div>
@@ -327,15 +405,15 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
             </TabsTrigger>
             <TabsTrigger value="documents">
               Documents
-              {allDocuments.length > 0 && (
+              {documents.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  {allDocuments.length}
+                  {documents.length}
                 </Badge>
               )}
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="tasks" className="mt-4 space-y-3">
+          <TabsContent value="tasks" className="mt-4 space-y-4">
             {tasks.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-green-500" />
@@ -343,27 +421,36 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
               </div>
             ) : (
               <>
-                {/* Needs Action */}
+                {/* Needs Action - Pending + Rejected (with rejection notes shown) */}
                 {activeTasks.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-orange-700">Needs Your Action ({activeTasks.length})</h4>
-                    {activeTasks.map(renderTaskCard)}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-orange-700 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Needs Your Action ({activeTasks.length})
+                    </h4>
+                    {activeTasks.map(task => renderTaskCard(task, true))}
                   </div>
                 )}
                 
                 {/* In Review */}
                 {inReviewTasks.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-blue-700">In Review ({inReviewTasks.length})</h4>
-                    {inReviewTasks.map(renderTaskCard)}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-blue-700 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      In Review ({inReviewTasks.length})
+                    </h4>
+                    {inReviewTasks.map(task => renderTaskCard(task, false))}
                   </div>
                 )}
                 
-                {/* Completed */}
+                {/* Completed - NOW VISIBLE */}
                 {completedTasks.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-green-700">Completed ({completedTasks.length})</h4>
-                    {completedTasks.map(renderTaskCard)}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-green-700 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Completed ({completedTasks.length})
+                    </h4>
+                    {completedTasks.map(task => renderTaskCard(task, false))}
                   </div>
                 )}
               </>
@@ -371,22 +458,32 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
           </TabsContent>
           
           <TabsContent value="documents" className="mt-4">
-            {allDocuments.length === 0 ? (
+            {documents.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No documents uploaded yet</p>
               </div>
             ) : (
               <div className="space-y-2">
-                {allDocuments.map(doc => {
+                {documents.map(doc => {
                   const task = tasks.find(t => t.id === doc.task_id);
                   return (
                     <div key={doc.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                      <FileText className="h-5 w-5 text-blue-500" />
+                      <FileText className="h-5 w-5 text-blue-500 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{doc.file_name}</p>
-                        {task && (
-                          <p className="text-xs text-muted-foreground">{task.task_name}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {task && <span>{task.task_name}</span>}
+                          {doc.uploaded_at && (
+                            <span>
+                              • Uploaded {formatDistance(new Date(doc.uploaded_at), new Date(), { addSuffix: true })}
+                            </span>
+                          )}
+                        </div>
+                        {doc.status === 'approved' && doc.approved_at && (
+                          <p className="text-xs text-green-600">
+                            Approved {formatDistance(new Date(doc.approved_at), new Date(), { addSuffix: true })}
+                          </p>
                         )}
                       </div>
                       <Badge variant={
@@ -395,9 +492,18 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
                         'secondary'
                       }>
                         {doc.status === 'approved' ? 'Approved' : 
-                         doc.status === 'rejected' ? 'Revision Needed' : 
+                         doc.status === 'rejected' ? 'Needs Revision' : 
                          'In Review'}
                       </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleDownloadDocument(doc)}
+                        title="Download"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </div>
                   );
                 })}

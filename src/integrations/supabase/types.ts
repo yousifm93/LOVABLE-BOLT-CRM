@@ -472,12 +472,15 @@ export type Database = {
       }
       borrower_documents: {
         Row: {
+          approved_at: string | null
           document_type: string | null
           document_url: string
           file_name: string
           file_size: number | null
           id: string
           lead_id: string | null
+          rejection_notes: string | null
+          reviewed_at: string | null
           source: string
           status: string | null
           task_id: string | null
@@ -485,12 +488,15 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          approved_at?: string | null
           document_type?: string | null
           document_url: string
           file_name: string
           file_size?: number | null
           id?: string
           lead_id?: string | null
+          rejection_notes?: string | null
+          reviewed_at?: string | null
           source?: string
           status?: string | null
           task_id?: string | null
@@ -498,12 +504,15 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          approved_at?: string | null
           document_type?: string | null
           document_url?: string
           file_name?: string
           file_size?: number | null
           id?: string
           lead_id?: string | null
+          rejection_notes?: string | null
+          reviewed_at?: string | null
           source?: string
           status?: string | null
           task_id?: string | null
@@ -534,6 +543,8 @@ export type Database = {
           id: string
           lead_id: string | null
           priority: number | null
+          rejection_notes: string | null
+          reviewed_at: string | null
           status: string
           task_description: string | null
           task_name: string
@@ -546,6 +557,8 @@ export type Database = {
           id?: string
           lead_id?: string | null
           priority?: number | null
+          rejection_notes?: string | null
+          reviewed_at?: string | null
           status?: string
           task_description?: string | null
           task_name: string
@@ -558,6 +571,8 @@ export type Database = {
           id?: string
           lead_id?: string | null
           priority?: number | null
+          rejection_notes?: string | null
+          reviewed_at?: string | null
           status?: string
           task_description?: string | null
           task_name?: string
