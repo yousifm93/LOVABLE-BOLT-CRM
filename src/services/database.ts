@@ -937,9 +937,29 @@ export const databaseService = {
         .neq('status', 'Done');
 
       if (!openTasksError && openTasks && openTasks.length > 0) {
-        const taskTitles = openTasks.slice(0, 3).map(t => `"${t.title}"`).join(', ');
-        const moreCount = openTasks.length > 3 ? ` and ${openTasks.length - 3} more` : '';
-        throw new Error(`This lead has ${openTasks.length} open task(s): ${taskTitles}${moreCount}. Please complete or delete them first.`);
+        // Check if the only open task(s) are "No open task found" placeholders
+        const nonPlaceholderTasks = openTasks.filter(t => t.title !== 'No open task found');
+        
+        if (nonPlaceholderTasks.length > 0) {
+          // Has real open tasks - block deletion
+          const taskTitles = nonPlaceholderTasks.slice(0, 3).map(t => `"${t.title}"`).join(', ');
+          const moreCount = nonPlaceholderTasks.length > 3 ? ` and ${nonPlaceholderTasks.length - 3} more` : '';
+          throw new Error(`This lead has ${nonPlaceholderTasks.length} open task(s): ${taskTitles}${moreCount}. Please complete or delete them first.`);
+        }
+        
+        // Only "No open task found" tasks exist - soft-delete them first
+        const placeholderTaskIds = openTasks
+          .filter(t => t.title === 'No open task found')
+          .map(t => t.id);
+        
+        if (placeholderTaskIds.length > 0) {
+          await supabase
+            .from('tasks')
+            .update({ deleted_at: new Date().toISOString() })
+            .in('id', placeholderTaskIds);
+          
+          console.log('[DEBUG] Soft-deleted placeholder tasks:', placeholderTaskIds);
+        }
       }
 
       // Step 2: Get CRM user ID for deleted_by tracking

@@ -2434,6 +2434,7 @@ export type Database = {
           is_archived: boolean | null
           json_blocks: Json | null
           name: string
+          show_in_lead_details: boolean | null
           updated_at: string
           version: number | null
         }
@@ -2444,6 +2445,7 @@ export type Database = {
           is_archived?: boolean | null
           json_blocks?: Json | null
           name: string
+          show_in_lead_details?: boolean | null
           updated_at?: string
           version?: number | null
         }
@@ -2454,6 +2456,7 @@ export type Database = {
           is_archived?: boolean | null
           json_blocks?: Json | null
           name?: string
+          show_in_lead_details?: boolean | null
           updated_at?: string
           version?: number | null
         }

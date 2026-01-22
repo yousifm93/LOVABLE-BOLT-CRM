@@ -5,10 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail } from "lucide-react";
+import { Mail, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MissingMergeTagsModal } from "@/components/modals/MissingMergeTagsModal";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface SendEmailTemplatesCardProps {
   leadId: string;
@@ -18,6 +19,7 @@ interface EmailTemplate {
   id: string;
   name: string;
   html: string;
+  show_in_lead_details?: boolean;
 }
 
 interface User {
@@ -52,6 +54,7 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
   const [agentEmail, setAgentEmail] = useState<string | null>(null);
   const [missingFields, setMissingFields] = useState<MissingField[]>([]);
   const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -68,10 +71,11 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
       .order("first_name");
     setUsers(usersData || []);
 
-    // Fetch templates
+    // Fetch templates - only those marked to show in lead details
     const { data: templatesData } = await supabase
       .from("email_templates")
       .select("*")
+      .neq("show_in_lead_details", false)
       .order("name");
     setTemplates(templatesData || []);
 
@@ -221,14 +225,19 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
 
   return (
     <>
-      <Card className="h-[320px] flex flex-col">
-        <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            Send Email Templates
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 flex-1 overflow-y-auto">
+      <Card className="flex flex-col">
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <CardHeader className="pb-2 flex-shrink-0">
+            <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity w-full text-left">
+              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Send Email Templates
+              </CardTitle>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="space-y-4 flex-1 overflow-y-auto">
           <div>
             <Label htmlFor="from-sender" className="text-sm font-medium">
               From
@@ -315,10 +324,12 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
             )}
           </div>
 
-          <Button onClick={handleSendEmail} className="w-full mt-6" disabled={loading}>
-            {loading ? "Sending..." : "Send Email"}
-          </Button>
-        </CardContent>
+              <Button onClick={handleSendEmail} className="w-full mt-6" disabled={loading}>
+                {loading ? "Sending..." : "Send Email"}
+              </Button>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
       <MissingMergeTagsModal
