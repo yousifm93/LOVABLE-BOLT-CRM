@@ -884,13 +884,19 @@ export type Database = {
         Row: {
           approval_expiration_date: string | null
           budget_doc: string | null
+          budget_doc_uploaded_at: string | null
+          budget_doc_uploaded_by: string | null
           city: string | null
           condo_name: string
           cq_doc: string | null
+          cq_doc_uploaded_at: string | null
+          cq_doc_uploaded_by: string | null
           created_at: string
           id: string
           investment_down: string | null
           mip_doc: string | null
+          mip_doc_uploaded_at: string | null
+          mip_doc_uploaded_by: string | null
           primary_down: string | null
           review_type: string | null
           second_down: string | null
@@ -904,13 +910,19 @@ export type Database = {
         Insert: {
           approval_expiration_date?: string | null
           budget_doc?: string | null
+          budget_doc_uploaded_at?: string | null
+          budget_doc_uploaded_by?: string | null
           city?: string | null
           condo_name: string
           cq_doc?: string | null
+          cq_doc_uploaded_at?: string | null
+          cq_doc_uploaded_by?: string | null
           created_at?: string
           id?: string
           investment_down?: string | null
           mip_doc?: string | null
+          mip_doc_uploaded_at?: string | null
+          mip_doc_uploaded_by?: string | null
           primary_down?: string | null
           review_type?: string | null
           second_down?: string | null
@@ -924,13 +936,19 @@ export type Database = {
         Update: {
           approval_expiration_date?: string | null
           budget_doc?: string | null
+          budget_doc_uploaded_at?: string | null
+          budget_doc_uploaded_by?: string | null
           city?: string | null
           condo_name?: string
           cq_doc?: string | null
+          cq_doc_uploaded_at?: string | null
+          cq_doc_uploaded_by?: string | null
           created_at?: string
           id?: string
           investment_down?: string | null
           mip_doc?: string | null
+          mip_doc_uploaded_at?: string | null
+          mip_doc_uploaded_by?: string | null
           primary_down?: string | null
           review_type?: string | null
           second_down?: string | null
@@ -941,7 +959,29 @@ export type Database = {
           updated_at?: string
           zip?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "condos_budget_doc_uploaded_by_fkey"
+            columns: ["budget_doc_uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "condos_cq_doc_uploaded_by_fkey"
+            columns: ["cq_doc_uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "condos_mip_doc_uploaded_by_fkey"
+            columns: ["mip_doc_uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contacts: {
         Row: {

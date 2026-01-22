@@ -2,17 +2,18 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Building, Plus, Search, Filter } from "lucide-react";
+import { Building, Plus, Search, Filter, CheckCircle } from "lucide-react";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
-import { InlineEditBoolean } from "@/components/ui/inline-edit-boolean";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CondoDetailDialog } from "@/components/CondoDetailDialog";
 import { CondoDocumentUpload } from "@/components/ui/condo-document-upload";
+import { DocumentPreviewModal } from "@/components/lead-details/DocumentPreviewModal";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Condo {
   id: string;
@@ -31,6 +32,9 @@ interface Condo {
   budget_doc: string | null;
   mip_doc: string | null;
   cq_doc: string | null;
+  budget_doc_uploaded_at: string | null;
+  mip_doc_uploaded_at: string | null;
+  cq_doc_uploaded_at: string | null;
   updated_at: string;
 }
 
@@ -43,7 +47,9 @@ const reviewTypeOptions = [
 ];
 
 const createColumns = (
-  handleUpdate: (id: string, field: string, value: any) => void
+  handleUpdate: (id: string, field: string, value: any) => void,
+  handleDocUpdate: (id: string, field: string, path: string | null, uploadedAt?: string, uploadedBy?: string) => void,
+  onPreview: (url: string, fileName: string) => void
 ): ColumnDef<Condo>[] => [
   {
     accessorKey: "condo_name",
@@ -110,10 +116,11 @@ const createColumns = (
     header: "UWM",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <InlineEditBoolean
-          value={row.original.source_uwm}
-          onValueChange={(value) => handleUpdate(row.original.id, "source_uwm", value)}
-        />
+        {row.original.source_uwm ? (
+          <CheckCircle className="h-4 w-4 text-green-600" />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </div>
     ),
     sortable: true,
@@ -123,10 +130,11 @@ const createColumns = (
     header: "A&D",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <InlineEditBoolean
-          value={row.original.source_ad}
-          onValueChange={(value) => handleUpdate(row.original.id, "source_ad", value)}
-        />
+        {row.original.source_ad ? (
+          <CheckCircle className="h-4 w-4 text-amber-600" />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </div>
     ),
     sortable: true,
@@ -223,7 +231,9 @@ const createColumns = (
         condoId={row.original.id}
         fieldName="budget_doc"
         currentFile={row.original.budget_doc}
-        onUpload={(path) => handleUpdate(row.original.id, "budget_doc", path)}
+        uploadedAt={row.original.budget_doc_uploaded_at}
+        onUpload={(path, uploadedAt, uploadedBy) => handleDocUpdate(row.original.id, "budget_doc", path, uploadedAt, uploadedBy)}
+        onPreview={onPreview}
         compact={true}
       />
     ),
@@ -236,7 +246,9 @@ const createColumns = (
         condoId={row.original.id}
         fieldName="mip_doc"
         currentFile={row.original.mip_doc}
-        onUpload={(path) => handleUpdate(row.original.id, "mip_doc", path)}
+        uploadedAt={row.original.mip_doc_uploaded_at}
+        onUpload={(path, uploadedAt, uploadedBy) => handleDocUpdate(row.original.id, "mip_doc", path, uploadedAt, uploadedBy)}
+        onPreview={onPreview}
         compact={true}
       />
     ),
@@ -249,7 +261,9 @@ const createColumns = (
         condoId={row.original.id}
         fieldName="cq_doc"
         currentFile={row.original.cq_doc}
-        onUpload={(path) => handleUpdate(row.original.id, "cq_doc", path)}
+        uploadedAt={row.original.cq_doc_uploaded_at}
+        onUpload={(path, uploadedAt, uploadedBy) => handleDocUpdate(row.original.id, "cq_doc", path, uploadedAt, uploadedBy)}
+        onPreview={onPreview}
         compact={true}
       />
     ),
@@ -265,6 +279,13 @@ export default function Condolist() {
   const [reviewTypeFilter, setReviewTypeFilter] = useState<string>("all");
   const [selectedCondo, setSelectedCondo] = useState<Condo | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Document preview state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState("");
+  const [previewPdfData, setPreviewPdfData] = useState<ArrayBuffer | null>(null);
+  
   const { toast } = useToast();
 
   useEffect(() => {
@@ -312,9 +333,71 @@ export default function Condolist() {
     }
   };
 
+  const handleDocUpdate = async (
+    id: string, 
+    field: string, 
+    path: string | null, 
+    uploadedAt?: string, 
+    uploadedBy?: string
+  ) => {
+    try {
+      const updates: Record<string, any> = { [field]: path };
+      
+      // Add metadata fields if provided
+      if (uploadedAt) {
+        updates[`${field}_uploaded_at`] = uploadedAt;
+      }
+      if (uploadedBy) {
+        updates[`${field}_uploaded_by`] = uploadedBy;
+      }
+      
+      // If path is null (delete), clear metadata too
+      if (path === null) {
+        updates[`${field}_uploaded_at`] = null;
+        updates[`${field}_uploaded_by`] = null;
+      }
+      
+      await databaseService.updateCondo(id, updates);
+      
+      // Update local state
+      setCondos(prev => prev.map(condo => 
+        condo.id === id ? { ...condo, ...updates } : condo
+      ));
+
+      toast({
+        title: path ? "Uploaded" : "Deleted",
+        description: path ? "Document uploaded successfully" : "Document removed",
+      });
+    } catch (error) {
+      console.error('Error updating document:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to update document",
+        variant: "destructive"
+      });
+      loadCondos();
+    }
+  };
+
+  const handlePreview = async (url: string, fileName: string) => {
+    setPreviewFileName(fileName);
+    setPreviewUrl(url);
+    setPreviewPdfData(null);
+    setPreviewOpen(true);
+    
+    // Fetch PDF data for preview
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      setPreviewPdfData(arrayBuffer);
+    } catch (error) {
+      console.error('Error fetching PDF:', error);
+    }
+  };
+
   const handleAddCondo = async () => {
     try {
-      const newCondo = {
+      const newCondo: Partial<Condo> = {
         condo_name: "New Condo",
         street_address: "",
         city: "",
@@ -329,7 +412,7 @@ export default function Condolist() {
       };
       
       const created = await databaseService.createCondo(newCondo);
-      setCondos(prev => [created, ...prev]);
+      setCondos(prev => [created as Condo, ...prev]);
       
       toast({
         title: "Created",
@@ -371,7 +454,7 @@ export default function Condolist() {
     return result;
   }, [condos, targetMarketFilter, reviewTypeFilter]);
 
-  const columns = createColumns(handleUpdate);
+  const columns = createColumns(handleUpdate, handleDocUpdate, handlePreview);
 
   const activeFiltersCount = [
     targetMarketFilter !== "all",
@@ -495,6 +578,16 @@ export default function Condolist() {
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onCondoUpdated={loadCondos}
+        onPreview={handlePreview}
+      />
+
+      <DocumentPreviewModal
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        documentName={previewFileName}
+        documentUrl={previewUrl}
+        mimeType="application/pdf"
+        pdfData={previewPdfData || undefined}
       />
     </div>
   );
