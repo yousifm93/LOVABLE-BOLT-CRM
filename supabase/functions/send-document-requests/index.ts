@@ -51,10 +51,13 @@ serve(async (req: Request): Promise<Response> => {
     const taskListHtml = pendingTasks
       .map(
         (task) => `
-          <li style="margin-bottom: 12px; padding: 12px; background-color: #f8f9fa; border-radius: 6px; border-left: 4px solid #ff8c00;">
-            <strong style="color: #333;">${task.name}</strong>
-            ${task.description ? `<p style="margin: 4px 0 0 0; color: #666; font-size: 14px;">${task.description}</p>` : ''}
-          </li>
+          <tr>
+            <td style="padding: 12px 16px; background-color: #fefce8; border-left: 4px solid #EAB308; border-radius: 4px; margin-bottom: 8px;">
+              <strong style="color: #1e293b; font-size: 15px;">${task.name}</strong>
+              ${task.description ? `<p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">${task.description}</p>` : ''}
+            </td>
+          </tr>
+          <tr><td style="height: 8px;"></td></tr>
         `
       )
       .join("");
@@ -66,41 +69,75 @@ serve(async (req: Request): Promise<Response> => {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(135deg, #1a365d 0%, #2d5a87 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">Document Request</h1>
-        </div>
-        
-        <div style="background-color: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
-          <p style="font-size: 16px;">Hi ${borrowerName || 'there'},</p>
-          
-          <p style="font-size: 16px;">To continue processing your mortgage application, we need the following documents:</p>
-          
-          <ul style="list-style: none; padding: 0; margin: 20px 0;">
-            ${taskListHtml}
-          </ul>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${PRODUCTION_PORTAL_URL}" style="background-color: #ff8c00; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-              Upload Documents
-            </a>
-          </div>
-          
-          <p style="font-size: 14px; color: #666;">
-            If you have any questions, please don't hesitate to reach out to us.
-          </p>
-          
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-          
-          <div style="text-align: center;">
-            <p style="font-size: 14px; color: #666; margin: 0;">
-              <strong>Mortgage Bolt</strong><br>
-              848 Brickell Avenue, Suite 840<br>
-              Miami, Florida 33131<br>
-              (352) 328-9828
-            </p>
-          </div>
-        </div>
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td align="center" style="padding: 40px 20px;">
+              <table role="presentation" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <!-- Yellow Header with Lightning Bolt -->
+                <tr>
+                  <td style="background-color: #EAB308; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+                    <span style="font-size: 28px;">⚡</span>
+                    <span style="color: #1e293b; font-size: 24px; font-weight: 700; margin-left: 8px; vertical-align: middle;">
+                      Mortgage Bolt
+                    </span>
+                  </td>
+                </tr>
+                
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 40px 30px;">
+                    <h2 style="margin: 0 0 20px; color: #1e293b; font-size: 24px; font-weight: 600;">
+                      Document Request
+                    </h2>
+                    
+                    <p style="margin: 0 0 16px; color: #475569; font-size: 16px; line-height: 1.6;">
+                      Hi ${borrowerName || 'there'},
+                    </p>
+                    
+                    <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
+                      To continue processing your mortgage application, we need the following documents:
+                    </p>
+                    
+                    <!-- Document List -->
+                    <table role="presentation" style="width: 100%; margin-bottom: 24px;">
+                      ${taskListHtml}
+                    </table>
+                    
+                    <!-- CTA Button (Yellow) -->
+                    <table role="presentation" style="width: 100%; margin: 24px 0;">
+                      <tr>
+                        <td align="center">
+                          <a href="${PRODUCTION_PORTAL_URL}" 
+                             style="display: inline-block; padding: 16px 48px; background-color: #EAB308; color: #1e293b; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px;">
+                            Upload Documents
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    <p style="margin: 0; color: #64748b; font-size: 14px;">
+                      If you have any questions, please don't hesitate to reach out.
+                    </p>
+                  </td>
+                </tr>
+                
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 30px; background-color: #f8fafc; border-radius: 0 0 8px 8px; border-top: 1px solid #e2e8f0; text-align: center;">
+                    <p style="margin: 0 0 8px; color: #1e293b; font-size: 14px; font-weight: 600;">
+                      Mortgage Bolt
+                    </p>
+                    <p style="margin: 0; color: #64748b; font-size: 13px;">
+                      848 Brickell Avenue, Suite 840, Miami, FL 33131<br>
+                      (352) 328-9828
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
