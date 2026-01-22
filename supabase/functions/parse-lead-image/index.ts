@@ -43,14 +43,14 @@ serve(async (req) => {
   "email": "borrower's email address - look in the To: or CC: recipient lines for emails belonging to the borrower (not the sender)",
   "agent_name": "real estate agent's name if mentioned (full name)",
   "referral_method": MUST be one of: "Email", "Text Message", "Phone Call", "Social Media", "Website", "Other",
-  "referral_source": MUST be one of: "Agent", "Past Client", "Zillow", "Realtor.com", "Other",
+  "referral_source": MUST be one of: "Agent", "New Agent", "Past Client", "Personal", "Social", "Miscellaneous", or null if not determinable,
   "notes": "summarize what the lead is looking for, property details, timeline, any important context",
   "confidence": a number between 0 and 1 indicating confidence in the extraction
 }
 
 CRITICAL RULES:
 - referral_method: Return ONLY these exact values: "Email", "Text Message", "Phone Call", "Social Media", "Website", or "Other"
-- referral_source: If a real estate agent is involved, return "Agent". For past clients return "Past Client". For lead sources from Zillow/Realtor.com return those. Otherwise return "Other"
+- referral_source: If a real estate agent is involved, return "Agent". For new agents return "New Agent". For past clients return "Past Client". For personal referrals return "Personal". For social media leads return "Social". For anything else return "Miscellaneous". If unsure, return null.
 - agent_name: Extract the real estate agent's full name separately (this is different from referral_source)
 - For borrower name, look for phrases like "client looking", "buyer named", or introductions
 - For borrower email, PRIORITIZE looking at the To: and CC: recipient lines. The sender's email (in the signature) is usually the real estate agent, NOT the borrower
@@ -113,6 +113,24 @@ CRITICAL RULES:
     
     if (extractedData.referral_method && referralMethodMap[extractedData.referral_method]) {
       extractedData.referral_method = referralMethodMap[extractedData.referral_method];
+    }
+
+    // Normalize referral_source to match database enum values
+    const referralSourceMap: Record<string, string> = {
+      'Zillow': 'Miscellaneous',
+      'Realtor.com': 'Miscellaneous',
+      'Other': 'Miscellaneous',
+    };
+
+    if (extractedData.referral_source && referralSourceMap[extractedData.referral_source]) {
+      extractedData.referral_source = referralSourceMap[extractedData.referral_source];
+    }
+
+    // If referral_source is still invalid, set to null
+    const validSources = ['Agent', 'New Agent', 'Past Client', 'Personal', 'Social', 'Miscellaneous'];
+    if (extractedData.referral_source && !validSources.includes(extractedData.referral_source)) {
+      console.log(`Invalid referral_source "${extractedData.referral_source}", setting to null`);
+      extractedData.referral_source = null;
     }
     
     console.log('Extracted data (after normalization):', extractedData);
