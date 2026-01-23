@@ -59,6 +59,11 @@ export interface UserPermissions {
   home_income_calculator: string;
   home_loan_pricer: string;
   home_bolt_bot: string;
+  // New homepage section permissions
+  home_activity_panel: string;
+  home_market_rates: string;
+  home_daily_reports: string;
+  home_monthly_reports: string;
   // New fine-grained permissions
   default_landing_page: string;
   lead_details_all_fields: string;
@@ -125,6 +130,11 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   home_income_calculator: 'visible',
   home_loan_pricer: 'visible',
   home_bolt_bot: 'visible',
+  // New homepage section permissions
+  home_activity_panel: 'visible',
+  home_market_rates: 'visible',
+  home_daily_reports: 'visible',
+  home_monthly_reports: 'visible',
   // New fine-grained permissions
   default_landing_page: '/',
   lead_details_all_fields: 'visible',
@@ -226,6 +236,11 @@ export function usePermissions() {
           home_income_calculator: data.home_income_calculator || 'visible',
           home_loan_pricer: data.home_loan_pricer || 'visible',
           home_bolt_bot: data.home_bolt_bot || 'visible',
+          // New homepage section permissions
+          home_activity_panel: (data as any).home_activity_panel || 'visible',
+          home_market_rates: (data as any).home_market_rates || 'visible',
+          home_daily_reports: (data as any).home_daily_reports || 'visible',
+          home_monthly_reports: (data as any).home_monthly_reports || 'visible',
           // New fine-grained permissions
           default_landing_page: (data as any).default_landing_page || '/',
           lead_details_all_fields: (data as any).lead_details_all_fields || 'visible',
