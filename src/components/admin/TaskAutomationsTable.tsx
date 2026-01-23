@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Pencil, Trash2, Plus, ChevronDown, ChevronRight, History, Play } from 'lucide-react';
+import { Pencil, Trash2, Plus, ChevronDown, ChevronRight, History, Play, Search } from 'lucide-react';
 import { databaseService } from '@/services/database';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskAutomationModal } from './TaskAutomationModal';
@@ -51,6 +52,7 @@ export function TaskAutomationsTable() {
     name: string;
   } | null>(null);
   const [triggeringId, setTriggeringId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [openCategories, setOpenCategories] = useState({
     marketing: false,
     lead_status: false,
@@ -277,12 +279,30 @@ export function TaskAutomationsTable() {
     return <div className="text-center py-8">Loading automations...</div>;
   }
 
+  // Filter automations based on search query
+  const filteredAutomations = useMemo(() => {
+    if (!searchQuery.trim()) return automations;
+    
+    const query = searchQuery.toLowerCase();
+    return automations.filter(a => {
+      const taskName = a.task_name?.toLowerCase() || '';
+      const assignedUserName = a.assigned_user 
+        ? `${a.assigned_user.first_name} ${a.assigned_user.last_name}`.toLowerCase() 
+        : '';
+      const triggerDesc = formatTrigger(a).toLowerCase();
+      
+      return taskName.includes(query) || 
+             assignedUserName.includes(query) || 
+             triggerDesc.includes(query);
+    });
+  }, [automations, searchQuery]);
+
   // Group automations by category
   const groupedAutomations = {
-    marketing: automations.filter(a => a.category === 'marketing'),
-    lead_status: automations.filter(a => a.category === 'lead_status'),
-    active_loan: automations.filter(a => a.category === 'active_loan'),
-    past_client: automations.filter(a => a.category === 'past_client')
+    marketing: filteredAutomations.filter(a => a.category === 'marketing'),
+    lead_status: filteredAutomations.filter(a => a.category === 'lead_status'),
+    active_loan: filteredAutomations.filter(a => a.category === 'active_loan'),
+    past_client: filteredAutomations.filter(a => a.category === 'past_client')
   };
   
   // Group active_loan automations by subcategory
@@ -425,7 +445,16 @@ export function TaskAutomationsTable() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center mb-4">
+      <div className="flex items-center gap-4 mb-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search automations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <Button onClick={() => setModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Automation
