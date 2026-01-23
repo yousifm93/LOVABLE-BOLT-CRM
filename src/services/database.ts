@@ -2946,5 +2946,38 @@ export const databaseService = {
       .eq('id', id);
     
     if (error) throw error;
+  },
+
+  // ===== DELETED CONDOS =====
+  async getDeletedCondos() {
+    const { data, error } = await supabase
+      .from('condos')
+      .select(`
+        id, condo_name, street_address, city, state, deleted_at,
+        deleted_by_user:users!condos_deleted_by_fkey(first_name, last_name, email)
+      `)
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  async restoreCondo(condoId: string) {
+    const { error } = await supabase
+      .from('condos')
+      .update({ deleted_at: null, deleted_by: null })
+      .eq('id', condoId);
+    
+    if (error) throw error;
+  },
+
+  async permanentlyDeleteCondo(condoId: string) {
+    const { error } = await supabase
+      .from('condos')
+      .delete()
+      .eq('id', condoId);
+    
+    if (error) throw error;
   }
 };

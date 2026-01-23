@@ -52,6 +52,16 @@ interface DeletedLender {
   deleted_by_user?: { first_name: string; last_name: string; email: string };
 }
 
+interface DeletedCondo {
+  id: string;
+  condo_name: string;
+  street_address?: string;
+  city?: string;
+  state?: string;
+  deleted_at: string;
+  deleted_by_user?: { first_name: string; last_name: string; email: string };
+}
+
 export default function DeletedItemsAdmin() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("tasks");
@@ -59,6 +69,7 @@ export default function DeletedItemsAdmin() {
   const [leads, setLeads] = useState<DeletedLead[]>([]);
   const [agents, setAgents] = useState<DeletedAgent[]>([]);
   const [lenders, setLenders] = useState<DeletedLender[]>([]);
+  const [condos, setCondos] = useState<DeletedCondo[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: string; id: string; name: string } | null>(null);
@@ -67,16 +78,18 @@ export default function DeletedItemsAdmin() {
   const loadDeletedItems = async () => {
     setLoading(true);
     try {
-      const [fetchedTasks, fetchedLeads, fetchedAgents, fetchedLenders] = await Promise.all([
+      const [fetchedTasks, fetchedLeads, fetchedAgents, fetchedLenders, fetchedCondos] = await Promise.all([
         databaseService.getDeletedTasks(),
         databaseService.getDeletedLeads().catch(() => []),
         databaseService.getDeletedBuyerAgents().catch(() => []),
         databaseService.getDeletedLenders().catch(() => []),
+        databaseService.getDeletedCondos().catch(() => []),
       ]);
       setTasks(fetchedTasks as any || []);
       setLeads(fetchedLeads as any || []);
       setAgents(fetchedAgents as any || []);
       setLenders(fetchedLenders as any || []);
+      setCondos(fetchedCondos as any || []);
     } catch (error) {
       console.error("Error loading deleted items:", error);
       toast({
@@ -157,6 +170,22 @@ export default function DeletedItemsAdmin() {
     setDeleteDialogOpen(true);
   };
 
+  // Condo handlers
+  const handleRestoreCondo = async (condo: DeletedCondo) => {
+    try {
+      await databaseService.restoreCondo(condo.id);
+      setCondos(prev => prev.filter(c => c.id !== condo.id));
+      toast({ title: "Condo restored successfully", duration: 2000 });
+    } catch (error) {
+      toast({ title: "Error restoring condo", variant: "destructive" });
+    }
+  };
+
+  const handlePermanentDeleteCondo = async (condo: DeletedCondo) => {
+    setItemToDelete({ type: 'condo', id: condo.id, name: condo.condo_name });
+    setDeleteDialogOpen(true);
+  };
+
   const confirmPermanentDelete = async () => {
     if (!itemToDelete) return;
     
@@ -177,6 +206,10 @@ export default function DeletedItemsAdmin() {
         case 'lender':
           await databaseService.permanentlyDeleteLender(itemToDelete.id);
           setLenders(prev => prev.filter(l => l.id !== itemToDelete.id));
+          break;
+        case 'condo':
+          await databaseService.permanentlyDeleteCondo(itemToDelete.id);
+          setCondos(prev => prev.filter(c => c.id !== itemToDelete.id));
           break;
       }
       toast({ title: "Item permanently deleted", duration: 2000 });
@@ -380,7 +413,54 @@ export default function DeletedItemsAdmin() {
     lender.lender_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalCount = tasks.length + leads.length + agents.length + lenders.length;
+  const filteredCondos = condos.filter(condo => 
+    condo.condo_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    condo.street_address?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Condo columns
+  const condoColumns: ColumnDef<DeletedCondo>[] = [
+    {
+      accessorKey: "condo_name",
+      header: "Condo",
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.condo_name}</div>
+          {row.original.street_address && (
+            <div className="text-xs text-muted-foreground">
+              {[row.original.street_address, row.original.city, row.original.state].filter(Boolean).join(', ')}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "deleted_at",
+      header: "Deleted At",
+      cell: ({ row }) => formatDateModern(new Date(row.original.deleted_at)),
+    },
+    {
+      accessorKey: "deleted_by_user",
+      header: "Deleted By",
+      cell: ({ row }) => row.original.deleted_by_user ? `${row.original.deleted_by_user.first_name} ${row.original.deleted_by_user.last_name}` : '-',
+    },
+    {
+      accessorKey: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => handleRestoreCondo(row.original)} className="text-green-600 hover:text-green-700">
+            <RotateCcw className="h-4 w-4 mr-1" /> Restore
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handlePermanentDeleteCondo(row.original)} className="text-red-600 hover:text-red-700">
+            <Trash2 className="h-4 w-4 mr-1" /> Delete Forever
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  const totalCount = tasks.length + leads.length + agents.length + lenders.length + condos.length;
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
@@ -412,6 +492,7 @@ export default function DeletedItemsAdmin() {
               <TabsTrigger value="borrowers">Borrowers ({leads.length})</TabsTrigger>
               <TabsTrigger value="agents">Agents ({agents.length})</TabsTrigger>
               <TabsTrigger value="lenders">Lenders ({lenders.length})</TabsTrigger>
+              <TabsTrigger value="condos">Condos ({condos.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="tasks">
@@ -459,6 +540,18 @@ export default function DeletedItemsAdmin() {
                 <DataTable columns={lenderColumns} data={filteredLenders} searchTerm={searchTerm} />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">No deleted lenders</div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="condos">
+              {loading ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="text-muted-foreground">Loading...</div>
+                </div>
+              ) : filteredCondos.length > 0 ? (
+                <DataTable columns={condoColumns} data={filteredCondos} searchTerm={searchTerm} />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">No deleted condos</div>
               )}
             </TabsContent>
           </Tabs>
