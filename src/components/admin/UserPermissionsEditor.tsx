@@ -45,6 +45,7 @@ interface UserPermission {
   pipeline_pre_approved: string;
   pipeline_active: string;
   pipeline_past_clients: string;
+  pipeline_idle: string;
   // Contacts sub-items
   contacts_agents: string;
   contacts_borrowers: string;
@@ -74,6 +75,9 @@ interface UserPermission {
   home_income_calculator: string;
   home_loan_pricer: string;
   home_bolt_bot: string;
+  // Lead details permissions
+  lead_details_all_fields: string;
+  lead_details_send_email: string;
 }
 
 const PERMISSION_OPTIONS = [
@@ -145,6 +149,11 @@ const ADMIN_SECTIONS = [
   { key: 'admin_deleted_items', label: 'Deleted Items' },
 ];
 
+const LEAD_DETAILS_SECTIONS = [
+  { key: 'lead_details_all_fields', label: 'All Fields Tab' },
+  { key: 'lead_details_send_email', label: 'Send Email Templates' },
+];
+
 const HOME_CARD_SECTIONS = [
   { key: 'home_inbox', label: 'Inbox' },
   { key: 'home_calendar', label: 'Calendar' },
@@ -185,6 +194,7 @@ const getDefaultPermissions = (): Omit<UserPermission, 'id'> => ({
   pipeline_pre_approved: 'visible',
   pipeline_active: 'visible',
   pipeline_past_clients: 'visible',
+  pipeline_idle: 'visible',
   // Contacts sub-items
   contacts_agents: 'visible',
   contacts_borrowers: 'visible',
@@ -214,6 +224,9 @@ const getDefaultPermissions = (): Omit<UserPermission, 'id'> => ({
   home_income_calculator: 'visible',
   home_loan_pricer: 'visible',
   home_bolt_bot: 'visible',
+  // Lead details permissions
+  lead_details_all_fields: 'visible',
+  lead_details_send_email: 'visible',
 });
 
 export function UserPermissionsEditor() {
@@ -353,6 +366,11 @@ export function UserPermissionsEditor() {
             home_income_calculator: perm.home_income_calculator,
             home_loan_pricer: perm.home_loan_pricer,
             home_bolt_bot: perm.home_bolt_bot,
+            // Pipeline idle
+            pipeline_idle: perm.pipeline_idle,
+            // Lead details permissions
+            lead_details_all_fields: perm.lead_details_all_fields,
+            lead_details_send_email: perm.lead_details_send_email,
           }, { onConflict: 'user_id' });
         
         if (error) throw error;
@@ -544,6 +562,14 @@ export function UserPermissionsEditor() {
         "Admin Sub-Item Permissions",
         "Control access to items within the Admin section.",
         ADMIN_SECTIONS,
+        teamMembers
+      )}
+
+      {/* Lead Details Permissions */}
+      {renderPermissionTable(
+        "Lead Details Permissions",
+        "Control access to specific features within the lead details drawer.",
+        LEAD_DETAILS_SECTIONS,
         teamMembers
       )}
 

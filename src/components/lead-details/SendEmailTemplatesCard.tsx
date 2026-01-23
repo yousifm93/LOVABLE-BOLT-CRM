@@ -5,11 +5,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, ChevronDown, ChevronRight } from "lucide-react";
+import { Mail, ChevronDown, ChevronRight, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MissingMergeTagsModal } from "@/components/modals/MissingMergeTagsModal";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { usePermissions } from "@/hooks/usePermissions";
+import { cn } from "@/lib/utils";
 
 interface SendEmailTemplatesCardProps {
   leadId: string;
@@ -56,6 +58,13 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
   const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
+  const sendEmailPermission = hasPermission('lead_details_send_email');
+
+  // If hidden, don't render at all
+  if (sendEmailPermission === 'hidden') {
+    return null;
+  }
 
   useEffect(() => {
     fetchData();
@@ -223,12 +232,19 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
     }
   };
 
+  const isLocked = sendEmailPermission === 'locked';
+
   return (
     <>
-      <Card className="flex flex-col">
+      <Card className={cn("flex flex-col relative", isLocked && "opacity-60")}>
+        {isLocked && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded-lg cursor-not-allowed">
+            <Lock className="h-5 w-5 text-muted-foreground" />
+          </div>
+        )}
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CardHeader className="pb-2 flex-shrink-0">
-            <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity w-full text-left">
+            <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity w-full text-left" disabled={isLocked}>
               {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               <CardTitle className="text-base font-medium flex items-center gap-2">
                 <Mail className="h-4 w-4" />
