@@ -66,6 +66,7 @@ interface UserPermission {
   admin_deleted_items: string;
   // Homepage card permissions
   home_inbox: string;
+  home_calendar: string;
   home_agents: string;
   home_lenders: string;
   home_active_files: string;
@@ -146,6 +147,7 @@ const ADMIN_SECTIONS = [
 
 const HOME_CARD_SECTIONS = [
   { key: 'home_inbox', label: 'Inbox' },
+  { key: 'home_calendar', label: 'Calendar' },
   { key: 'home_agents', label: 'Real Estate Agents' },
   { key: 'home_lenders', label: 'Approved Lenders' },
   { key: 'home_active_files', label: 'Active Files' },
@@ -204,6 +206,7 @@ const getDefaultPermissions = (): Omit<UserPermission, 'id'> => ({
   admin_deleted_items: 'visible',
   // Homepage card permissions
   home_inbox: 'visible',
+  home_calendar: 'visible',
   home_agents: 'visible',
   home_lenders: 'visible',
   home_active_files: 'visible',
@@ -342,6 +345,7 @@ export function UserPermissionsEditor() {
             admin_deleted_items: perm.admin_deleted_items,
             // Homepage card permissions
             home_inbox: perm.home_inbox,
+            home_calendar: (perm as any).home_calendar,
             home_agents: perm.home_agents,
             home_lenders: perm.home_lenders,
             home_active_files: perm.home_active_files,

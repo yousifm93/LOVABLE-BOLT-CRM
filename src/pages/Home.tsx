@@ -445,7 +445,15 @@ export default function Home() {
           <Card className="overflow-hidden h-[400px] border">
             <MarketRatesCard />
           </Card>
-          <Card className="overflow-hidden h-[400px] border">
+          <Card className={cn(
+            "overflow-hidden h-[400px] border relative",
+            hasPermission('home_calendar') === 'locked' && "opacity-50"
+          )}>
+            {hasPermission('home_calendar') === 'locked' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                <Lock className="h-6 w-6 text-muted-foreground" />
+              </div>
+            )}
             <CalendarPanel />
           </Card>
         </div>
