@@ -73,7 +73,7 @@ export default function UserManagement() {
 
   const handleSendPasswordReset = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/`,
+      redirectTo: 'https://mortgage-bolt-crm.lovable.app/update-password',
     });
 
     if (error) {
