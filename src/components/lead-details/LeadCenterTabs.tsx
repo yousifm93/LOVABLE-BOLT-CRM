@@ -1,13 +1,14 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Activity, FileText, User, DollarSign, Users, List, CheckCircle } from "lucide-react";
+import { Activity, FileText, User, DollarSign, Users, List, CheckCircle, Lock } from "lucide-react";
 import { ActivityTab } from "./ActivityTab";
 import { DetailsTab } from "./DetailsTab";
 import { DocumentsTab } from "./DocumentsTab";
 import { ConditionsTab } from "./ConditionsTab";
 import { AllFieldsTab } from "./AllFieldsTab";
 import { usePermissions } from "@/hooks/usePermissions";
+import { cn } from "@/lib/utils";
 
 interface LeadCenterTabsProps {
   leadId: string | null;
@@ -28,7 +29,9 @@ interface LeadCenterTabsProps {
 
 export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUpdated, onClientPatched, onDocumentsChange, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick, onTaskActivityClick, onActivityUpdated }: LeadCenterTabsProps) {
   const { hasPermission } = usePermissions();
-  const showAllFieldsTab = hasPermission('lead_details_all_fields') !== 'hidden';
+  const allFieldsPermission = hasPermission('lead_details_all_fields');
+  const showAllFieldsTab = allFieldsPermission !== 'hidden';
+  const isAllFieldsLocked = allFieldsPermission === 'locked';
   const visibleTabCount = 4 + (showAllFieldsTab ? 1 : 0);
   
   return (
@@ -56,9 +59,17 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
               Conditions
             </TabsTrigger>
             {showAllFieldsTab && (
-              <TabsTrigger value="all-fields" className="text-xs flex items-center gap-1">
+              <TabsTrigger 
+                value="all-fields" 
+                className={cn(
+                  "text-xs flex items-center gap-1",
+                  isAllFieldsLocked && "opacity-50 cursor-not-allowed"
+                )}
+                disabled={isAllFieldsLocked}
+              >
                 <List className="h-3 w-3" />
                 All Fields
+                {isAllFieldsLocked && <Lock className="h-3 w-3 ml-1" />}
               </TabsTrigger>
             )}
           </TabsList>
@@ -106,12 +117,19 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
           
           {showAllFieldsTab && (
             <TabsContent value="all-fields" className="mt-0 h-[calc(100%-56px)] overflow-auto">
-              <AllFieldsTab 
-                client={client} 
-                leadId={leadId} 
-                onLeadUpdated={onLeadUpdated}
-                onClientPatched={onClientPatched}
-              />
+              {isAllFieldsLocked ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <Lock className="h-8 w-8 mb-2" />
+                  <span className="text-sm">This section is locked</span>
+                </div>
+              ) : (
+                <AllFieldsTab 
+                  client={client} 
+                  leadId={leadId} 
+                  onLeadUpdated={onLeadUpdated}
+                  onClientPatched={onClientPatched}
+                />
+              )}
             </TabsContent>
           )}
         </Tabs>
