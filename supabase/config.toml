@@ -224,3 +224,6 @@ verify_jwt = false
 
 [functions.public-condo-search]
 verify_jwt = false
+
+[functions.check-overdue-conditions]
+verify_jwt = false
