@@ -126,7 +126,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const { user, signOut } = useAuth();
-  const { hasPermission, loading: permissionsLoading } = usePermissions();
+  const { permissions, hasPermission, loading: permissionsLoading } = usePermissions();
   
   const [pendingSuggestionCount, setPendingSuggestionCount] = useState(0);
   const [suggestionsModalOpen, setSuggestionsModalOpen] = useState(false);
@@ -593,7 +593,7 @@ export function AppSidebar() {
             <CollapsibleSidebarGroup 
               title="Pipeline" 
               className="mb-4" 
-              defaultOpen={false}
+              defaultOpen={permissions?.sidebar_pipeline_expanded_default ?? false}
               locked={hasPermission('pipeline') === 'locked'}
             >
               <SidebarMenu>
