@@ -209,6 +209,15 @@ export async function validateTaskCompletion(
       const fieldDisplayNames: Record<string, string> = {
         'appr_date_time': 'Appraisal Date/Time',
         'lock_expiration_date': 'Lock Expiration Date',
+        'initial_approval_file': 'Initial Approval document',
+        'disc_file': 'Disclosure document',
+        'appraisal_file': 'Appraisal Report document',
+        'insurance_file': 'HOI Policy document',
+        'icd_file': 'Initial Closing Disclosure document',
+        'fcp_file': 'Final Closing Package document',
+        'title_file': 'Title Work document',
+        'rate_lock_file': 'Rate Lock Confirmation document',
+        'condo_docs_file': 'Condo Documents',
       };
       return {
         canComplete: false,
