@@ -275,11 +275,7 @@ export function TaskAutomationsTable() {
     return automation.trigger_type;
   };
 
-  if (loading) {
-    return <div className="text-center py-8">Loading automations...</div>;
-  }
-
-  // Filter automations based on search query
+  // Filter automations based on search query - must be before early returns!
   const filteredAutomations = useMemo(() => {
     if (!searchQuery.trim()) return automations;
     
@@ -296,6 +292,10 @@ export function TaskAutomationsTable() {
              triggerDesc.includes(query);
     });
   }, [automations, searchQuery]);
+
+  if (loading) {
+    return <div className="text-center py-8">Loading automations...</div>;
+  }
 
   // Group automations by category
   const groupedAutomations = {
