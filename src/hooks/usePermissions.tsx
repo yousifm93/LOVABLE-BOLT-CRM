@@ -69,6 +69,8 @@ export interface UserPermissions {
   lead_details_all_fields: string;
   lead_details_send_email: string;
   filter_leads_by_assignment: boolean;
+  // Sidebar behavior
+  sidebar_pipeline_expanded_default: boolean;
 }
 
 type PermissionLevel = 'visible' | 'hidden' | 'locked';
@@ -140,6 +142,8 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   lead_details_all_fields: 'visible',
   lead_details_send_email: 'visible',
   filter_leads_by_assignment: false,
+  // Sidebar behavior
+  sidebar_pipeline_expanded_default: false,
 };
 
 export function usePermissions() {
@@ -246,6 +250,8 @@ export function usePermissions() {
           lead_details_all_fields: (data as any).lead_details_all_fields || 'visible',
           lead_details_send_email: (data as any).lead_details_send_email || 'visible',
           filter_leads_by_assignment: (data as any).filter_leads_by_assignment || false,
+          // Sidebar behavior
+          sidebar_pipeline_expanded_default: (data as any).sidebar_pipeline_expanded_default || false,
         });
       }
     } catch (error) {

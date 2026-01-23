@@ -5641,6 +5641,7 @@ export type Database = {
           resources_condolist: string | null
           resources_email_marketing: string | null
           resources_preapproval: string | null
+          sidebar_pipeline_expanded_default: boolean | null
           tasks: string
           updated_at: string
           user_id: string
@@ -5703,6 +5704,7 @@ export type Database = {
           resources_condolist?: string | null
           resources_email_marketing?: string | null
           resources_preapproval?: string | null
+          sidebar_pipeline_expanded_default?: boolean | null
           tasks?: string
           updated_at?: string
           user_id: string
@@ -5765,6 +5767,7 @@ export type Database = {
           resources_condolist?: string | null
           resources_email_marketing?: string | null
           resources_preapproval?: string | null
+          sidebar_pipeline_expanded_default?: boolean | null
           tasks?: string
           updated_at?: string
           user_id?: string
