@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { Building, MapPin, CheckCircle, Calendar, Percent, FileText, History } from "lucide-react";
+import { Building, MapPin, CheckCircle, Calendar, Percent, FileText, History, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
@@ -60,6 +62,7 @@ interface CondoDetailDialogProps {
   onClose: () => void;
   onCondoUpdated: () => void;
   onPreview?: (url: string, fileName: string) => void;
+  onDelete?: (condo: Condo) => void;
 }
 
 const reviewTypeOptions = [
@@ -79,7 +82,7 @@ const formatFieldName = (fieldName: string): string => {
     .replace('Ad', 'A&D');
 };
 
-export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated, onPreview }: CondoDetailDialogProps) {
+export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated, onPreview, onDelete }: CondoDetailDialogProps) {
   const { toast } = useToast();
   const [activityLogs, setActivityLogs] = useState<CondoChangeLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -565,6 +568,31 @@ export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated, onPr
             </CardContent>
           </Card>
         </div>
+
+        {/* Footer with Delete Button */}
+        <DialogFooter className="border-t pt-4 mt-4">
+          <div className="flex justify-between items-center w-full">
+            {onDelete ? (
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  if (condo && onDelete) {
+                    onDelete(condo);
+                  }
+                }}
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Condo
+              </Button>
+            ) : (
+              <div />
+            )}
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

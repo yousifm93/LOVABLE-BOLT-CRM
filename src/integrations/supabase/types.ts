@@ -937,6 +937,8 @@ export type Database = {
           cq_doc_uploaded_at: string | null
           cq_doc_uploaded_by: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           investment_down: string | null
           mip_doc: string | null
@@ -964,6 +966,8 @@ export type Database = {
           cq_doc_uploaded_at?: string | null
           cq_doc_uploaded_by?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           investment_down?: string | null
           mip_doc?: string | null
@@ -991,6 +995,8 @@ export type Database = {
           cq_doc_uploaded_at?: string | null
           cq_doc_uploaded_by?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           investment_down?: string | null
           mip_doc?: string | null
@@ -1018,6 +1024,13 @@ export type Database = {
           {
             foreignKeyName: "condos_cq_doc_uploaded_by_fkey"
             columns: ["cq_doc_uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "condos_deleted_by_fkey"
+            columns: ["deleted_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]

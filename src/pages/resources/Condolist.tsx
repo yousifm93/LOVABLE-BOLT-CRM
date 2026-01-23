@@ -12,6 +12,7 @@ import { CondoDetailDialog } from "@/components/CondoDetailDialog";
 import { CondoDocumentUpload } from "@/components/ui/condo-document-upload";
 import { DocumentPreviewModal } from "@/components/lead-details/DocumentPreviewModal";
 import { CreateCondoModal } from "@/components/modals/CreateCondoModal";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
@@ -326,6 +327,11 @@ export default function Condolist() {
   const [previewFileName, setPreviewFileName] = useState("");
   const [previewPdfData, setPreviewPdfData] = useState<ArrayBuffer | null>(null);
   
+  // Delete state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [condoToDelete, setCondoToDelete] = useState<Condo | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   const { toast } = useToast();
 
   useEffect(() => {
@@ -348,6 +354,7 @@ export default function Condolist() {
             *,
             updated_by_user:users!condos_updated_by_fkey(first_name, last_name)
           `)
+          .is('deleted_at', null)
           .order('updated_at', { ascending: false })
           .range(offset, offset + PAGE_SIZE - 1);
         
@@ -518,6 +525,50 @@ export default function Condolist() {
   const handleViewDetails = (condo: Condo) => {
     setSelectedCondo(condo);
     setIsDialogOpen(true);
+  };
+
+  const handleDeleteCondo = async () => {
+    if (!condoToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const userId = await getCurrentUserId();
+      
+      // Soft delete - set deleted_at and deleted_by
+      const { error } = await supabase
+        .from('condos')
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          deleted_by: userId 
+        })
+        .eq('id', condoToDelete.id);
+      
+      if (error) throw error;
+      
+      // Remove from local state
+      setCondos(prev => prev.filter(c => c.id !== condoToDelete.id));
+      
+      toast({
+        title: "Condo deleted",
+        description: `"${condoToDelete.condo_name}" has been moved to deleted items`,
+      });
+    } catch (error) {
+      console.error('Error deleting condo:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete condo",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setCondoToDelete(null);
+    }
+  };
+
+  const initiateDeleteCondo = (condo: Condo) => {
+    setCondoToDelete(condo);
+    setDeleteDialogOpen(true);
   };
 
   // Filter and sort condos (most recently updated first)
@@ -709,6 +760,16 @@ export default function Condolist() {
         onClose={() => setIsDialogOpen(false)}
         onCondoUpdated={loadCondos}
         onPreview={handlePreview}
+        onDelete={initiateDeleteCondo}
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Condo?"
+        description={`Are you sure you want to delete "${condoToDelete?.condo_name}"? This condo will be moved to Deleted Items and can be restored later.`}
+        onConfirm={handleDeleteCondo}
+        isLoading={isDeleting}
       />
 
       <CreateCondoModal
