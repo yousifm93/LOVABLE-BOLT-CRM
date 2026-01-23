@@ -5606,7 +5606,9 @@ export type Database = {
           dashboard_closed: string | null
           dashboard_miscellaneous: string | null
           dashboard_sales: string | null
+          default_landing_page: string | null
           email: string | null
+          filter_leads_by_assignment: boolean | null
           home: string | null
           home_active_files: string | null
           home_agents: string | null
@@ -5618,9 +5620,12 @@ export type Database = {
           home_loan_estimate: string | null
           home_loan_pricer: string | null
           id: string
+          lead_details_all_fields: string | null
+          lead_details_send_email: string | null
           overview: string
           pipeline: string
           pipeline_active: string
+          pipeline_idle: string | null
           pipeline_leads: string
           pipeline_past_clients: string
           pipeline_pending_app: string
@@ -5659,7 +5664,9 @@ export type Database = {
           dashboard_closed?: string | null
           dashboard_miscellaneous?: string | null
           dashboard_sales?: string | null
+          default_landing_page?: string | null
           email?: string | null
+          filter_leads_by_assignment?: boolean | null
           home?: string | null
           home_active_files?: string | null
           home_agents?: string | null
@@ -5671,9 +5678,12 @@ export type Database = {
           home_loan_estimate?: string | null
           home_loan_pricer?: string | null
           id?: string
+          lead_details_all_fields?: string | null
+          lead_details_send_email?: string | null
           overview?: string
           pipeline?: string
           pipeline_active?: string
+          pipeline_idle?: string | null
           pipeline_leads?: string
           pipeline_past_clients?: string
           pipeline_pending_app?: string
@@ -5712,7 +5722,9 @@ export type Database = {
           dashboard_closed?: string | null
           dashboard_miscellaneous?: string | null
           dashboard_sales?: string | null
+          default_landing_page?: string | null
           email?: string | null
+          filter_leads_by_assignment?: boolean | null
           home?: string | null
           home_active_files?: string | null
           home_agents?: string | null
@@ -5724,9 +5736,12 @@ export type Database = {
           home_loan_estimate?: string | null
           home_loan_pricer?: string | null
           id?: string
+          lead_details_all_fields?: string | null
+          lead_details_send_email?: string | null
           overview?: string
           pipeline?: string
           pipeline_active?: string
+          pipeline_idle?: string | null
           pipeline_leads?: string
           pipeline_past_clients?: string
           pipeline_pending_app?: string

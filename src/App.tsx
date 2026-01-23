@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import Auth from "@/pages/Auth";
 import Index from "@/pages/Index";
 import Home from "@/pages/Home";
@@ -44,6 +45,28 @@ import FeedbackReview from "@/pages/admin/FeedbackReview";
 import UpdatePassword from "@/pages/UpdatePassword";
 import { Toaster } from "@/components/ui/toaster";
 import "./App.css";
+
+// Default landing redirect component
+function DefaultLandingRedirect() {
+  const { permissions, loading } = usePermissions();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  // Check if user has a custom default landing page
+  const landingPage = permissions?.default_landing_page;
+  if (landingPage && landingPage !== '/') {
+    return <Navigate to={landingPage} replace />;
+  }
+  
+  // If home is hidden, redirect to their landing page or active
+  if (permissions?.home === 'hidden') {
+    return <Navigate to={landingPage || '/active'} replace />;
+  }
+  
+  return <Home />;
+}
 
 // Protected route component
 function ProtectedRoute({
@@ -92,7 +115,7 @@ function AppRoutes() {
         <Route path="/*" element={
           <Layout>
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<DefaultLandingRedirect />} />
               <Route path="/dashboard" element={<DashboardTabs />} />
               <Route path="/email" element={<Email />} />
               <Route path="/leads" element={<Leads />} />

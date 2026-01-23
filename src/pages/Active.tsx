@@ -42,6 +42,8 @@ import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { usePipelineView } from "@/hooks/usePipelineView";
 import { ActivityLogModal } from "@/components/modals/ActivityLogModal";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/useAuth";
 
 // Main view - streamlined columns (default)
 const DEFAULT_MAIN_VIEW_COLUMNS = [
@@ -1081,9 +1083,16 @@ export default function Active() {
   // URL search params for deep linking
   const [searchParams, setSearchParams] = useSearchParams();
   
+  // Get permissions and auth for filtering
+  const { permissions } = usePermissions();
+  const { crmUser } = useAuth();
+  
   useEffect(() => {
-    loadData();
-  }, []);
+    // Only load when permissions have loaded (to properly filter)
+    if (permissions !== null) {
+      loadData();
+    }
+  }, [permissions?.filter_leads_by_assignment, crmUser?.id]);
   
   // Handle ?openLead= query param for deep linking from search
   useEffect(() => {
@@ -1125,7 +1134,16 @@ export default function Active() {
       setLoading(true);
       
       // Phase 1: Load loans first (critical data)
-      const loansData = await databaseService.getActiveLoans();
+      let loansData = await databaseService.getActiveLoans();
+      
+      // Filter by assignment if permission flag is set
+      if (permissions?.filter_leads_by_assignment && crmUser?.id) {
+        loansData = (loansData || []).filter(loan => 
+          loan.teammate_assigned_ids?.includes(crmUser.id) ||
+          loan.teammate_assigned === crmUser.id
+        );
+      }
+      
       setActiveLoans(loansData || []);
       
       // Phase 2: Load auxiliary data with Promise.allSettled (non-blocking)

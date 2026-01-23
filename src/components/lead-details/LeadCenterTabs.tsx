@@ -7,6 +7,7 @@ import { DetailsTab } from "./DetailsTab";
 import { DocumentsTab } from "./DocumentsTab";
 import { ConditionsTab } from "./ConditionsTab";
 import { AllFieldsTab } from "./AllFieldsTab";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface LeadCenterTabsProps {
   leadId: string | null;
@@ -26,6 +27,10 @@ interface LeadCenterTabsProps {
 }
 
 export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUpdated, onClientPatched, onDocumentsChange, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick, onTaskActivityClick, onActivityUpdated }: LeadCenterTabsProps) {
+  const { hasPermission } = usePermissions();
+  const showAllFieldsTab = hasPermission('lead_details_all_fields') !== 'hidden';
+  const visibleTabCount = 4 + (showAllFieldsTab ? 1 : 0);
+  
   return (
     <Card className="mb-4 h-[calc(100vh-300px)]">
       <CardHeader className="pb-0">
@@ -33,7 +38,7 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
       </CardHeader>
       <CardContent className="h-[calc(100%-80px)]">
         <Tabs defaultValue="activity" className="w-full h-full">
-          <TabsList className="grid w-full grid-cols-5 mb-4">
+          <TabsList className={`grid w-full mb-4`} style={{ gridTemplateColumns: `repeat(${visibleTabCount}, 1fr)` }}>
             <TabsTrigger value="activity" className="text-xs flex items-center gap-1">
               <Activity className="h-3 w-3" />
               Activity
@@ -50,10 +55,12 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
               <CheckCircle className="h-3 w-3" />
               Conditions
             </TabsTrigger>
-            <TabsTrigger value="all-fields" className="text-xs flex items-center gap-1">
-              <List className="h-3 w-3" />
-              All Fields
-            </TabsTrigger>
+            {showAllFieldsTab && (
+              <TabsTrigger value="all-fields" className="text-xs flex items-center gap-1">
+                <List className="h-3 w-3" />
+                All Fields
+              </TabsTrigger>
+            )}
           </TabsList>
           
           <TabsContent value="activity" className="mt-0 h-[calc(100%-56px)] overflow-hidden">
@@ -97,14 +104,16 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
             )}
           </TabsContent>
           
-          <TabsContent value="all-fields" className="mt-0 h-[calc(100%-56px)] overflow-auto">
-            <AllFieldsTab 
-              client={client} 
-              leadId={leadId} 
-              onLeadUpdated={onLeadUpdated}
-              onClientPatched={onClientPatched}
-            />
-          </TabsContent>
+          {showAllFieldsTab && (
+            <TabsContent value="all-fields" className="mt-0 h-[calc(100%-56px)] overflow-auto">
+              <AllFieldsTab 
+                client={client} 
+                leadId={leadId} 
+                onLeadUpdated={onLeadUpdated}
+                onClientPatched={onClientPatched}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </CardContent>
     </Card>

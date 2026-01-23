@@ -59,6 +59,11 @@ export interface UserPermissions {
   home_income_calculator: string;
   home_loan_pricer: string;
   home_bolt_bot: string;
+  // New fine-grained permissions
+  default_landing_page: string;
+  lead_details_all_fields: string;
+  lead_details_send_email: string;
+  filter_leads_by_assignment: boolean;
 }
 
 type PermissionLevel = 'visible' | 'hidden' | 'locked';
@@ -120,6 +125,11 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   home_income_calculator: 'visible',
   home_loan_pricer: 'visible',
   home_bolt_bot: 'visible',
+  // New fine-grained permissions
+  default_landing_page: '/',
+  lead_details_all_fields: 'visible',
+  lead_details_send_email: 'visible',
+  filter_leads_by_assignment: false,
 };
 
 export function usePermissions() {
@@ -216,6 +226,11 @@ export function usePermissions() {
           home_income_calculator: data.home_income_calculator || 'visible',
           home_loan_pricer: data.home_loan_pricer || 'visible',
           home_bolt_bot: data.home_bolt_bot || 'visible',
+          // New fine-grained permissions
+          default_landing_page: (data as any).default_landing_page || '/',
+          lead_details_all_fields: (data as any).lead_details_all_fields || 'visible',
+          lead_details_send_email: (data as any).lead_details_send_email || 'visible',
+          filter_leads_by_assignment: (data as any).filter_leads_by_assignment || false,
         });
       }
     } catch (error) {
