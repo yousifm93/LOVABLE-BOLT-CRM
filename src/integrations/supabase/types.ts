@@ -5611,14 +5611,18 @@ export type Database = {
           filter_leads_by_assignment: boolean | null
           home: string | null
           home_active_files: string | null
+          home_activity_panel: string | null
           home_agents: string | null
           home_bolt_bot: string | null
           home_calendar: string | null
+          home_daily_reports: string | null
           home_inbox: string | null
           home_income_calculator: string | null
           home_lenders: string | null
           home_loan_estimate: string | null
           home_loan_pricer: string | null
+          home_market_rates: string | null
+          home_monthly_reports: string | null
           id: string
           lead_details_all_fields: string | null
           lead_details_send_email: string | null
@@ -5669,14 +5673,18 @@ export type Database = {
           filter_leads_by_assignment?: boolean | null
           home?: string | null
           home_active_files?: string | null
+          home_activity_panel?: string | null
           home_agents?: string | null
           home_bolt_bot?: string | null
           home_calendar?: string | null
+          home_daily_reports?: string | null
           home_inbox?: string | null
           home_income_calculator?: string | null
           home_lenders?: string | null
           home_loan_estimate?: string | null
           home_loan_pricer?: string | null
+          home_market_rates?: string | null
+          home_monthly_reports?: string | null
           id?: string
           lead_details_all_fields?: string | null
           lead_details_send_email?: string | null
@@ -5727,14 +5735,18 @@ export type Database = {
           filter_leads_by_assignment?: boolean | null
           home?: string | null
           home_active_files?: string | null
+          home_activity_panel?: string | null
           home_agents?: string | null
           home_bolt_bot?: string | null
           home_calendar?: string | null
+          home_daily_reports?: string | null
           home_inbox?: string | null
           home_income_calculator?: string | null
           home_lenders?: string | null
           home_loan_estimate?: string | null
           home_loan_pricer?: string | null
+          home_market_rates?: string | null
+          home_monthly_reports?: string | null
           id?: string
           lead_details_all_fields?: string | null
           lead_details_send_email?: string | null

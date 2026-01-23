@@ -164,6 +164,10 @@ const HOME_CARD_SECTIONS = [
   { key: 'home_income_calculator', label: 'Income Calculator' },
   { key: 'home_loan_pricer', label: 'Loan Pricer' },
   { key: 'home_bolt_bot', label: 'Bolt Bot' },
+  { key: 'home_activity_panel', label: 'Activity Panel' },
+  { key: 'home_market_rates', label: 'Market Rates' },
+  { key: 'home_daily_reports', label: 'Daily Reports' },
+  { key: 'home_monthly_reports', label: 'Monthly Reports' },
 ];
 
 const getDefaultPermissions = (): Omit<UserPermission, 'id'> => ({

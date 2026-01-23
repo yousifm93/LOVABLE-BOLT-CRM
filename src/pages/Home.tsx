@@ -439,10 +439,26 @@ export default function Home() {
 
         {/* Market Rates and Calendar Section */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-3">
-          <Card className="overflow-hidden h-[400px] border">
+          <Card className={cn(
+            "overflow-hidden h-[400px] border relative",
+            hasPermission('home_activity_panel') === 'locked' && "opacity-50"
+          )}>
+            {hasPermission('home_activity_panel') === 'locked' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                <Lock className="h-6 w-6 text-muted-foreground" />
+              </div>
+            )}
             <ActivityPanel />
           </Card>
-          <Card className="overflow-hidden h-[400px] border">
+          <Card className={cn(
+            "overflow-hidden h-[400px] border relative",
+            hasPermission('home_market_rates') === 'locked' && "opacity-50"
+          )}>
+            {hasPermission('home_market_rates') === 'locked' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                <Lock className="h-6 w-6 text-muted-foreground" />
+              </div>
+            )}
             <MarketRatesCard />
           </Card>
           <Card className={cn(
@@ -516,17 +532,32 @@ export default function Home() {
         </div>
 
         {/* Daily Reports */}
-        <div className="space-y-2">
+        <div className={cn(
+          "space-y-2 relative",
+          hasPermission('home_daily_reports') === 'locked' && "opacity-50 pointer-events-none"
+        )}>
+          {hasPermission('home_daily_reports') === 'locked' && (
+            <Lock className="absolute top-0 right-0 h-4 w-4 text-muted-foreground" />
+          )}
           <h3 className="text-sm font-medium text-muted-foreground">Daily Reports</h3>
           <DailyReportCards />
         </div>
 
         {/* Monthly Reports */}
-        <div className="space-y-2">
+        <div className={cn(
+          "space-y-2 relative",
+          hasPermission('home_monthly_reports') === 'locked' && "opacity-50 pointer-events-none"
+        )}>
+          {hasPermission('home_monthly_reports') === 'locked' && (
+            <Lock className="absolute top-0 right-0 h-4 w-4 text-muted-foreground" />
+          )}
           <h3 className="text-sm font-medium text-muted-foreground">Monthly Reports</h3>
           <SalesReportCards />
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className={cn(
+          "grid grid-cols-3 gap-3",
+          hasPermission('home_monthly_reports') === 'locked' && "opacity-50 pointer-events-none"
+        )}>
           <Card className="bg-muted/30">
             <CardContent className="p-3 text-center">
               <p className="text-xs text-muted-foreground">Leads This Month</p>
