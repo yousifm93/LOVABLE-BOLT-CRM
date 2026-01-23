@@ -41,6 +41,7 @@ import EmailMarketing from "@/pages/resources/EmailMarketing";
 import EmailHistory from "@/pages/admin/EmailHistory";
 import Feedback from "@/pages/Feedback";
 import FeedbackReview from "@/pages/admin/FeedbackReview";
+import UpdatePassword from "@/pages/UpdatePassword";
 import { Toaster } from "@/components/ui/toaster";
 import "./App.css";
 
@@ -81,6 +82,7 @@ function AppRoutes() {
       <Route path="/apply/verified" element={<EmailVerified />} />
       <Route path="/apply" element={<MortgageApplication />} />
       <Route path="/home-value" element={<PropertyValuePublic />} />
+      <Route path="/update-password" element={<UpdatePassword />} />
       
       {/* AUTH ROUTE */}
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />

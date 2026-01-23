@@ -42,11 +42,11 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Check if user is admin
+    // Check if user is admin (lookup by auth_user_id, not id)
     const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('role')
-      .eq('id', user.id)
+      .eq('auth_user_id', user.id)
       .single();
 
     if (userError || userData?.role !== 'Admin') {
