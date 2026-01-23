@@ -310,6 +310,7 @@ export function TaskAutomationsTable() {
     appraisal: groupedAutomations.active_loan.filter(a => a.subcategory === 'appraisal'),
     closing: groupedAutomations.active_loan.filter(a => a.subcategory === 'closing'),
     submission: groupedAutomations.active_loan.filter(a => a.subcategory === 'submission'),
+    conditions: groupedAutomations.active_loan.filter(a => a.subcategory === 'conditions'),
     other: groupedAutomations.active_loan.filter(a => a.subcategory === 'other' || !a.subcategory)
   };
   
@@ -324,6 +325,7 @@ export function TaskAutomationsTable() {
     appraisal: 'Appraisal',
     closing: 'Closing',
     submission: 'Submission',
+    conditions: 'Conditions',
     other: 'Other'
   };
 
