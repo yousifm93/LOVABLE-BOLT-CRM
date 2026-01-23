@@ -5611,6 +5611,7 @@ export type Database = {
           home_active_files: string | null
           home_agents: string | null
           home_bolt_bot: string | null
+          home_calendar: string | null
           home_inbox: string | null
           home_income_calculator: string | null
           home_lenders: string | null
@@ -5663,6 +5664,7 @@ export type Database = {
           home_active_files?: string | null
           home_agents?: string | null
           home_bolt_bot?: string | null
+          home_calendar?: string | null
           home_inbox?: string | null
           home_income_calculator?: string | null
           home_lenders?: string | null
@@ -5715,6 +5717,7 @@ export type Database = {
           home_active_files?: string | null
           home_agents?: string | null
           home_bolt_bot?: string | null
+          home_calendar?: string | null
           home_inbox?: string | null
           home_income_calculator?: string | null
           home_lenders?: string | null

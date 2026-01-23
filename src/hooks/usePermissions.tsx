@@ -51,6 +51,7 @@ export interface UserPermissions {
   admin_deleted_items: string;
   // Homepage card permissions
   home_inbox: string;
+  home_calendar: string;
   home_agents: string;
   home_lenders: string;
   home_active_files: string;
@@ -111,6 +112,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   admin_deleted_items: 'visible',
   // Homepage card permissions
   home_inbox: 'visible',
+  home_calendar: 'visible',
   home_agents: 'visible',
   home_lenders: 'visible',
   home_active_files: 'visible',
@@ -206,6 +208,7 @@ export function usePermissions() {
           admin_deleted_items: data.admin_deleted_items || 'visible',
           // Homepage card permissions
           home_inbox: data.home_inbox || 'visible',
+          home_calendar: data.home_calendar || 'visible',
           home_agents: data.home_agents || 'visible',
           home_lenders: data.home_lenders || 'visible',
           home_active_files: data.home_active_files || 'visible',
