@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Mail, Phone, User, Globe, Lock, Eye, EyeOff, DollarSign, Copy, ExternalLink, Users, History, Calendar, Package, Percent, FileText, ClipboardCopy, Hash, Send, Plus, X } from "lucide-react";
+import { Building2, Mail, Phone, User, Globe, Lock, Eye, EyeOff, DollarSign, Copy, ExternalLink, Users, History, Calendar, Package, Percent, FileText, ClipboardCopy, Hash, Send, Plus, X, Paperclip } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
 import { InlineEditProduct } from "@/components/ui/inline-edit-product";
+import { LenderFilesSection } from "@/components/lender/LenderFilesSection";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -1021,6 +1022,17 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
                 onValueChange={(value) => handleFieldUpdate('epo_period', value)}
                 placeholder="Enter EPO details..."
               />
+            </div>
+
+            <Separator />
+
+            {/* Files Section */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                Files
+              </h3>
+              <LenderFilesSection lenderId={lender.id} />
             </div>
 
             <Separator />

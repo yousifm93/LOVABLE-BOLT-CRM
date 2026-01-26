@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Clock, FileText, CheckCircle, FileCheck, MessageSquare, Mail } from "lucide-react";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
-import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
+import { MentionableInlineEditNotes } from "@/components/ui/mentionable-inline-edit-notes";
 import { FileUploadButton } from "@/components/ui/file-upload-button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -82,10 +82,12 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
           <MessageSquare className="h-3 w-3" />
           Title Notes
         </Label>
-        <InlineEditNotes
+        <MentionableInlineEditNotes
           value={data.title_notes}
           onValueChange={(value) => onUpdate('title_notes', value)}
           placeholder="Add notes about title work..."
+          contextType="lead"
+          contextId={leadId}
         />
       </div>
 

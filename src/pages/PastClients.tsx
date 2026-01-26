@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Search, Filter, X, Upload, FileCheck, DollarSign, Percent, CalendarCheck } from "lucide-react";
+import { Search, Filter, X, Upload, FileCheck, DollarSign, Percent, CalendarCheck, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,16 @@ import { transformLeadToClient } from "@/utils/clientTransform";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSection";
+import { FileUploadButton } from "@/components/ui/file-upload-button";
+
+// Client rating options
+const clientRatingOptions = [
+  { value: "A", label: "A" },
+  { value: "B", label: "B" },
+  { value: "C", label: "C" },
+  { value: "D", label: "D" },
+  { value: "F", label: "F" },
+];
 
 interface PastClientLoan {
   id: string;
@@ -78,6 +88,10 @@ interface PastClientLoan {
   subject_zip: string | null;
   email: string | null;
   phone: string | null;
+  // New fields for document columns and rating
+  fcp_file: string | null;
+  appraisal_file: string | null;
+  client_rating: string | null;
   lender?: {
     id: string;
     first_name: string;
@@ -642,6 +656,63 @@ const createColumns = (
     sortable: true,
   },
   {
+    accessorKey: "fcp_file",
+    header: "Final CD",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <FileUploadButton
+          leadId={row.original.id}
+          fieldName="fcp_file"
+          currentFile={row.original.fcp_file}
+          onUpload={(url) => handleUpdate(row.original.id, "fcp_file", url)}
+          config={{
+            storage_path: 'files/{lead_id}/final-cd/',
+            allowed_types: ['.pdf']
+          }}
+        />
+      </div>
+    ),
+    sortable: false,
+  },
+  {
+    accessorKey: "appraisal_file",
+    header: "Appraisal",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <FileUploadButton
+          leadId={row.original.id}
+          fieldName="appraisal_file"
+          currentFile={row.original.appraisal_file}
+          onUpload={(url) => handleUpdate(row.original.id, "appraisal_file", url)}
+          config={{
+            storage_path: 'files/{lead_id}/appraisal/',
+            allowed_types: ['.pdf']
+          }}
+        />
+      </div>
+    ),
+    sortable: false,
+  },
+  {
+    accessorKey: "client_rating",
+    header: "Rating",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.client_rating}
+          options={clientRatingOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "client_rating", value)
+          }
+          showAsStatusBadge
+          fillCell={true}
+          className="w-12"
+        />
+      </div>
+    ),
+    sortable: true,
+  },
+  {
     accessorKey: "interest_rate",
     header: "Rate",
     cell: ({ row }) => (
@@ -878,6 +949,10 @@ export default function PastClients() {
     { id: "epo_status", label: "EPO", visible: false },
     { id: "email", label: "Borrower Email", visible: false },
     { id: "phone", label: "Borrower Phone", visible: false },
+    // New columns
+    { id: "fcp_file", label: "Final CD", visible: true },
+    { id: "appraisal_file", label: "Appraisal", visible: true },
+    { id: "client_rating", label: "Rating", visible: true },
   ], []);
   
   // Load ALL database fields for Hide/Show modal (~85 total)

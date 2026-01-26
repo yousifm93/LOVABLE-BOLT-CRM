@@ -3003,6 +3003,7 @@ export type Database = {
           cash_to_close: number | null
           cash_to_close_goal: number | null
           cd_status: Database["public"]["Enums"]["cd_status"] | null
+          client_rating: string | null
           close_date: string | null
           closed_at: string | null
           closing_costs: number | null
@@ -3063,6 +3064,7 @@ export type Database = {
           id: string
           idle_followup_date: string | null
           idle_future_steps: boolean | null
+          idle_moved_at: string | null
           idle_previous_stage_id: string | null
           idle_previous_stage_name: string | null
           idle_reason: string | null
@@ -3195,6 +3197,7 @@ export type Database = {
           cash_to_close?: number | null
           cash_to_close_goal?: number | null
           cd_status?: Database["public"]["Enums"]["cd_status"] | null
+          client_rating?: string | null
           close_date?: string | null
           closed_at?: string | null
           closing_costs?: number | null
@@ -3255,6 +3258,7 @@ export type Database = {
           id?: string
           idle_followup_date?: string | null
           idle_future_steps?: boolean | null
+          idle_moved_at?: string | null
           idle_previous_stage_id?: string | null
           idle_previous_stage_name?: string | null
           idle_reason?: string | null
@@ -3389,6 +3393,7 @@ export type Database = {
           cash_to_close?: number | null
           cash_to_close_goal?: number | null
           cd_status?: Database["public"]["Enums"]["cd_status"] | null
+          client_rating?: string | null
           close_date?: string | null
           closed_at?: string | null
           closing_costs?: number | null
@@ -3449,6 +3454,7 @@ export type Database = {
           id?: string
           idle_followup_date?: string | null
           idle_future_steps?: boolean | null
+          idle_moved_at?: string | null
           idle_previous_stage_id?: string | null
           idle_previous_stage_name?: string | null
           idle_reason?: string | null
@@ -3629,6 +3635,60 @@ export type Database = {
           {
             foreignKeyName: "leads_teammate_assigned_fkey"
             columns: ["teammate_assigned"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lender_documents: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          lender_id: string
+          updated_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          lender_id: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          lender_id?: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lender_documents_lender_id_fkey"
+            columns: ["lender_id"]
+            isOneToOne: false
+            referencedRelation: "lenders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lender_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
