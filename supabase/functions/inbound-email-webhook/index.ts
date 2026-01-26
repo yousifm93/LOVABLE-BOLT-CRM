@@ -516,6 +516,41 @@ serve(async (req) => {
           }).catch(err => {
             console.error('[Inbound Email Webhook] Error triggering lender data extraction:', err);
           });
+
+          // Parse email for contact extraction (auto-add contacts from lender marketing)
+          try {
+            console.log('[Inbound Email Webhook] Triggering contact parsing for lender marketing email...');
+            
+            const contactParseResponse = await fetch(`${supabaseUrl}/functions/v1/parse-email-contacts`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+              },
+              body: JSON.stringify({
+                emailLogId: emailLog.id,
+                emailContent: {
+                  from: senderName,
+                  fromEmail: fromEmailToStore,
+                  subject: subject,
+                  body: textBody || htmlBody,
+                  date: new Date().toISOString()
+                }
+              }),
+            });
+
+            if (contactParseResponse.ok) {
+              const contactData = await contactParseResponse.json();
+              if (contactData.count > 0) {
+                console.log('[Inbound Email Webhook] Extracted', contactData.count, 'new contacts from lender marketing');
+              }
+            } else {
+              console.log('[Inbound Email Webhook] Contact parsing failed:', await contactParseResponse.text());
+            }
+          } catch (contactError) {
+            console.error('[Inbound Email Webhook] Error parsing contacts:', contactError);
+            // Don't fail the webhook if contact parsing fails
+          }
         }
       }
 
@@ -814,6 +849,41 @@ serve(async (req) => {
     } catch (lenderMarketingError) {
       console.error('[Inbound Email Webhook] Error parsing lender marketing:', lenderMarketingError);
       // Don't fail the webhook if lender marketing parsing fails
+    }
+
+    // Parse email for contact extraction (auto-add contacts)
+    try {
+      console.log('[Inbound Email Webhook] Triggering contact parsing...');
+      
+      const contactParseResponse = await fetch(`${supabaseUrl}/functions/v1/parse-email-contacts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          emailLogId: emailLog.id,
+          emailContent: {
+            from: senderName,
+            fromEmail: fromEmailToStore,
+            subject: subject,
+            body: textBody || htmlBody,
+            date: new Date().toISOString()
+          }
+        }),
+      });
+
+      if (contactParseResponse.ok) {
+        const contactData = await contactParseResponse.json();
+        if (contactData.count > 0) {
+          console.log('[Inbound Email Webhook] Extracted', contactData.count, 'new contacts');
+        }
+      } else {
+        console.log('[Inbound Email Webhook] Contact parsing failed:', await contactParseResponse.text());
+      }
+    } catch (contactError) {
+      console.error('[Inbound Email Webhook] Error parsing contacts:', contactError);
+      // Don't fail the webhook if contact parsing fails
     }
     }
 
