@@ -1,76 +1,94 @@
 
+## Fix: Contact Auto-Add System - Critical Issues
 
-## Fix: Contact Auto-Add System Issues
+### Summary of Problems
 
-### Issue 1: Team Emails Being Added
+| Issue | Root Cause | Impact |
+|-------|------------|--------|
+| No new contacts being added | Syntax error in `parse-email-contacts` - duplicate variable declaration | Edge function completely broken |
+| Popover shows "No contact suggestions" | `NewContactsPopover` queries wrong table (`email_contact_suggestions` instead of `contacts`) | Can't see pending contacts |
+| Badge text overlap | Badge container too narrow for multiple badges | Visual display issue |
 
-**Problem**: Contacts with `@mortgagebolt.com` domain (Ashley, Yousif) are being extracted as contacts when they are team members.
+---
 
-**Solution**: Add domain exclusion logic to `parse-email-contacts` function to skip any email addresses ending with `@mortgagebolt.com`.
+### Fix 1: Syntax Error in parse-email-contacts
 
-**Implementation**:
+**File:** `supabase/functions/parse-email-contacts/index.ts`
+
+**Problem:** The variable `emailDomain` is declared twice in the same scope:
+- Line 262: `const emailDomain = contact.email.split('@')[1]?.toLowerCase();` (team exclusion)
+- Line 269: `const emailDomain = contact.email.split('@')[1]?.toLowerCase();` (fallback logic)
+
+**Solution:** Remove the duplicate declaration on line 269 since the variable already exists from line 262.
+
 ```typescript
-// Add after email validation (around line 257)
+// Line 260-269 BEFORE (broken):
 const excludedDomains = ['mortgagebolt.com', 'mortgagebolt.org'];
 const emailDomain = contact.email.split('@')[1]?.toLowerCase();
 if (emailDomain && excludedDomains.includes(emailDomain)) {
   console.log(`Skipping team email: ${contact.email}`);
   continue;
 }
-```
 
-Also clean up existing pending contacts with team domains:
-```sql
-DELETE FROM contacts 
-WHERE email LIKE '%@mortgagebolt.com' 
-  AND approval_status = 'pending';
+// Extract domain for fallback logic
+const emailDomain = contact.email.split('@')[1]?.toLowerCase();  // DUPLICATE!
+
+// Line 260-269 AFTER (fixed):
+const excludedDomains = ['mortgagebolt.com', 'mortgagebolt.org'];
+const emailDomain = contact.email.split('@')[1]?.toLowerCase();
+if (emailDomain && excludedDomains.includes(emailDomain)) {
+  console.log(`Skipping team email: ${contact.email}`);
+  continue;
+}
+
+// emailDomain already declared above, reuse it for fallback logic
 ```
 
 ---
 
-### Issue 2: Backfill Timeout
+### Fix 2: NewContactsPopover Queries Wrong Table
 
-**Problem**: The `backfill-email-contacts` function processes emails sequentially with AI calls that take 5-10 seconds each. Processing 99 emails would take 10-15 minutes, but edge functions timeout after 60 seconds.
+**File:** `src/components/email/NewContactsPopover.tsx`
 
-**Solution**: Change the backfill approach:
-1. Increase delay between calls to 500ms (less rate limiting pressure)
-2. Process in batches by running the function multiple times with different time windows
-3. Or accept partial progress and re-run for remaining emails
+**Problem:** The popover fetches from `email_contact_suggestions` table (line 49-53), but contacts are now saved directly to the `contacts` table with `approval_status = 'pending'`.
 
-**Current Status**: 
-- Processed: 22/99 emails
-- Found: ~10 contacts so far
-- Remaining: 77 emails still need processing
-
-**Action**: Re-run the backfill to continue processing remaining emails. Can run multiple times to process in chunks.
-
----
-
-### Issue 3: "New Contacts" Tab Empty
-
-**Problem**: The Email page's "New Contacts" filter queries `email_contact_suggestions` for `status = 'pending'`, but the parse function now saves suggestions with `status = 'auto_added'` since contacts go directly into the `contacts` table.
-
-**Solution**: Change the "New Contacts" view to look at the `contacts` table instead of `email_contact_suggestions`. Show emails that have associated contacts with `approval_status = 'pending'`.
-
-**Implementation in Email.tsx**:
-1. Create a new map: `emailsWithPendingContacts` that stores `email_log_id → count`
-2. Query from `contacts` table where `approval_status = 'pending'` and group by `email_log_id`
-3. Update the "New Contacts" filter to use this new map
+**Solution:** Update the query to fetch from `contacts` table instead:
 
 ```typescript
-// Replace contactSuggestionsCount query with:
-const { data: pendingContacts } = await supabase
-  .from('contacts')
-  .select('email_log_id')
-  .eq('approval_status', 'pending')
-  .not('email_log_id', 'is', null);
+// BEFORE (broken):
+const { data: suggestionsData, error: suggestionsError } = await supabase
+  .from('email_contact_suggestions')
+  .select('*')
+  .eq('email_log_id', emailLogId)
+  .order('created_at', { ascending: false });
 
-const contactCountsMap = new Map<string, number>();
-for (const c of pendingContacts || []) {
-  if (c.email_log_id) {
-    contactCountsMap.set(c.email_log_id, (contactCountsMap.get(c.email_log_id) || 0) + 1);
-  }
-}
+// AFTER (fixed):
+const { data: suggestionsData, error: suggestionsError } = await supabase
+  .from('contacts')
+  .select('*')
+  .eq('email_log_id', emailLogId)
+  .eq('approval_status', 'pending')
+  .order('created_at', { ascending: false });
+```
+
+Also update the interface and approval/deny handlers to work with `contacts` table fields.
+
+---
+
+### Fix 3: Badge Layout Overlap
+
+**File:** `src/pages/Email.tsx`
+
+**Problem:** The badge container has `max-w-[180px]` which can cause overlap when multiple badges appear.
+
+**Solution:** Increase the max width and reduce gap between badges:
+
+```typescript
+// Line 1448 BEFORE:
+<div className="flex items-center gap-1 flex-shrink-0 max-w-[180px]">
+
+// AFTER:
+<div className="flex items-center gap-0.5 flex-shrink-0 max-w-[220px]">
 ```
 
 ---
@@ -79,22 +97,27 @@ for (const c of pendingContacts || []) {
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/parse-email-contacts/index.ts` | Add `@mortgagebolt.com` domain exclusion |
-| `src/pages/Email.tsx` | Fix "New Contacts" query to use `contacts` table |
+| `supabase/functions/parse-email-contacts/index.ts` | Remove duplicate `const emailDomain` declaration |
+| `src/components/email/NewContactsPopover.tsx` | Query `contacts` table instead of `email_contact_suggestions` |
+| `src/pages/Email.tsx` | Adjust badge container width and gap |
 
-### Database Cleanup
+---
 
-Delete team emails that were incorrectly added:
-- `yousif@mortgagebolt.com`
-- Any other `@mortgagebolt.com` addresses
+### Post-Fix Actions
 
-### Follow-up Action
+After deploying the fixes:
+1. Re-run the backfill function to process remaining emails
+2. New contacts will appear in both the Master Contact List and the "New Contacts" popover
 
-After implementing fixes, re-run the backfill for remaining 77 emails by calling:
-```bash
-POST /functions/v1/backfill-email-contacts
-{ "hoursBack": 24 }
-```
+### Technical Details
 
-The function will skip emails that already have suggestions (via the existing check).
+The `contacts` table fields map to the popover as follows:
+- `first_name`, `last_name` - Contact name
+- `email` - Email address  
+- `phone` - Phone number
+- `company` - Company name
+- `tags` - Suggested tags
+- `approval_status` - 'pending' for unreviewed, update to 'approved' or 'rejected'
 
+The approve action just needs to update `approval_status` to `'approved'` (contact already exists in table).
+The deny action sets `approval_status` to `'rejected'`.
