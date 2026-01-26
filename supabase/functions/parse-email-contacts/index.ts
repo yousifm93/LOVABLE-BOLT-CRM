@@ -265,8 +265,7 @@ ${senderReminder}`;
         continue;
       }
 
-      // Extract domain for fallback logic
-      const emailDomain = contact.email.split('@')[1]?.toLowerCase();
+      // Use emailDomain (already declared above) for fallback logic
 
       // Fallback: derive company from email domain if not extracted
       if (!contact.company && emailDomain) {

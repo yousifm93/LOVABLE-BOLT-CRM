@@ -1445,7 +1445,7 @@ export default function Email() {
                             <span className={cn("text-sm truncate min-w-0 flex-1", email.unread ? "font-semibold" : "font-medium")}>
                               {email.from}
                             </span>
-                            <div className="flex items-center gap-1 flex-shrink-0 max-w-[180px]">
+                            <div className="flex items-center gap-0.5 flex-shrink-0 max-w-[220px]">
                               {/* Reviewed indicator in File View / Lender Marketing View */}
                               {(emailView === 'file' || emailView === 'lender-marketing') && isReviewed && <span title={`Reviewed: ${customCategories.find(c => c.key === emailCategory)?.name || ''}`}>
                                   <CheckCircle className={cn("h-3 w-3", emailCategory === 'reviewed_file' && "text-green-500", emailCategory === 'reviewed_lender_marketing' && "text-blue-500", emailCategory === 'reviewed_na' && "text-gray-500")} />

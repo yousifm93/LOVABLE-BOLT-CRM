@@ -8,21 +8,18 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface ContactSuggestion {
+interface PendingContact {
   id: string;
   email_log_id: string | null;
   first_name: string;
-  last_name: string | null;
-  email: string;
+  last_name: string;
+  email: string | null;
   phone: string | null;
   company: string | null;
-  suggested_tags: string[] | null;
-  source_email_subject: string | null;
-  source_email_from: string | null;
-  source_email_date: string | null;
-  status: string;
-  reason: string | null;
-  confidence: number | null;
+  tags: string[] | null;
+  description: string | null;
+  approval_status: string | null;
+  job_title: string | null;
 }
 
 interface NewContactsPopoverProps {
@@ -36,7 +33,7 @@ interface NewContactsPopoverProps {
 export function NewContactsPopover({ emailLogId, subject, fromEmail, className, pendingSuggestionCount = 0 }: NewContactsPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<ContactSuggestion[]>([]);
+  const [contacts, setContacts] = useState<PendingContact[]>([]);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
@@ -45,128 +42,94 @@ export function NewContactsPopover({ emailLogId, subject, fromEmail, className, 
     if (open) {
       setIsLoading(true);
       try {
-        // Fetch suggestions for this email
-        const { data: suggestionsData, error: suggestionsError } = await supabase
-          .from('email_contact_suggestions')
+        // Fetch pending contacts for this email from the contacts table
+        const { data: contactsData, error: contactsError } = await supabase
+          .from('contacts')
           .select('*')
           .eq('email_log_id', emailLogId)
+          .eq('approval_status', 'pending')
           .order('created_at', { ascending: false });
 
-        if (suggestionsError) {
-          console.error('Error fetching contact suggestions:', suggestionsError);
+        if (contactsError) {
+          console.error('Error fetching pending contacts:', contactsError);
         } else {
-          setSuggestions(suggestionsData || []);
+          setContacts(contactsData || []);
         }
       } catch (error) {
-        console.error('Error loading contact suggestions:', error);
+        console.error('Error loading pending contacts:', error);
       } finally {
         setIsLoading(false);
       }
     }
   };
 
-  const handleApproveSuggestion = async (suggestion: ContactSuggestion) => {
-    setProcessingIds(prev => new Set(prev).add(suggestion.id));
+  const handleApproveContact = async (contact: PendingContact) => {
+    setProcessingIds(prev => new Set(prev).add(contact.id));
     try {
-      // Create the contact with all available data
-      const noteText = `Added from email: "${suggestion.source_email_subject || subject}" from ${suggestion.source_email_from || fromEmail}${suggestion.source_email_date ? ` on ${new Date(suggestion.source_email_date).toLocaleDateString()}` : ''}.`;
-      
-      // Use today's date for lead_created_date to avoid timezone issues
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Get job_title from suggestion if available (may need to parse from reason if not directly stored)
-      const jobTitle = (suggestion as any).job_title || null;
-      
-      const { error: insertError } = await supabase
+      // Contact already exists in the table - just update approval_status to 'approved'
+      const { error: updateError } = await supabase
         .from('contacts')
-        .insert({
-          first_name: suggestion.first_name,
-          last_name: suggestion.last_name || '',
-          email: suggestion.email,
-          phone: suggestion.phone,
-          company: suggestion.company,
-          job_title: jobTitle,
-          tags: suggestion.suggested_tags,
-          type: 'Other',
-          source_type: 'email_import',
-          notes: noteText,
-          lead_created_date: today,
-          description: suggestion.reason,
-          email_log_id: suggestion.email_log_id
-        });
+        .update({ approval_status: 'approved' })
+        .eq('id', contact.id);
 
-      if (insertError) throw insertError;
-
-      // Mark suggestion as approved
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase
-        .from('email_contact_suggestions')
-        .update({
-          status: 'approved',
-          processed_at: new Date().toISOString(),
-          processed_by: user?.id,
-        })
-        .eq('id', suggestion.id);
+      if (updateError) throw updateError;
 
       // Update local state
-      setSuggestions(prev => prev.map(s => 
-        s.id === suggestion.id ? { ...s, status: 'approved' } : s
-      ));
+      setContacts(prev => prev.filter(c => c.id !== contact.id));
 
       toast({
-        title: "Contact Added",
-        description: `${suggestion.first_name} ${suggestion.last_name || ''} added to Master Contact List`,
+        title: "Contact Approved",
+        description: `${contact.first_name} ${contact.last_name || ''} added to Master Contact List`,
       });
     } catch (error: any) {
-      console.error('Error approving contact suggestion:', error);
+      console.error('Error approving contact:', error);
       toast({
         title: "Error",
-        description: `Failed to add contact: ${error?.message || 'Unknown error'}`,
+        description: `Failed to approve contact: ${error?.message || 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
-        next.delete(suggestion.id);
+        next.delete(contact.id);
         return next;
       });
     }
   };
 
-  const handleDenySuggestion = async (suggestion: ContactSuggestion) => {
-    setProcessingIds(prev => new Set(prev).add(suggestion.id));
+  const handleDenyContact = async (contact: PendingContact) => {
+    setProcessingIds(prev => new Set(prev).add(contact.id));
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase
-        .from('email_contact_suggestions')
-        .update({
-          status: 'rejected',
-          processed_at: new Date().toISOString(),
-          processed_by: user?.id,
-        })
-        .eq('id', suggestion.id);
+      // Update approval_status to 'rejected'
+      const { error: updateError } = await supabase
+        .from('contacts')
+        .update({ approval_status: 'rejected' })
+        .eq('id', contact.id);
 
-      setSuggestions(prev => prev.map(s => 
-        s.id === suggestion.id ? { ...s, status: 'rejected' } : s
-      ));
+      if (updateError) throw updateError;
+
+      // Update local state
+      setContacts(prev => prev.filter(c => c.id !== contact.id));
+
+      toast({
+        title: "Contact Rejected",
+        description: `${contact.first_name} ${contact.last_name || ''} will not be added`,
+      });
     } catch (error) {
-      console.error('Error denying suggestion:', error);
+      console.error('Error rejecting contact:', error);
       toast({
         title: "Error",
-        description: "Failed to reject suggestion",
+        description: "Failed to reject contact",
         variant: "destructive",
       });
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
-        next.delete(suggestion.id);
+        next.delete(contact.id);
         return next;
       });
     }
   };
-
-  const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
-  const processedSuggestions = suggestions.filter(s => s.status !== 'pending');
 
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
@@ -198,7 +161,7 @@ export function NewContactsPopover({ emailLogId, subject, fromEmail, className, 
         <div className="p-3 border-b bg-muted/30">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-purple-600" />
-            <h4 className="font-semibold text-sm">Contact Suggestions</h4>
+            <h4 className="font-semibold text-sm">Pending Contacts</h4>
           </div>
           <p className="text-xs text-muted-foreground truncate mt-1">{subject}</p>
         </div>
@@ -209,125 +172,89 @@ export function NewContactsPopover({ emailLogId, subject, fromEmail, className, 
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
-            ) : suggestions.length === 0 ? (
+            ) : contacts.length === 0 ? (
               <div className="text-center py-6 text-sm text-muted-foreground">
-                No contact suggestions for this email
+                No pending contacts for this email
               </div>
             ) : (
-              <>
-                {/* Pending suggestions */}
-                {pendingSuggestions.length > 0 && (
-                  <div className="space-y-2">
-                    <h5 className="text-xs font-medium text-muted-foreground">
-                      Pending ({pendingSuggestions.length})
-                    </h5>
-                    {pendingSuggestions.map((suggestion) => (
-                      <div key={suggestion.id} className="border rounded-md p-2.5 bg-card">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <Plus className="h-3.5 w-3.5 text-purple-600" />
-                              <span className="text-sm font-medium">
-                                {suggestion.first_name} {suggestion.last_name || ''}
+              <div className="space-y-2">
+                <h5 className="text-xs font-medium text-muted-foreground">
+                  Pending ({contacts.length})
+                </h5>
+                {contacts.map((contact) => (
+                  <div key={contact.id} className="border rounded-md p-2.5 bg-card">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Plus className="h-3.5 w-3.5 text-purple-600" />
+                          <span className="text-sm font-medium">
+                            {contact.first_name} {contact.last_name || ''}
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-0.5 mt-1">
+                          {contact.email && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Mail className="h-3 w-3" />
+                              <span>{contact.email}</span>
+                            </div>
+                          )}
+                          {contact.phone && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Phone className="h-3 w-3" />
+                              <span>{contact.phone}</span>
+                            </div>
+                          )}
+                          {contact.company && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Building2 className="h-3 w-3" />
+                              <span>{contact.company}</span>
+                            </div>
+                          )}
+                        </div>
+                        {contact.tags && contact.tags.length > 0 && (
+                          <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                            <Tag className="h-3 w-3 text-muted-foreground" />
+                            {contact.tags.map((tag, idx) => (
+                              <span key={idx} className="text-[10px] px-1.5 py-0.5 bg-accent/30 text-accent-foreground rounded">
+                                {tag}
                               </span>
-                            </div>
-                            <div className="flex flex-col gap-0.5 mt-1">
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Mail className="h-3 w-3" />
-                                <span>{suggestion.email}</span>
-                              </div>
-                              {suggestion.phone && (
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <Phone className="h-3 w-3" />
-                                  <span>{suggestion.phone}</span>
-                                </div>
-                              )}
-                              {suggestion.company && (
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <Building2 className="h-3 w-3" />
-                                  <span>{suggestion.company}</span>
-                                </div>
-                              )}
-                            </div>
-                            {suggestion.suggested_tags && suggestion.suggested_tags.length > 0 && (
-                              <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                                <Tag className="h-3 w-3 text-muted-foreground" />
-                                {suggestion.suggested_tags.map((tag, idx) => (
-                                  <span key={idx} className="text-[10px] px-1.5 py-0.5 bg-accent/30 text-accent-foreground rounded">
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            {suggestion.reason && (
-                              <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
-                                {suggestion.reason}
-                              </p>
-                            )}
+                            ))}
                           </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                              onClick={() => handleApproveSuggestion(suggestion)}
-                              disabled={processingIds.has(suggestion.id)}
-                            >
-                              {processingIds.has(suggestion.id) ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Check className="h-3.5 w-3.5" />
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleDenySuggestion(suggestion)}
-                              disabled={processingIds.has(suggestion.id)}
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
+                        )}
+                        {contact.description && (
+                          <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
+                            {contact.description}
+                          </p>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Processed suggestions */}
-                {processedSuggestions.length > 0 && (
-                  <div className="space-y-2 mt-3">
-                    <h5 className="text-xs font-medium text-muted-foreground">
-                      Processed ({processedSuggestions.length})
-                    </h5>
-                    {processedSuggestions.map((suggestion) => (
-                      <div key={suggestion.id} className="border rounded-md p-2.5 bg-muted/30 opacity-60">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <span className="text-xs font-medium">
-                              {suggestion.first_name} {suggestion.last_name || ''}
-                            </span>
-                            <div className="text-xs text-muted-foreground">
-                              {suggestion.email}
-                            </div>
-                          </div>
-                          <Badge 
-                            variant="outline" 
-                            className={cn(
-                              "text-[10px]",
-                              suggestion.status === 'approved' && "bg-green-500/10 text-green-600 border-green-500/20",
-                              suggestion.status === 'rejected' && "bg-red-500/10 text-red-600 border-red-500/20"
-                            )}
-                          >
-                            {suggestion.status === 'approved' ? 'Added' : 'Skipped'}
-                          </Badge>
-                        </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => handleApproveContact(contact)}
+                          disabled={processingIds.has(contact.id)}
+                        >
+                          {processingIds.has(contact.id) ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDenyContact(contact)}
+                          disabled={processingIds.has(contact.id)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                )}
-              </>
+                ))}
+              </div>
             )}
           </div>
         </ScrollArea>
