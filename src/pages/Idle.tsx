@@ -17,6 +17,7 @@ import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { formatDateShort } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { transformLeadToClient } from "@/utils/clientTransform";
+import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSection";
 
 // Idle stage ID from database
 const IDLE_PIPELINE_STAGE_ID = '5c3bd0b1-414b-4eb8-bad8-99c3b5ab8b0a';
@@ -33,6 +34,7 @@ interface IdleLead {
   idle_future_steps: boolean | null;
   idle_followup_date: string | null;
   idle_previous_stage_name: string | null;
+  idle_moved_at: string | null;
   buyer_agent?: {
     id: string;
     first_name: string;
@@ -73,10 +75,11 @@ export default function Idle() {
           idle_future_steps,
           idle_followup_date,
           idle_previous_stage_name,
+          idle_moved_at,
           buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
         `)
         .eq('pipeline_stage_id', IDLE_PIPELINE_STAGE_ID)
-        .order('created_at', { ascending: false });
+        .order('idle_moved_at', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
       setLeads((data || []) as IdleLead[]);
@@ -300,7 +303,29 @@ export default function Idle() {
       ),
       sortable: true,
     },
+    {
+      accessorKey: "idle_moved_at",
+      header: "Idle On",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground whitespace-nowrap">
+          {row.original.idle_moved_at 
+            ? formatDateShort(row.original.idle_moved_at) 
+            : '—'}
+        </span>
+      ),
+      sortable: true,
+    },
   ], [agents, leads]);
+
+  // Group leads by future steps
+  const leadsWithFutureSteps = useMemo(() => 
+    filteredLeads.filter(l => l.idle_future_steps === true), 
+    [filteredLeads]
+  );
+  const leadsWithoutFutureSteps = useMemo(() => 
+    filteredLeads.filter(l => l.idle_future_steps !== true), 
+    [filteredLeads]
+  );
 
   return (
     <ErrorBoundary>
@@ -336,30 +361,56 @@ export default function Idle() {
           </div>
         </div>
 
-        {/* Table */}
-        <Card className="flex-1">
-          <CardContent className="p-0">
-            <DataTable
-              columns={columns}
-              data={filteredLeads}
-              selectable
-              selectedIds={selectedIds}
-              onSelectionChange={setSelectedIds}
-              getRowId={(row) => row.id}
-              onRowClick={handleRowClick}
-              showRowNumbers
-              initialColumnWidths={{
-                borrower_name: 105,
-                createdOn: 80,
-                idle_previous_stage_name: 100,
-                realEstateAgent: 95,
-                idle_reason: 200,
-                idle_future_steps: 80,
-                idle_followup_date: 100,
-              }}
-            />
-          </CardContent>
-        </Card>
+        {/* Grouped Tables */}
+        <div className="flex-1 space-y-4">
+          <CollapsiblePipelineSection
+            title={`Has Future Steps (${leadsWithFutureSteps.length})`}
+            data={leadsWithFutureSteps}
+            columns={columns}
+            searchTerm={searchTerm}
+            defaultOpen={true}
+            selectable
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+            getRowId={(row) => row.id}
+            onRowClick={handleRowClick}
+            showRowNumbers
+            initialColumnWidths={{
+              borrower_name: 105,
+              createdOn: 80,
+              idle_previous_stage_name: 100,
+              realEstateAgent: 95,
+              idle_reason: 200,
+              idle_future_steps: 80,
+              idle_followup_date: 100,
+              idle_moved_at: 85,
+            }}
+          />
+
+          <CollapsiblePipelineSection
+            title={`No Future Steps (${leadsWithoutFutureSteps.length})`}
+            data={leadsWithoutFutureSteps}
+            columns={columns}
+            searchTerm={searchTerm}
+            defaultOpen={true}
+            selectable
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+            getRowId={(row) => row.id}
+            onRowClick={handleRowClick}
+            showRowNumbers
+            initialColumnWidths={{
+              borrower_name: 105,
+              createdOn: 80,
+              idle_previous_stage_name: 100,
+              realEstateAgent: 95,
+              idle_reason: 200,
+              idle_future_steps: 80,
+              idle_followup_date: 100,
+              idle_moved_at: 85,
+            }}
+          />
+        </div>
 
         {/* Client Detail Drawer */}
         {selectedClient && (

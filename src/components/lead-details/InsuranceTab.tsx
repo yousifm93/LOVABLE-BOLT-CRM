@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Shield, FileText, ClipboardCheck, MessageSquare, Mail, Calendar } from "lucide-react";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
-import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
+import { MentionableInlineEditNotes } from "@/components/ui/mentionable-inline-edit-notes";
 import { FileUploadButton } from "@/components/ui/file-upload-button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -98,10 +98,12 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
           <MessageSquare className="h-3 w-3" />
           Insurance Notes
         </Label>
-        <InlineEditNotes
+        <MentionableInlineEditNotes
           value={data.insurance_notes}
           onValueChange={(value) => onUpdate('insurance_notes', value)}
           placeholder="Add notes about insurance..."
+          contextType="lead"
+          contextId={leadId}
         />
       </div>
 
