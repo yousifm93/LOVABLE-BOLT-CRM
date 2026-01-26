@@ -137,7 +137,7 @@ export function NewContactsPopover({ emailLogId, subject, fromEmail, className, 
         <button
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "bg-purple-500/20 text-purple-600 border border-purple-500/30 text-[10px] px-1.5 py-0 h-5 rounded-full hover:bg-purple-500/30 transition-colors font-medium inline-flex items-center gap-1",
+            "bg-purple-500/20 text-purple-600 border border-purple-500/30 text-[10px] px-1.5 py-0 h-5 rounded-full hover:bg-purple-500/30 transition-colors font-medium inline-flex items-center gap-1 whitespace-nowrap",
             className
           )}
         >
