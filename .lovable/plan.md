@@ -1,198 +1,114 @@
 
 
-## Plan: Add Duplicate Detection to Dashboard "All Pipeline Leads"
+## Plan: Reset and Configure 16 Daily Rate Scenarios with 30-Minute Spacing
 
 ### Overview
-This feature will help identify potential duplicate leads in the pipeline by detecting matching first+last name, phone, OR email. Past Clients are excluded from duplicate detection since they're repeat customers.
+This plan will:
+1. Clear all existing rate-related cron jobs
+2. Create 16 new cron jobs spaced 30 minutes apart, starting at midnight Eastern
+3. Fix the "always show a rate" issue so rate boxes never appear empty
 
 ---
 
-### Feature Requirements
+### Part 1: Clear Existing Cron Jobs
 
-1. **Duplicate Badge Counter**: Add a clickable badge next to "All Pipeline Leads (962)" showing the number of potential duplicates
-2. **Duplicate Indicator Column**: Add a "Potential Duplicate" column near "About the Borrower" / "Pipeline Review" columns showing Yes/No
-3. **Filter to Duplicates**: Clicking the badge filters the list to show only potential duplicates
-4. **Exclusion Rule**: Past Clients stage (`acdfc6ba-7cbc-47af-a8c6-380d77aef6dd`) is excluded from duplicate detection
+Currently active rate cron jobs to remove:
+- `refresh-15yr-fixed-daily` (11:05 UTC)
+- `refresh-fha-30yr-daily` (11:10 UTC)
+
+SQL to unschedule:
+```sql
+SELECT cron.unschedule('refresh-15yr-fixed-daily');
+SELECT cron.unschedule('refresh-fha-30yr-daily');
+```
 
 ---
 
-### Technical Implementation
+### Part 2: Schedule 16 Scenarios (30 minutes apart)
 
-#### 1. Update Data Fetching (useDashboardData.tsx)
+Using Eastern Time (midnight = 5:00 UTC), all scenarios will run between midnight and 7:30 AM ET:
 
-Modify the `allPipelineLeads` query to:
-- Fetch additional fields: `email`, `phone` for duplicate detection
-- **Exclude Past Clients** from the query entirely (they're closed loans, not pipeline)
+| Time (ET) | Time (UTC) | Scenario | Scenario Type |
+|-----------|------------|----------|---------------|
+| 12:00 AM | 5:00 | 15yr Fixed 80% | `15yr_fixed` |
+| 12:30 AM | 5:30 | 15yr Fixed 90% | `15yr_fixed_90ltv` |
+| 1:00 AM | 6:00 | 15yr Fixed 95% | `15yr_fixed_95ltv` |
+| 1:30 AM | 6:30 | 15yr Fixed 97% | `15yr_fixed_97ltv` |
+| 2:00 AM | 7:00 | 30yr Fixed 70% | `30yr_fixed_70ltv` |
+| 2:30 AM | 7:30 | 30yr Fixed 80% | `30yr_fixed` |
+| 3:00 AM | 8:00 | 30yr Fixed 95% | `30yr_fixed_95ltv` |
+| 3:30 AM | 8:30 | 30yr Fixed 97% | `30yr_fixed_97ltv` |
+| 4:00 AM | 9:00 | FHA 30yr 96.5% | `fha_30yr_965ltv` |
+| 4:30 AM | 9:30 | Bank Stmt 70% | `bank_statement_70ltv` |
+| 5:00 AM | 10:00 | Bank Stmt 80% | `bank_statement` |
+| 5:30 AM | 10:30 | Bank Stmt 85% | `bank_statement_85ltv` |
+| 6:00 AM | 11:00 | Bank Stmt 90% | `bank_statement_90ltv` |
+| 6:30 AM | 11:30 | DSCR 70% | `dscr_70ltv` |
+| 7:00 AM | 12:00 | DSCR 75% | `dscr_75ltv` |
+| 7:30 AM | 12:30 | DSCR 80% | `dscr` |
+
+Each cron job calls the `fetch-single-rate` edge function with the appropriate `scenario_type`.
+
+---
+
+### Part 3: Fix "Always Show a Rate" Issue
+
+**Problem**: The current code only looks back 10 days in `daily_market_updates` table. If a scenario hasn't run in 10 days or ever, it shows "—".
+
+**Solution**: Modify `fetchMarketData` in `MarketRatesCard.tsx` to:
+1. First try merging from recent `daily_market_updates` (current behavior)
+2. For any still-null fields, query `pricing_runs` table for the most recent completed run of that scenario type
+
+**Code Change** in `src/components/dashboard/MarketRatesCard.tsx`:
 
 ```typescript
-// Updated query
-const { data: allPipelineLeads } = useQuery({
-  queryKey: ['allPipelineLeads'],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from('leads')
-      .select(`
-        id, first_name, last_name, lead_on_date, created_at,
-        pipeline_stage_id, notes, latest_file_updates,
-        email, phone,  // Added for duplicate detection
-        pipeline_stages!inner(name)
-      `)
-      .is('deleted_at', null)
-      .neq('pipeline_stage_id', 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd')  // Exclude Past Clients
-      .order('created_at', { ascending: false });
-    // ...
-  },
-});
-```
+// After merging from daily_market_updates, check pricing_runs for any still-null fields
+const scenarioToFieldMapping: Record<string, { rateField: string; pointsField: string }> = {
+  '15yr_fixed': { rateField: 'rate_15yr_fixed', pointsField: 'points_15yr_fixed' },
+  '15yr_fixed_90ltv': { rateField: 'rate_15yr_fixed_90ltv', pointsField: 'points_15yr_fixed_90ltv' },
+  // ... all 16 scenarios
+};
 
-#### 2. Duplicate Detection Logic (DashboardTabs.tsx)
-
-Add a function to compute duplicates based on:
-- **Full name match**: `first_name + last_name` (case-insensitive)
-- **Phone match**: Same phone number (normalized)
-- **Email match**: Same email address (case-insensitive)
-
-```typescript
-// Compute duplicate groups
-const duplicateAnalysis = useMemo(() => {
-  if (!allPipelineLeads) return { duplicateIds: new Set(), duplicateCount: 0 };
-  
-  const nameMap = new Map<string, string[]>();
-  const emailMap = new Map<string, string[]>();
-  const phoneMap = new Map<string, string[]>();
-  
-  allPipelineLeads.forEach((lead) => {
-    // Name key (case-insensitive)
-    const nameKey = `${(lead.first_name || '').toLowerCase().trim()} ${(lead.last_name || '').toLowerCase().trim()}`;
-    if (nameKey.trim()) {
-      nameMap.set(nameKey, [...(nameMap.get(nameKey) || []), lead.id]);
-    }
+// For each scenario with null values, fetch from pricing_runs
+for (const [scenario, fields] of Object.entries(scenarioToFieldMapping)) {
+  if (mergedData[fields.rateField] === null) {
+    const { data: latestRun } = await supabase
+      .from('pricing_runs')
+      .select('results_json')
+      .eq('scenario_type', scenario)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
     
-    // Email key
-    const emailKey = (lead.email || '').toLowerCase().trim();
-    if (emailKey) {
-      emailMap.set(emailKey, [...(emailMap.get(emailKey) || []), lead.id]);
+    if (latestRun?.results_json) {
+      const results = latestRun.results_json;
+      mergedData[fields.rateField] = parseFloat(String(results.rate).replace(/[^0-9.]/g, ''));
+      mergedData[fields.pointsField] = results.discount_points ? 100 - results.discount_points : null;
     }
-    
-    // Phone key (normalized - digits only)
-    const phoneKey = (lead.phone || '').replace(/\D/g, '');
-    if (phoneKey.length >= 10) {
-      phoneMap.set(phoneKey, [...(phoneMap.get(phoneKey) || []), lead.id]);
-    }
-  });
-  
-  // Collect all IDs that appear in any duplicate group
-  const duplicateIds = new Set<string>();
-  [nameMap, emailMap, phoneMap].forEach(map => {
-    map.forEach(ids => {
-      if (ids.length > 1) {
-        ids.forEach(id => duplicateIds.add(id));
-      }
-    });
-  });
-  
-  return { duplicateIds, duplicateCount: duplicateIds.size };
-}, [allPipelineLeads]);
-```
-
-#### 3. UI Changes (DashboardTabs.tsx)
-
-**A. Header with Duplicate Badge**
-
-```typescript
-<CardTitle className="text-lg font-semibold flex items-center gap-2">
-  All Pipeline Leads ({allLeadsData.length})
-  {duplicateAnalysis.duplicateCount > 0 && (
-    <Badge 
-      variant="destructive" 
-      className="cursor-pointer"
-      onClick={() => setShowDuplicatesOnly(!showDuplicatesOnly)}
-    >
-      {duplicateAnalysis.duplicateCount} potential duplicates
-    </Badge>
-  )}
-  {selectedAllLeadIds.length > 0 && (
-    <Badge variant="secondary" className="ml-2">
-      {selectedAllLeadIds.length} selected
-    </Badge>
-  )}
-</CardTitle>
-```
-
-**B. New Column: "Potential Duplicate"**
-
-Add a column after "About the Borrower":
-
-```typescript
-{
-  accessorKey: 'isPotentialDuplicate',
-  header: 'Duplicate?',
-  cell: ({ row }) => {
-    const isDuplicate = duplicateAnalysis.duplicateIds.has(row.original.id);
-    return isDuplicate ? (
-      <Badge variant="destructive" className="text-xs">Yes</Badge>
-    ) : (
-      <span className="text-muted-foreground">—</span>
-    );
-  },
-  className: "w-24",
+  }
 }
 ```
 
-**C. Filter Logic**
-
-```typescript
-// Add state for duplicate filter
-const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false);
-
-// Filter data when showing duplicates only
-const filteredAllLeadsData = useMemo(() => {
-  if (!showDuplicatesOnly) return allLeadsData;
-  return allLeadsData.filter(lead => duplicateAnalysis.duplicateIds.has(lead.id));
-}, [allLeadsData, showDuplicatesOnly, duplicateAnalysis]);
-```
+This ensures that every rate box displays the most recent rate available, regardless of when it was last run.
 
 ---
 
-### Files to Modify
+### Part 4: Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useDashboardData.tsx` | Add email/phone to query, exclude Past Clients from allPipelineLeads |
-| `src/pages/DashboardTabs.tsx` | Add duplicate detection logic, badge counter, filter toggle, and new column |
+| Database (via SQL) | Unschedule old cron jobs, create 16 new cron jobs |
+| `src/components/dashboard/MarketRatesCard.tsx` | Update `fetchMarketData` to fall back to `pricing_runs` |
 
 ---
 
-### Column Order After Changes
+### Expected Outcome
 
-1. Checkbox
-2. # (row number)
-3. Borrower Name
-4. Lead Created On
-5. Current Stage
-6. About the Borrower
-7. **Duplicate?** (new)
-8. Pipeline Review
-9. Actions (if exists)
+1. **Tonight at midnight ET**: First scenario (15yr Fixed 80%) runs
+2. **Every 30 minutes**: Next scenario runs
+3. **By 7:30 AM ET**: All 16 scenarios completed
+4. **Dashboard**: Always shows a rate in every yellow box (never "—")
 
----
-
-### User Experience
-
-1. User visits Dashboard → All tab
-2. Sees "All Pipeline Leads (962)" with red badge "5 potential duplicates" (example)
-3. **Clicking the badge** toggles filter to show only duplicates
-4. "Duplicate?" column shows "Yes" badge for each potential duplicate
-5. User can click borrower name to open drawer and review/delete duplicates
-
----
-
-### Duplicate Detection Rules
-
-A lead is marked as a potential duplicate if **any** of these match another lead:
-- Same first + last name (case-insensitive)
-- Same email address (case-insensitive)
-- Same phone number (normalized to digits)
-
-**Excluded**: Leads in the Past Clients stage are never checked or marked as duplicates.
+The 30-minute spacing gives Axiom plenty of time to complete each run before the next one starts, avoiding the conflicts that caused previous failures.
 
