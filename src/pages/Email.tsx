@@ -544,18 +544,18 @@ export default function Email() {
         setLenderFieldSuggestionsCount(lenderCountsMap);
       }
       
-      // Fetch contact suggestion counts for New Contacts view
+      // Fetch contact suggestion counts for New Contacts view (from contacts table, not email_contact_suggestions)
       if (allEmailLogIds.length > 0) {
-        const { data: contactSuggestions } = await supabase
-          .from('email_contact_suggestions')
+        const { data: pendingContacts } = await supabase
+          .from('contacts')
           .select('email_log_id')
           .in('email_log_id', allEmailLogIds)
-          .eq('status', 'pending');
+          .eq('approval_status', 'pending');
         
         const contactCountsMap = new Map<string, number>();
-        for (const s of contactSuggestions || []) {
-          if (s.email_log_id) {
-            contactCountsMap.set(s.email_log_id, (contactCountsMap.get(s.email_log_id) || 0) + 1);
+        for (const c of pendingContacts || []) {
+          if (c.email_log_id) {
+            contactCountsMap.set(c.email_log_id, (contactCountsMap.get(c.email_log_id) || 0) + 1);
           }
         }
         setContactSuggestionsCount(contactCountsMap);
