@@ -341,6 +341,52 @@ export default function DashboardTabs() {
   const [allLeadsData, setAllLeadsData] = useState<any[]>([]);
   const [selectedAllLeadIds, setSelectedAllLeadIds] = useState<string[]>([]);
   const [allLeadsSearchTerm, setAllLeadsSearchTerm] = useState("");
+  const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false);
+
+  // Duplicate detection logic
+  const duplicateAnalysis = useMemo(() => {
+    if (!allPipelineLeads || allPipelineLeads.length === 0) {
+      return { duplicateIds: new Set<string>(), duplicateCount: 0 };
+    }
+    
+    const nameMap = new Map<string, string[]>();
+    const emailMap = new Map<string, string[]>();
+    const phoneMap = new Map<string, string[]>();
+    
+    allPipelineLeads.forEach((lead: any) => {
+      // Name key (case-insensitive, trimmed)
+      const firstName = (lead.first_name || '').toLowerCase().trim();
+      const lastName = (lead.last_name || '').toLowerCase().trim();
+      const nameKey = `${firstName} ${lastName}`;
+      if (nameKey.trim()) {
+        nameMap.set(nameKey, [...(nameMap.get(nameKey) || []), lead.id]);
+      }
+      
+      // Email key (case-insensitive)
+      const emailKey = (lead.email || '').toLowerCase().trim();
+      if (emailKey) {
+        emailMap.set(emailKey, [...(emailMap.get(emailKey) || []), lead.id]);
+      }
+      
+      // Phone key (normalized - digits only, at least 10 digits)
+      const phoneKey = (lead.phone || '').replace(/\D/g, '');
+      if (phoneKey.length >= 10) {
+        phoneMap.set(phoneKey, [...(phoneMap.get(phoneKey) || []), lead.id]);
+      }
+    });
+    
+    // Collect all IDs that appear in any duplicate group (2+ entries)
+    const duplicateIds = new Set<string>();
+    [nameMap, emailMap, phoneMap].forEach(map => {
+      map.forEach(ids => {
+        if (ids.length > 1) {
+          ids.forEach(id => duplicateIds.add(id));
+        }
+      });
+    });
+    
+    return { duplicateIds, duplicateCount: duplicateIds.size };
+  }, [allPipelineLeads]);
 
   // Modal handlers
   const handleOpenModal = (
@@ -403,11 +449,18 @@ export default function DashboardTabs() {
         currentStage: lead.stage_name,
         notes: lead.notes || '',
         latestFileUpdates: lead.latest_file_updates || '',
+        isPotentialDuplicate: duplicateAnalysis.duplicateIds.has(lead.id),
         _fullData: lead
       }));
       setAllLeadsData(transformed);
     }
-  }, [allPipelineLeads]);
+  }, [allPipelineLeads, duplicateAnalysis]);
+
+  // Filter data when showing duplicates only
+  const filteredAllLeadsData = useMemo(() => {
+    if (!showDuplicatesOnly) return allLeadsData;
+    return allLeadsData.filter(lead => lead.isPotentialDuplicate);
+  }, [allLeadsData, showDuplicatesOnly]);
 
   // Define simple hardcoded columns for All tab
   const allLeadsColumns: ColumnDef<any>[] = [
@@ -482,6 +535,19 @@ export default function DashboardTabs() {
           {row.original.notes || '—'}
         </div>
       ),
+      sortable: true,
+    },
+    {
+      accessorKey: 'isPotentialDuplicate',
+      header: 'Duplicate?',
+      cell: ({ row }) => (
+        row.original.isPotentialDuplicate ? (
+          <Badge variant="destructive" className="text-xs">Yes</Badge>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )
+      ),
+      className: "w-24",
       sortable: true,
     },
     {
@@ -1696,8 +1762,27 @@ export default function DashboardTabs() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg font-semibold">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
                   All Pipeline Leads ({allLeadsData.length})
+                  {duplicateAnalysis.duplicateCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="cursor-pointer hover:bg-destructive/80 transition-colors"
+                      onClick={() => setShowDuplicatesOnly(!showDuplicatesOnly)}
+                    >
+                      {showDuplicatesOnly ? `Showing ${duplicateAnalysis.duplicateCount} duplicates` : `${duplicateAnalysis.duplicateCount} potential duplicates`}
+                    </Badge>
+                  )}
+                  {showDuplicatesOnly && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowDuplicatesOnly(false)}
+                      className="text-xs"
+                    >
+                      Show All
+                    </Button>
+                  )}
                   {selectedAllLeadIds.length > 0 && (
                     <Badge variant="secondary" className="ml-2">
                       {selectedAllLeadIds.length} selected
@@ -1721,7 +1806,7 @@ export default function DashboardTabs() {
               <CardContent>
                 <DataTable
                   columns={allLeadsColumns}
-                  data={allLeadsData}
+                  data={filteredAllLeadsData}
                   searchTerm={allLeadsSearchTerm}
                   showRowNumbers={false}
                 />

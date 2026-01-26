@@ -1657,7 +1657,7 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
-  // All leads across all pipeline stages
+  // All leads across all pipeline stages (excluding Past Clients for duplicate detection)
   const { data: allPipelineLeads, isLoading: isLoadingAllPipelineLeads } = useQuery({
     queryKey: ['allPipelineLeads'],
     queryFn: async () => {
@@ -1667,12 +1667,17 @@ export const useDashboardData = () => {
           id,
           first_name,
           last_name,
+          email,
+          phone,
           lead_on_date,
           created_at,
           pipeline_stage_id,
+          notes,
+          latest_file_updates,
           pipeline_stages!inner(name)
         `)
         .is('deleted_at', null)
+        .neq('pipeline_stage_id', 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd') // Exclude Past Clients
         .order('created_at', { ascending: false });
       
       if (error) throw error;
