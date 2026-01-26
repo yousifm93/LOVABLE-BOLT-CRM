@@ -225,7 +225,10 @@ const MAIN_VIEW_COLUMNS = [
   "subject_state",
   "subject_zip",
   "buyer_agent",
-  "listing_agent"
+  "listing_agent",
+  "fcp_file",
+  "appraisal_file",
+  "client_rating"
 ];
 
 
@@ -1004,6 +1007,9 @@ const COLUMN_WIDTHS: Record<string, number> = {
   subject_zip: 60,
   buyer_agent: 130,
   listing_agent: 130,
+  fcp_file: 80,
+  appraisal_file: 80,
+  client_rating: 60,
 };
 
   const hasAppliedMainViewDefaults = useRef(false);

@@ -67,19 +67,26 @@ export function MentionableRichTextEditor({
   const handleContentChange = useCallback((newValue: string) => {
     onChange(newValue);
 
-    // Simple detection of @ symbol followed by text
-    const lastAtIndex = newValue.lastIndexOf('@');
+    // Strip HTML tags to get plain text for @ detection
+    const plainText = newValue.replace(/<[^>]*>/g, '');
+    const lastAtIndex = plainText.lastIndexOf('@');
+    
     if (lastAtIndex !== -1) {
-      const afterAt = newValue.substring(lastAtIndex + 1);
+      const afterAt = plainText.substring(lastAtIndex + 1);
       // Check if we're in the middle of typing a mention (no space after @)
       const spaceIndex = afterAt.indexOf(' ');
-      const isTypingMention = spaceIndex === -1 || afterAt.length === 0;
+      const newlineIndex = afterAt.indexOf('\n');
+      const firstBreak = Math.min(
+        spaceIndex === -1 ? Infinity : spaceIndex,
+        newlineIndex === -1 ? Infinity : newlineIndex
+      );
+      const isTypingMention = firstBreak === Infinity || afterAt.length === 0;
       
-      // Check if it's a completed mention (has closing tag or identifier)
-      const hasCompletedMention = afterAt.includes('</span>') || afterAt.match(/^\w+\s/);
+      // Check if it's a completed mention (already has data-user-id in HTML)
+      const hasCompletedMention = newValue.includes('data-user-id');
       
       if (isTypingMention && !hasCompletedMention && afterAt.length < 20) {
-        setMentionSearch(afterAt.replace(/<[^>]*>/g, '').trim());
+        setMentionSearch(afterAt.trim());
         setShowMentionPopover(true);
       } else {
         setShowMentionPopover(false);
