@@ -1,39 +1,41 @@
 
 
-## Plan: Update Pre-Qualification Email Template
+## Plan: Fix Down Payment Currency Formatting
 
-### Summary
+### Problem
 
-I'll update the "Loan Pre-Qualification" email template to fix the down payment formatting and add the actual links for the calendar booking and credit authorization.
+The down payment field (`down_pmt`) is displaying without commas because:
+- The data is stored as raw numbers (e.g., `37500`, `274400`)
+- The `crm_fields` table has `down_pmt` marked as `field_type: 'text'` instead of `'currency'`
+- The email edge function only applies comma formatting to fields marked as `currency`
 
----
+### Solution
 
-### Changes Required
+Update the `crm_fields` table to change `down_pmt` from `text` to `currency` type. This will:
+- Make the edge function automatically format it with `$` and commas (e.g., `$39,500`)
+- Maintain consistency with other currency fields like `sales_price` and `loan_amount`
 
-#### 1. Down Payment Formatting
-**Issue:** The `{{down_pmt}}` merge tag displays without a dollar sign (showing "39500" instead of "$39,500")
-
-**Solution:** Change the merge tag from `{{down_pmt}}` to `{{down_pmt_formatted}}` which includes proper currency formatting with dollar sign and commas
-
-> Note: I'll need to verify this formatted tag exists, or alternatively we can use `{{down_pmt}}` with a `$` prefix in the HTML if the value already includes comma formatting
-
-#### 2. Add Calendly Link
-**Current:** `<a href="#">HERE</a>` (placeholder)
-**New:** `<a href="https://calendly.com/yousif-mortgage/pa">HERE</a>`
-
-#### 3. Add Credit Authorization Link
-**Current:** `<a href="#">HERE</a>` (placeholder)
-**New:** `<a href="https://credit.advcredit.com/smartpay/SmartPay.aspx?uid=6b0276d4-7fae-412b-a82f-54ad11aad331#forward">HERE</a>`
+Also update the email template to remove the manual `$` prefix since the currency formatting will add it automatically.
 
 ---
 
 ### Implementation
 
-**Database Migration:** Create a new migration to UPDATE the existing email template
+**Database Changes:**
 
+1. Update `crm_fields` to set `down_pmt` field type to `currency`
+2. Update `email_templates` to change `${{down_pmt}}` back to `{{down_pmt}}`
+
+**SQL Migration:**
 ```sql
+-- Update field type to currency for proper formatting
+UPDATE public.crm_fields 
+SET field_type = 'currency'
+WHERE field_name = 'down_pmt';
+
+-- Update email template to remove manual $ prefix (now handled by formatting)
 UPDATE public.email_templates
-SET html = '<updated HTML with fixes>',
+SET html = REPLACE(html, '${{down_pmt}}', '{{down_pmt}}'),
     version = version + 1,
     updated_at = now()
 WHERE name = 'Loan Pre-Qualification';
@@ -41,30 +43,23 @@ WHERE name = 'Loan Pre-Qualification';
 
 ---
 
-### Updated Template Sections
+### How It Works
 
-**Loan Terms List (with $ prefix for down payment):**
-```html
-<ul>
-  <li><strong>Purchase Price:</strong> {{sales_price}}</li>
-  <li><strong>Down Payment:</strong> ${{down_pmt}}</li>
-  <li><strong>Loan Amount:</strong> {{loan_amount}}</li>
-</ul>
+The `send-template-email` edge function already has this logic (lines 131-132):
+
+```typescript
+if (field.field_type === 'currency' && value != null) {
+  mergeData[field.field_name] = `$${Number(value).toLocaleString()}`;
+}
 ```
 
-**What's Next Section (with real links):**
-```html
-<li><strong>Book a Quick Call with Our Team</strong> – ... 
-    <a href="https://calendly.com/yousif-mortgage/pa">HERE</a></li>
-<li><strong>Complete Credit Authorization</strong> – ... 
-    <a href="https://credit.advcredit.com/smartpay/SmartPay.aspx?uid=...">HERE</a></li>
-```
+By marking `down_pmt` as `currency`, it will now output `$39,500` instead of `39500`.
 
 ---
 
-### Files to Modify
+### Result
 
-| File | Change |
-|------|--------|
-| New migration file | UPDATE the email template with fixed down payment display and real links |
+| Field | Before | After |
+|-------|--------|-------|
+| Down Payment | $39500 | $39,500 |
 
