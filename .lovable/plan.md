@@ -1,116 +1,198 @@
 
-## Fix Plan: Three CRM Issues
 
-Based on my investigation, I've identified the root causes for all three issues and have a detailed fix plan.
+## Plan: Add Duplicate Detection to Dashboard "All Pipeline Leads"
 
----
-
-### Issue 1: Idle On Dates Not Populated
-
-**Root Cause**: The `idle_moved_at` column and trigger were just created. The trigger only fires on UPDATE when a lead moves to the Idle stage. Existing leads that are already in Idle don't have this timestamp because they were moved before the trigger existed.
-
-**Solution**: Run a one-time data backfill to populate `idle_moved_at` for existing idle leads, using a reasonable default (either their `updated_at` timestamp or the current time).
-
-**Database Update**:
-```sql
-UPDATE leads 
-SET idle_moved_at = COALESCE(updated_at, NOW())
-WHERE pipeline_stage_id = '5c3bd0b1-414b-4eb8-bad8-99c3b5ab8b0a'
-  AND idle_moved_at IS NULL;
-```
-
-Going forward, the trigger will automatically set this timestamp when leads are moved to Idle.
+### Overview
+This feature will help identify potential duplicate leads in the pipeline by detecting matching first+last name, phone, OR email. Past Clients are excluded from duplicate detection since they're repeat customers.
 
 ---
 
-### Issue 2: @Mentions Not Showing Autocomplete
+### Feature Requirements
 
-**Root Cause**: The `MentionableRichTextEditor` component has a bug in its mention detection logic. When using TipTap, the value is HTML (e.g., `<p>@sal</p>`). The current logic:
+1. **Duplicate Badge Counter**: Add a clickable badge next to "All Pipeline Leads (962)" showing the number of potential duplicates
+2. **Duplicate Indicator Column**: Add a "Potential Duplicate" column near "About the Borrower" / "Pipeline Review" columns showing Yes/No
+3. **Filter to Duplicates**: Clicking the badge filters the list to show only potential duplicates
+4. **Exclusion Rule**: Past Clients stage (`acdfc6ba-7cbc-47af-a8c6-380d77aef6dd`) is excluded from duplicate detection
 
-1. Uses `lastIndexOf('@')` on the HTML string
-2. Gets `afterAt` as everything after `@` (includes closing tags like `</p>`)
-3. Checks for space using `afterAt.indexOf(' ')` on the raw HTML string (not cleaned text)
-4. The combination causes the popover trigger logic to fail
+---
 
-**Solution**: Fix the mention detection to properly parse the HTML and extract the text after `@`:
+### Technical Implementation
+
+#### 1. Update Data Fetching (useDashboardData.tsx)
+
+Modify the `allPipelineLeads` query to:
+- Fetch additional fields: `email`, `phone` for duplicate detection
+- **Exclude Past Clients** from the query entirely (they're closed loans, not pipeline)
 
 ```typescript
-// Current broken logic:
-const afterAt = newValue.substring(lastAtIndex + 1);
-const spaceIndex = afterAt.indexOf(' ');
+// Updated query
+const { data: allPipelineLeads } = useQuery({
+  queryKey: ['allPipelineLeads'],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from('leads')
+      .select(`
+        id, first_name, last_name, lead_on_date, created_at,
+        pipeline_stage_id, notes, latest_file_updates,
+        email, phone,  // Added for duplicate detection
+        pipeline_stages!inner(name)
+      `)
+      .is('deleted_at', null)
+      .neq('pipeline_stage_id', 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd')  // Exclude Past Clients
+      .order('created_at', { ascending: false });
+    // ...
+  },
+});
+```
 
-// Fixed logic - clean HTML first, then check for mention pattern:
-const plainText = newValue.replace(/<[^>]*>/g, '');
-const lastAtIndex = plainText.lastIndexOf('@');
-if (lastAtIndex !== -1) {
-  const afterAt = plainText.substring(lastAtIndex + 1);
-  // Now afterAt is clean text like "sal" instead of "sal</p>"
+#### 2. Duplicate Detection Logic (DashboardTabs.tsx)
+
+Add a function to compute duplicates based on:
+- **Full name match**: `first_name + last_name` (case-insensitive)
+- **Phone match**: Same phone number (normalized)
+- **Email match**: Same email address (case-insensitive)
+
+```typescript
+// Compute duplicate groups
+const duplicateAnalysis = useMemo(() => {
+  if (!allPipelineLeads) return { duplicateIds: new Set(), duplicateCount: 0 };
+  
+  const nameMap = new Map<string, string[]>();
+  const emailMap = new Map<string, string[]>();
+  const phoneMap = new Map<string, string[]>();
+  
+  allPipelineLeads.forEach((lead) => {
+    // Name key (case-insensitive)
+    const nameKey = `${(lead.first_name || '').toLowerCase().trim()} ${(lead.last_name || '').toLowerCase().trim()}`;
+    if (nameKey.trim()) {
+      nameMap.set(nameKey, [...(nameMap.get(nameKey) || []), lead.id]);
+    }
+    
+    // Email key
+    const emailKey = (lead.email || '').toLowerCase().trim();
+    if (emailKey) {
+      emailMap.set(emailKey, [...(emailMap.get(emailKey) || []), lead.id]);
+    }
+    
+    // Phone key (normalized - digits only)
+    const phoneKey = (lead.phone || '').replace(/\D/g, '');
+    if (phoneKey.length >= 10) {
+      phoneMap.set(phoneKey, [...(phoneMap.get(phoneKey) || []), lead.id]);
+    }
+  });
+  
+  // Collect all IDs that appear in any duplicate group
+  const duplicateIds = new Set<string>();
+  [nameMap, emailMap, phoneMap].forEach(map => {
+    map.forEach(ids => {
+      if (ids.length > 1) {
+        ids.forEach(id => duplicateIds.add(id));
+      }
+    });
+  });
+  
+  return { duplicateIds, duplicateCount: duplicateIds.size };
+}, [allPipelineLeads]);
+```
+
+#### 3. UI Changes (DashboardTabs.tsx)
+
+**A. Header with Duplicate Badge**
+
+```typescript
+<CardTitle className="text-lg font-semibold flex items-center gap-2">
+  All Pipeline Leads ({allLeadsData.length})
+  {duplicateAnalysis.duplicateCount > 0 && (
+    <Badge 
+      variant="destructive" 
+      className="cursor-pointer"
+      onClick={() => setShowDuplicatesOnly(!showDuplicatesOnly)}
+    >
+      {duplicateAnalysis.duplicateCount} potential duplicates
+    </Badge>
+  )}
+  {selectedAllLeadIds.length > 0 && (
+    <Badge variant="secondary" className="ml-2">
+      {selectedAllLeadIds.length} selected
+    </Badge>
+  )}
+</CardTitle>
+```
+
+**B. New Column: "Potential Duplicate"**
+
+Add a column after "About the Borrower":
+
+```typescript
+{
+  accessorKey: 'isPotentialDuplicate',
+  header: 'Duplicate?',
+  cell: ({ row }) => {
+    const isDuplicate = duplicateAnalysis.duplicateIds.has(row.original.id);
+    return isDuplicate ? (
+      <Badge variant="destructive" className="text-xs">Yes</Badge>
+    ) : (
+      <span className="text-muted-foreground">—</span>
+    );
+  },
+  className: "w-24",
 }
 ```
 
-**Files to Modify**:
-- `src/components/ui/mentionable-rich-text-editor.tsx`
+**C. Filter Logic**
+
+```typescript
+// Add state for duplicate filter
+const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false);
+
+// Filter data when showing duplicates only
+const filteredAllLeadsData = useMemo(() => {
+  if (!showDuplicatesOnly) return allLeadsData;
+  return allLeadsData.filter(lead => duplicateAnalysis.duplicateIds.has(lead.id));
+}, [allLeadsData, showDuplicatesOnly, duplicateAnalysis]);
+```
 
 ---
 
-### Issue 3: Past Clients Columns Not Visible
+### Files to Modify
 
-**Root Cause**: The columns (`fcp_file`, `appraisal_file`, `client_rating`) were added to the column definitions, BUT they are not included in `MAIN_VIEW_COLUMNS` (lines 215-229). The page has logic that forces Main View defaults on load, hiding any columns not in that list.
-
-**Current MAIN_VIEW_COLUMNS**:
-```typescript
-const MAIN_VIEW_COLUMNS = [
-  "borrower_name", "lender", "loan_amount", "close_date", "loan_status",
-  "interest_rate", "subject_address_1", "subject_address_2", "subject_city",
-  "subject_state", "subject_zip", "buyer_agent", "listing_agent"
-];
-```
-
-**Solution**: Add the three new columns to `MAIN_VIEW_COLUMNS` so they appear by default:
-
-```typescript
-const MAIN_VIEW_COLUMNS = [
-  "borrower_name", "lender", "loan_amount", "close_date", "loan_status",
-  "interest_rate", "subject_address_1", "subject_address_2", "subject_city",
-  "subject_state", "subject_zip", "buyer_agent", "listing_agent",
-  "fcp_file", "appraisal_file", "client_rating"  // Added
-];
-```
-
-Also add column widths:
-```typescript
-const COLUMN_WIDTHS: Record<string, number> = {
-  // ... existing widths ...
-  fcp_file: 80,
-  appraisal_file: 80,
-  client_rating: 60,
-};
-```
-
-**Files to Modify**:
-- `src/pages/PastClients.tsx`
+| File | Changes |
+|------|---------|
+| `src/hooks/useDashboardData.tsx` | Add email/phone to query, exclude Past Clients from allPipelineLeads |
+| `src/pages/DashboardTabs.tsx` | Add duplicate detection logic, badge counter, filter toggle, and new column |
 
 ---
 
-### Summary of Changes
+### Column Order After Changes
 
-| Issue | File(s) | Change Type |
-|-------|---------|-------------|
-| Idle On dates | Database | One-time UPDATE query to backfill existing data |
-| @Mentions autocomplete | `mentionable-rich-text-editor.tsx` | Fix HTML parsing logic for mention detection |
-| Past Clients columns | `PastClients.tsx` | Add columns to MAIN_VIEW_COLUMNS array and COLUMN_WIDTHS |
+1. Checkbox
+2. # (row number)
+3. Borrower Name
+4. Lead Created On
+5. Current Stage
+6. About the Borrower
+7. **Duplicate?** (new)
+8. Pipeline Review
+9. Actions (if exists)
 
 ---
 
-### Technical Details
+### User Experience
 
-**@Mentions Fix - Detailed Approach**:
+1. User visits Dashboard → All tab
+2. Sees "All Pipeline Leads (962)" with red badge "5 potential duplicates" (example)
+3. **Clicking the badge** toggles filter to show only duplicates
+4. "Duplicate?" column shows "Yes" badge for each potential duplicate
+5. User can click borrower name to open drawer and review/delete duplicates
 
-The current mention detection parses HTML strings directly, which breaks when TipTap wraps content in tags. The fix will:
+---
 
-1. Strip HTML tags to get plain text for @ detection
-2. Track cursor position relative to plain text (not HTML)
-3. Properly identify when user is typing after @ symbol
-4. Show popover with filtered team members
+### Duplicate Detection Rules
 
-**Alternative Consideration**: TipTap has a native Mention extension that handles this properly. However, implementing that would require more extensive changes. The simpler fix is to correct the HTML parsing logic, which maintains the current architecture.
+A lead is marked as a potential duplicate if **any** of these match another lead:
+- Same first + last name (case-insensitive)
+- Same email address (case-insensitive)
+- Same phone number (normalized to digits)
+
+**Excluded**: Leads in the Past Clients stage are never checked or marked as duplicates.
+
