@@ -1,65 +1,97 @@
 
+## Fix: Auto-Parse Contacts from Inbound Emails
 
-## Plan: Fix Down Payment Currency Formatting
+### Problem Summary
 
-### Problem
+The contact auto-add feature stopped working because the `inbound-email-webhook` edge function is NOT calling `parse-email-contacts` when emails arrive. Contacts are only parsed when manually selecting an email in the "New Contacts" view, which defeats the purpose of automatic detection.
 
-The down payment field (`down_pmt`) is displaying without commas because:
-- The data is stored as raw numbers (e.g., `37500`, `274400`)
-- The `crm_fields` table has `down_pmt` marked as `field_type: 'text'` instead of `'currency'`
-- The email edge function only applies comma formatting to fields marked as `currency`
+---
 
 ### Solution
 
-Update the `crm_fields` table to change `down_pmt` from `text` to `currency` type. This will:
-- Make the edge function automatically format it with `$` and commas (e.g., `$39,500`)
-- Maintain consistency with other currency fields like `sales_price` and `loan_amount`
-
-Also update the email template to remove the manual `$` prefix since the currency formatting will add it automatically.
+Add a call to `parse-email-contacts` in the `inbound-email-webhook` function, similar to how other parsing functions are already called (like `parse-email-field-updates` and `parse-email-lender-marketing`).
 
 ---
 
-### Implementation
+### Implementation Details
 
-**Database Changes:**
+**File to modify:** `supabase/functions/inbound-email-webhook/index.ts`
 
-1. Update `crm_fields` to set `down_pmt` field type to `currency`
-2. Update `email_templates` to change `${{down_pmt}}` back to `{{down_pmt}}`
+**Where to add:** After the email log is created (around line 596-600), add a call to `parse-email-contacts` alongside the existing parsing calls.
 
-**SQL Migration:**
-```sql
--- Update field type to currency for proper formatting
-UPDATE public.crm_fields 
-SET field_type = 'currency'
-WHERE field_name = 'down_pmt';
-
--- Update email template to remove manual $ prefix (now handled by formatting)
-UPDATE public.email_templates
-SET html = REPLACE(html, '${{down_pmt}}', '{{down_pmt}}'),
-    version = version + 1,
-    updated_at = now()
-WHERE name = 'Loan Pre-Qualification';
-```
-
----
-
-### How It Works
-
-The `send-template-email` edge function already has this logic (lines 131-132):
-
+**Code to add:**
 ```typescript
-if (field.field_type === 'currency' && value != null) {
-  mergeData[field.field_name] = `$${Number(value).toLocaleString()}`;
+// Parse email for contact extraction (auto-add contacts)
+try {
+  console.log('[Inbound Email Webhook] Triggering contact parsing...');
+  
+  const contactParseResponse = await fetch(`${supabaseUrl}/functions/v1/parse-email-contacts`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+    },
+    body: JSON.stringify({
+      emailLogId: emailLog.id,
+      emailContent: {
+        from: senderName,
+        fromEmail: fromEmailToStore,
+        subject: subject,
+        body: textBody || htmlBody,
+        date: new Date().toISOString()
+      }
+    }),
+  });
+
+  if (contactParseResponse.ok) {
+    const contactData = await contactParseResponse.json();
+    if (contactData.count > 0) {
+      console.log('[Inbound Email Webhook] Extracted', contactData.count, 'new contacts');
+    }
+  } else {
+    console.log('[Inbound Email Webhook] Contact parsing failed:', await contactParseResponse.text());
+  }
+} catch (contactError) {
+  console.error('[Inbound Email Webhook] Error parsing contacts:', contactError);
+  // Don't fail the webhook if contact parsing fails
 }
 ```
 
-By marking `down_pmt` as `currency`, it will now output `$39,500` instead of `39500`.
+---
+
+### Where in the Code Flow
+
+The call should be added in two places:
+
+1. **For lender marketing emails** (around line 495-520) - These often contain account executive contact info in signatures
+2. **For lead-matched emails** (after line 817, alongside the other parsing calls) - To extract contacts from regular emails
 
 ---
 
-### Result
+### Expected Behavior After Fix
 
-| Field | Before | After |
-|-------|--------|-------|
-| Down Payment | $39500 | $39,500 |
+1. Every inbound email will be automatically scanned for contacts
+2. New contacts will appear in "Pending Approval" section of Master Contact List
+3. The "New Contacts" view in Email tab will show emails with pending contact suggestions
+4. The sidebar badge for "Master Contact List" will update with pending approval count
 
+---
+
+### Technical Notes
+
+- The `parse-email-contacts` function already handles:
+  - Duplicate detection (checks `contacts`, `buyer_agents`, `lenders`, and `leads` tables)
+  - Company extraction from email domains
+  - Tag suggestions based on domain
+  - Inserts directly to `contacts` table with `approval_status: 'pending'`
+  - Creates audit trail in `email_contact_suggestions` table
+
+- No changes needed to the `parse-email-contacts` function itself - it's already complete
+
+---
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `supabase/functions/inbound-email-webhook/index.ts` | Add call to `parse-email-contacts` after email log creation |
