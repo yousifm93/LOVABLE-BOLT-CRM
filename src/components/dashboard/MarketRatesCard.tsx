@@ -215,13 +215,8 @@ export function MarketRatesCard() {
       .order('date', { ascending: false })
       .limit(10);
 
-    if (error || !allData || allData.length === 0) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Start with the most recent day as base
-    const mergedData: any = { ...allData[0] };
+    // Start with empty merged data or most recent day as base
+    let mergedData: any = allData && allData.length > 0 ? { ...allData[0] } : {};
 
     // List of all rate fields to check and potentially merge
     const rateFields = [
@@ -252,13 +247,79 @@ export function MarketRatesCard() {
     ];
 
     // For each field that's null in the most recent data, look for the most recent non-null value
-    for (const field of rateFields) {
-      if (mergedData[field] === null || mergedData[field] === undefined) {
-        // Search through all historical data for a non-null value
-        for (const row of allData) {
-          if (row[field] !== null && row[field] !== undefined) {
-            mergedData[field] = row[field];
-            break;
+    if (allData && allData.length > 0) {
+      for (const field of rateFields) {
+        if (mergedData[field] === null || mergedData[field] === undefined) {
+          // Search through all historical data for a non-null value
+          for (const row of allData) {
+            if (row[field] !== null && row[field] !== undefined) {
+              mergedData[field] = row[field];
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // FALLBACK: For any still-null fields, query pricing_runs for the most recent completed run
+    // This ensures rate boxes NEVER show empty "—" if there's any historical data
+    const scenarioToFieldMapping: Record<string, { rateField: string; pointsField: string }> = {
+      '15yr_fixed': { rateField: 'rate_15yr_fixed', pointsField: 'points_15yr_fixed' },
+      '15yr_fixed_90ltv': { rateField: 'rate_15yr_fixed_90ltv', pointsField: 'points_15yr_fixed_90ltv' },
+      '15yr_fixed_95ltv': { rateField: 'rate_15yr_fixed_95ltv', pointsField: 'points_15yr_fixed_95ltv' },
+      '15yr_fixed_97ltv': { rateField: 'rate_15yr_fixed_97ltv', pointsField: 'points_15yr_fixed_97ltv' },
+      '30yr_fixed': { rateField: 'rate_30yr_fixed', pointsField: 'points_30yr_fixed' },
+      '30yr_fixed_70ltv': { rateField: 'rate_30yr_fixed_70ltv', pointsField: 'points_30yr_fixed_70ltv' },
+      '30yr_fixed_90ltv': { rateField: 'rate_30yr_fixed_90ltv', pointsField: 'points_30yr_fixed_90ltv' },
+      '30yr_fixed_95ltv': { rateField: 'rate_30yr_fixed_95ltv', pointsField: 'points_30yr_fixed_95ltv' },
+      '30yr_fixed_97ltv': { rateField: 'rate_30yr_fixed_97ltv', pointsField: 'points_30yr_fixed_97ltv' },
+      'fha_30yr': { rateField: 'rate_30yr_fha', pointsField: 'points_30yr_fha' },
+      'fha_30yr_965ltv': { rateField: 'rate_30yr_fha_965ltv', pointsField: 'points_30yr_fha_965ltv' },
+      'bank_statement': { rateField: 'rate_bank_statement', pointsField: 'points_bank_statement' },
+      'bank_statement_70ltv': { rateField: 'rate_bank_statement_70ltv', pointsField: 'points_bank_statement_70ltv' },
+      'bank_statement_85ltv': { rateField: 'rate_bank_statement_85ltv', pointsField: 'points_bank_statement_85ltv' },
+      'bank_statement_90ltv': { rateField: 'rate_bank_statement_90ltv', pointsField: 'points_bank_statement_90ltv' },
+      'dscr': { rateField: 'rate_dscr', pointsField: 'points_dscr' },
+      'dscr_70ltv': { rateField: 'rate_dscr_70ltv', pointsField: 'points_dscr_70ltv' },
+      'dscr_75ltv': { rateField: 'rate_dscr_75ltv', pointsField: 'points_dscr_75ltv' },
+    };
+
+    // Find all scenarios with null values and fetch from pricing_runs in a single query
+    const scenariosWithNullRates = Object.entries(scenarioToFieldMapping)
+      .filter(([_, fields]) => mergedData[fields.rateField] === null || mergedData[fields.rateField] === undefined)
+      .map(([scenario, _]) => scenario);
+
+    if (scenariosWithNullRates.length > 0) {
+      // Fetch most recent completed run for each scenario type that has null data
+      const { data: latestRuns } = await supabase
+        .from('pricing_runs')
+        .select('scenario_type, results_json, completed_at')
+        .in('scenario_type', scenariosWithNullRates)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false });
+
+      if (latestRuns && latestRuns.length > 0) {
+        // Get the most recent run for each scenario type
+        const latestByScenario: Record<string, any> = {};
+        for (const run of latestRuns) {
+          if (run.scenario_type && !latestByScenario[run.scenario_type]) {
+            latestByScenario[run.scenario_type] = run;
+          }
+        }
+
+        // Populate null fields from pricing_runs
+        for (const [scenario, fields] of Object.entries(scenarioToFieldMapping)) {
+          if ((mergedData[fields.rateField] === null || mergedData[fields.rateField] === undefined) && latestByScenario[scenario]) {
+            const results = latestByScenario[scenario].results_json as { rate?: string | number; discount_points?: number } | null;
+            if (results?.rate !== undefined && results?.rate !== null) {
+              mergedData[fields.rateField] = typeof results.rate === 'number' 
+                ? results.rate 
+                : parseFloat(String(results.rate).replace(/[^0-9.]/g, ''));
+            }
+            if (results?.discount_points !== undefined && results?.discount_points !== null) {
+              // Store in the same format as daily_market_updates (the raw discount_points value)
+              mergedData[fields.pointsField] = results.discount_points;
+            }
           }
         }
       }
