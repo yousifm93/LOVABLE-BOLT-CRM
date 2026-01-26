@@ -257,6 +257,14 @@ ${senderReminder}`;
       // Skip sender's email
       if (contact.email.toLowerCase() === emailContent.fromEmail.toLowerCase()) continue;
 
+      // Skip team emails (internal domains)
+      const excludedDomains = ['mortgagebolt.com', 'mortgagebolt.org'];
+      const emailDomain = contact.email.split('@')[1]?.toLowerCase();
+      if (emailDomain && excludedDomains.includes(emailDomain)) {
+        console.log(`Skipping team email: ${contact.email}`);
+        continue;
+      }
+
       // Extract domain for fallback logic
       const emailDomain = contact.email.split('@')[1]?.toLowerCase();
 
