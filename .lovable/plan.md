@@ -1,123 +1,54 @@
 
-## Fix: Contact Auto-Add System - Critical Issues
+## Fix: Badge Text Wrapping Issue in Email List
 
-### Summary of Problems
+### Problem
+The "New Contact" badge text is wrapping onto two lines when there's not enough horizontal space, causing a visual overlap issue. This happens because the badge button lacks `whitespace-nowrap` CSS to prevent text from breaking.
 
-| Issue | Root Cause | Impact |
-|-------|------------|--------|
-| No new contacts being added | Syntax error in `parse-email-contacts` - duplicate variable declaration | Edge function completely broken |
-| Popover shows "No contact suggestions" | `NewContactsPopover` queries wrong table (`email_contact_suggestions` instead of `contacts`) | Can't see pending contacts |
-| Badge text overlap | Badge container too narrow for multiple badges | Visual display issue |
+### Root Cause
+The badge buttons in both `NewContactsPopover.tsx` and `LenderMarketingPopover.tsx` don't have the `whitespace-nowrap` class, allowing the browser to wrap the text when space is constrained.
 
 ---
 
-### Fix 1: Syntax Error in parse-email-contacts
+### Solution
 
-**File:** `supabase/functions/parse-email-contacts/index.ts`
-
-**Problem:** The variable `emailDomain` is declared twice in the same scope:
-- Line 262: `const emailDomain = contact.email.split('@')[1]?.toLowerCase();` (team exclusion)
-- Line 269: `const emailDomain = contact.email.split('@')[1]?.toLowerCase();` (fallback logic)
-
-**Solution:** Remove the duplicate declaration on line 269 since the variable already exists from line 262.
-
-```typescript
-// Line 260-269 BEFORE (broken):
-const excludedDomains = ['mortgagebolt.com', 'mortgagebolt.org'];
-const emailDomain = contact.email.split('@')[1]?.toLowerCase();
-if (emailDomain && excludedDomains.includes(emailDomain)) {
-  console.log(`Skipping team email: ${contact.email}`);
-  continue;
-}
-
-// Extract domain for fallback logic
-const emailDomain = contact.email.split('@')[1]?.toLowerCase();  // DUPLICATE!
-
-// Line 260-269 AFTER (fixed):
-const excludedDomains = ['mortgagebolt.com', 'mortgagebolt.org'];
-const emailDomain = contact.email.split('@')[1]?.toLowerCase();
-if (emailDomain && excludedDomains.includes(emailDomain)) {
-  console.log(`Skipping team email: ${contact.email}`);
-  continue;
-}
-
-// emailDomain already declared above, reuse it for fallback logic
-```
-
----
-
-### Fix 2: NewContactsPopover Queries Wrong Table
-
-**File:** `src/components/email/NewContactsPopover.tsx`
-
-**Problem:** The popover fetches from `email_contact_suggestions` table (line 49-53), but contacts are now saved directly to the `contacts` table with `approval_status = 'pending'`.
-
-**Solution:** Update the query to fetch from `contacts` table instead:
-
-```typescript
-// BEFORE (broken):
-const { data: suggestionsData, error: suggestionsError } = await supabase
-  .from('email_contact_suggestions')
-  .select('*')
-  .eq('email_log_id', emailLogId)
-  .order('created_at', { ascending: false });
-
-// AFTER (fixed):
-const { data: suggestionsData, error: suggestionsError } = await supabase
-  .from('contacts')
-  .select('*')
-  .eq('email_log_id', emailLogId)
-  .eq('approval_status', 'pending')
-  .order('created_at', { ascending: false });
-```
-
-Also update the interface and approval/deny handlers to work with `contacts` table fields.
-
----
-
-### Fix 3: Badge Layout Overlap
-
-**File:** `src/pages/Email.tsx`
-
-**Problem:** The badge container has `max-w-[180px]` which can cause overlap when multiple badges appear.
-
-**Solution:** Increase the max width and reduce gap between badges:
-
-```typescript
-// Line 1448 BEFORE:
-<div className="flex items-center gap-1 flex-shrink-0 max-w-[180px]">
-
-// AFTER:
-<div className="flex items-center gap-0.5 flex-shrink-0 max-w-[220px]">
-```
+Add `whitespace-nowrap` to prevent text from ever wrapping inside badges. This ensures the text always stays on a single line, maintaining the proper badge appearance.
 
 ---
 
 ### Files to Modify
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/parse-email-contacts/index.ts` | Remove duplicate `const emailDomain` declaration |
-| `src/components/email/NewContactsPopover.tsx` | Query `contacts` table instead of `email_contact_suggestions` |
-| `src/pages/Email.tsx` | Adjust badge container width and gap |
+| File | Change |
+|------|--------|
+| `src/components/email/NewContactsPopover.tsx` | Add `whitespace-nowrap` to button className |
+| `src/components/email/LenderMarketingPopover.tsx` | Add `whitespace-nowrap` to button className (consistency) |
 
 ---
 
-### Post-Fix Actions
+### Code Changes
 
-After deploying the fixes:
-1. Re-run the backfill function to process remaining emails
-2. New contacts will appear in both the Master Contact List and the "New Contacts" popover
+**NewContactsPopover.tsx (line 140)**
+```typescript
+// BEFORE:
+"bg-purple-500/20 text-purple-600 border border-purple-500/30 text-[10px] px-1.5 py-0 h-5 rounded-full hover:bg-purple-500/30 transition-colors font-medium inline-flex items-center gap-1"
 
-### Technical Details
+// AFTER:
+"bg-purple-500/20 text-purple-600 border border-purple-500/30 text-[10px] px-1.5 py-0 h-5 rounded-full hover:bg-purple-500/30 transition-colors font-medium inline-flex items-center gap-1 whitespace-nowrap"
+```
 
-The `contacts` table fields map to the popover as follows:
-- `first_name`, `last_name` - Contact name
-- `email` - Email address  
-- `phone` - Phone number
-- `company` - Company name
-- `tags` - Suggested tags
-- `approval_status` - 'pending' for unreviewed, update to 'approved' or 'rejected'
+**LenderMarketingPopover.tsx (line 386)**
+```typescript
+// BEFORE:
+"bg-blue-500/20 text-blue-600 border border-blue-500/30 text-[10px] px-1.5 py-0 h-5 rounded-full hover:bg-blue-500/30 transition-colors font-medium inline-flex items-center gap-1"
 
-The approve action just needs to update `approval_status` to `'approved'` (contact already exists in table).
-The deny action sets `approval_status` to `'rejected'`.
+// AFTER:
+"bg-blue-500/20 text-blue-600 border border-blue-500/30 text-[10px] px-1.5 py-0 h-5 rounded-full hover:bg-blue-500/30 transition-colors font-medium inline-flex items-center gap-1 whitespace-nowrap"
+```
+
+---
+
+### Result
+
+- "New Contact" badge will always display on a single line
+- "Lender Marketing" badge will always display on a single line
+- No text wrapping or overlap issues regardless of container width
+- Badges maintain consistent appearance across all email rows
