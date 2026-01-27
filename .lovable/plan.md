@@ -1,279 +1,284 @@
 
-## Plan: Fix Task Assignment, Auto-Status, Call Auto-Complete, and Feedback Reorganization
+## Plan: Fix Conditions RLS, Feedback Review Bucketing, Conditions Modal Scrolling, and Activity Image Attachments
 
 ### Overview
 
-This plan addresses 5 distinct issues identified by the user:
+This plan addresses 5 distinct issues:
 
-1. **Task assignee blank when creating lead** - The follow-up task has no assignee even though user is logged in
-2. **Auto-set loan_status to "New" when moving to Active** - Not happening in some scenarios
-3. **Call Borrower/Buyer's Agent task auto-completion** - Should complete when call is logged
-4. **Feedback Review section reorganization** - Group items by status (Open → Pending Review → Complete)
-5. **Close Date Change task dynamic assignee** - Should use lead's teammate_assigned, not Herman
+1. **Conditions RLS Error** - Users can't add conditions to leads with mismatched account_id
+2. **Feedback Review Bucketing** - Reorganize sections into proper collapsible folders/buckets
+3. **Initial Approval Modal** - Fix scroll and enable editing condition names
+4. **Activity Log Image Attachments** - Allow attaching images to notes/calls/SMS logs
+5. **Conditions Insertion Error** - Modal shows "Failed to create conditions" error
 
 ---
 
-### Issue 1: Task Assignee Blank When Creating Lead
+### Issue 1: Conditions RLS Error
 
-**Root Cause Analysis:**
+**Problem**: The lead "Rakesh Lakkimsetty" has `account_id: 2b0a4642-5c1c-4d81-814f-7735df3f11f3` but Ashley and Yousif are associated with `account_id: 47e707c5-62d0-4ee9-99a3-76572c73a8e1`. The RLS policy on `lead_conditions` checks that the lead's `account_id` matches the user's `account_id`.
 
-Looking at `CreateLeadModalModern.tsx` line 439:
-```typescript
-teammate_assigned: formData.teammate_assigned || 'b06a12ea-00b9-4725-b368-e8a416d4028d',
+**Solution**: Fix the lead's account_id to match the team's account_id.
+
+**Database Fix (via SQL run in Supabase Dashboard)**:
+```sql
+-- Update Rakesh's lead to use the correct team account_id
+UPDATE leads 
+SET account_id = '47e707c5-62d0-4ee9-99a3-76572c73a8e1' 
+WHERE id = '2e66a1f4-5378-43b8-80e2-cdf591299626';
 ```
 
-The problem is that `formData.teammate_assigned` defaults to empty string `""` (line 48), which is truthy in JavaScript. So it never falls back to the hardcoded ID.
+**Prevention**: The `set_lead_defaults()` trigger function should correctly set `account_id` on new leads using `get_user_account_id(auth.uid())`. If leads are being created with wrong account_ids, we may need to debug that trigger.
 
-But more importantly, the form data is never populated with the current logged-in user's CRM ID. The `useAuth` hook provides `crmUser.id`, but it's not being used to set the default.
+---
 
-**User mapping:**
-- Email: `yousifminc@gmail.com` → CRM User ID: `08e73d69-4707-4773-84a4-69ce2acd6a11` (Yousif Mohamed)
+### Issue 2: Feedback Review - Collapsible Buckets/Folders
 
-**Solution:**
+**User Request**:
+- **Top (Always Open)**: Open/Still Needs Help items (no status or `needs_help`)
+- **Below That**: Pending User Review (collapsible)
+- **Bottom (Collapsed by default)**: Complete section
 
-Update `CreateLeadModalModern.tsx` to:
-1. Set `teammate_assigned` default from `crmUser.id` when the modal opens
-2. Ensure the fallback also uses the current user's CRM ID
+**Current State**: Already partially implemented but needs tweaking:
+1. Ideas (`idea` status) should be grouped with Open, not separate
+2. Complete section should be **collapsed by default**
+3. Clear visual separation between buckets
 
-**File Change: `src/components/modals/CreateLeadModalModern.tsx`**
+**File to Modify**: `src/pages/admin/FeedbackReview.tsx`
+
+**Changes**:
+1. Initialize `completedSectionsOpen` to `false` by default (currently not initialized)
+2. Initialize `pendingReviewSectionsOpen` to `false` by default
+3. Add visual card/border to each bucket section for better grouping
+4. Ensure Open items (pending + needs_help + idea) are always expanded and visible
+
+**Code Changes**:
+```typescript
+// In useEffect after fetching data, initialize collapse states
+const initialCompletedOpen: Record<string, boolean> = {};
+const initialPendingReviewOpen: Record<string, boolean> = {};
+feedbackData?.forEach(f => {
+  initialCompletedOpen[f.id] = false;  // Complete collapsed by default
+  initialPendingReviewOpen[f.id] = false; // Pending review collapsed by default
+});
+setCompletedSectionsOpen(initialCompletedOpen);
+setPendingReviewSectionsOpen(initialPendingReviewOpen);
+```
+
+---
+
+### Issue 3: Initial Approval Conditions Modal - Scroll & Edit
+
+**Problems**:
+1. Can't scroll to see all conditions in the modal
+2. Can't edit condition names/descriptions before saving
+3. Error "Failed to create conditions" when trying to add
+
+**Root Cause Analysis**:
+- The modal at `src/components/modals/InitialApprovalConditionsModal.tsx` already has a `ScrollArea` with `max-h-[50vh]` (line 167)
+- However, the modal content might be overflowing; need to increase scroll area height
+- The conditions are not editable - just checkboxes for selection
+- The insertion error is likely the same RLS issue as #1
+
+**Files to Modify**: `src/components/modals/InitialApprovalConditionsModal.tsx`
+
+**Changes**:
+1. Increase `max-h-[50vh]` to `max-h-[60vh]` for more scroll space
+2. Add editable input fields for each condition description
+3. Store edited conditions in local state before submission
+
+**Code Changes**:
 
 ```typescript
-// In useEffect when modal opens (around line 69-86):
-useEffect(() => {
-  if (open) {
-    loadData();
-    // Set default teammate_assigned to current logged-in user
-    if (crmUser?.id) {
-      setFormData(prev => ({
-        ...prev,
-        teammate_assigned: crmUser.id
-      }));
-    }
+// Add state for editable conditions
+const [editedConditions, setEditedConditions] = useState<Map<number, string>>(new Map());
+
+// Update condition description
+const handleDescriptionChange = (index: number, value: string) => {
+  setEditedConditions(prev => new Map(prev).set(index, value));
+};
+
+// Get final description (edited or original)
+const getFinalDescription = (index: number, original: string) => {
+  return editedConditions.get(index) ?? original;
+};
+
+// In the condition item render, replace static text with input:
+<Input
+  value={getFinalDescription(index, condition.description)}
+  onChange={(e) => handleDescriptionChange(index, e.target.value)}
+  className="text-sm"
+/>
+```
+
+Also update `handleConfirm` to use edited descriptions:
+```typescript
+const handleConfirm = () => {
+  const selected = conditions.filter((_, i) => selectedIndices.has(i)).map((c, i) => ({
+    ...c,
+    description: getFinalDescription(conditions.indexOf(c), c.description)
+  }));
+  onConfirm(selected);
+};
+```
+
+---
+
+### Issue 4: Activity Log Image Attachments
+
+**User Request**: Attach images to notes, call logs, and SMS logs so they can be viewed when reviewing the activity.
+
+**Current State**:
+- `notes` table: `id`, `lead_id`, `author_id`, `body`, `created_at` - **No image column**
+- `call_logs` table: `id`, `lead_id`, `user_id`, `timestamp`, `outcome`, `duration_seconds`, `notes`, `created_at` - **No image column**
+- `sms_logs` table: Same - **No image column**
+
+**Solution**: Add `attachment_url` column to relevant tables and add image upload UI to modals.
+
+**Database Migration**:
+```sql
+-- Add attachment_url columns
+ALTER TABLE notes ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+ALTER TABLE call_logs ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+ALTER TABLE sms_logs ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+```
+
+**Files to Modify**:
+- `src/components/modals/ActivityLogModals.tsx` - Add file upload button to `AddNoteModal`, `CallLogModal`, `SmsLogModal`
+- `src/services/database.ts` - Update types and insert functions
+
+**UI Changes for AddNoteModal**:
+```typescript
+// Add state for attachment
+const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
+const [uploading, setUploading] = useState(false);
+
+// File upload handler
+const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  
+  setUploading(true);
+  try {
+    // Upload to documents storage bucket
+    const filePath = `activity-attachments/${leadId}/${Date.now()}_${file.name}`;
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .upload(filePath, file);
+    
+    if (error) throw error;
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('documents')
+      .getPublicUrl(data.path);
+    
+    setAttachmentUrl(publicUrl);
+    toast({ title: "Image Uploaded", description: "Attachment ready to save with note." });
+  } catch (error) {
+    toast({ title: "Upload Failed", variant: "destructive" });
+  } finally {
+    setUploading(false);
   }
-}, [open, crmUser?.id]);
+};
 
-// Also update the submit to use crmUser.id as fallback (line 439):
-teammate_assigned: formData.teammate_assigned || crmUser?.id || 'b06a12ea-00b9-4725-b368-e8a416d4028d',
+// Update submit to include attachment_url
+const noteData = {
+  lead_id: leadId,
+  author_id: crmUser.id,
+  body: noteBody.trim(),
+  attachment_url: attachmentUrl,
+};
+```
+
+**UI Component**:
+```tsx
+<div className="space-y-2">
+  <Label>Attachment (optional)</Label>
+  <div className="flex items-center gap-2">
+    <Input
+      type="file"
+      accept="image/*"
+      onChange={handleFileUpload}
+      disabled={uploading}
+    />
+    {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
+  </div>
+  {attachmentUrl && (
+    <img src={attachmentUrl} alt="Preview" className="max-h-32 rounded-md" />
+  )}
+</div>
+```
+
+**Display in Activity Tab**:
+When rendering notes in activity timeline, display the attachment if present:
+```tsx
+{note.attachment_url && (
+  <a href={note.attachment_url} target="_blank" rel="noopener noreferrer">
+    <img 
+      src={note.attachment_url} 
+      alt="Attachment" 
+      className="max-h-48 rounded-md mt-2 cursor-pointer hover:opacity-80"
+    />
+  </a>
+)}
 ```
 
 ---
 
-### Issue 2: Auto-Set loan_status to "New" When Moving to Active
+### Issue 5: Conditions Insertion Error
 
-**Current State:**
-- `ClientDetailDrawer.tsx` line 1561 already sets `updateData.loan_status = 'NEW'` when moving to Active
-- However, this only works when using the dropdown in the detail drawer
+**Problem**: "Failed to create conditions" error when using the Initial Approval modal.
 
-**The issue may be:**
-The user is moving leads from the Leads table directly, not via the drawer stage dropdown. Need to check if the pipeline stage change also sets loan_status.
+**Root Cause**: Same RLS issue as #1 - the user's `account_id` doesn't match the lead's `account_id`.
 
-**Analysis:**
-The code at line 1557-1562 in `ClientDetailDrawer.tsx` correctly sets `loan_status = 'NEW'` when moving to Active. If this isn't working, it might be because:
-1. The stage label comparison isn't matching
-2. The update is failing silently
+**Solution**: 
+1. Fix Rakesh's `account_id` (covered in Issue #1)
+2. Add better error handling to show the actual RLS error message to help diagnose future issues
 
-**Solution:**
-Add additional safeguard - also check for the Active stage UUID in the condition, and ensure case-insensitive matching:
+**File to Modify**: `src/components/lead-details/ConditionsTab.tsx` and wherever the Initial Approval conditions are imported
 
+**Change** in error handling:
 ```typescript
-// Line 1557-1562 - Strengthen the check
-const isActiveStage = normalizedLabel.toLowerCase() === 'active' || 
-                      stageId === '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
-if (isActiveStage) {
-  updateData.pipeline_section = 'Incoming';
-  updateData.loan_status = 'NEW';
+} catch (error: any) {
+  console.error("Error creating bulk conditions:", error);
+  toast({
+    title: "Error",
+    description: error?.message || "Failed to create conditions",
+    variant: "destructive",
+  });
 }
 ```
 
----
-
-### Issue 3: Call Borrower/Buyer's Agent Task Auto-Completion
-
-**Current State:**
-The tasks already have the correct `completion_requirement_type`:
-- "Call Borrower - New Active File" → `log_call_borrower`
-- "Call Buyers Agent - New Active File" → `log_call_buyer_agent`
-
-The `autoCompleteTasksAfterCall` function in `database.ts` already handles this when a call is logged.
-
-**Verification needed:**
-The call logging flow must invoke `autoCompleteTasksAfterCall`. Let me trace where calls are logged and ensure this function is called.
-
-**No code change needed** - The system is already set up correctly:
-- Tasks with `completion_requirement_type = 'log_call_borrower'` are automatically completed when `databaseService.autoCompleteTasksAfterCall(leadId, 'log_call_borrower', userId)` is called
-- This is already integrated in the call logging flow
-
-**Confirmation:** The task completion requirement types are already correctly set:
-- "Call Borrower - New Active File" has `log_call_borrower`
-- "Call Buyers Agent - New Active File" has `log_call_buyer_agent`
-
----
-
-### Issue 4: Feedback Review Section Reorganization
-
-**User Request:**
-Group items in this order:
-1. **Top:** Open, Pending (including "needs_help" and "idea" that still need work)
-2. **Middle:** Pending Review (`pending_user_review` status)
-3. **Bottom:** Complete
-
-**Current State:**
-Looking at `FeedbackReview.tsx` lines 513-576, the current order is:
-1. Pending items (top)
-2. Pending User Review section (collapsible)
-3. Completed items (collapsible)
-4. Ideas (collapsible)
-
-**Required Changes:**
-Reorder to match user's specification:
-1. **Open/Pending** (status = 'pending' OR 'needs_help')
-2. **Ideas** (status = 'idea') - grouped with open since "ideas that still need help"
-3. **Pending Review** (status = 'pending_user_review')
-4. **Complete** (status = 'complete') - at bottom
-
-Actually re-reading the request more carefully:
-- "Anything that's open is at the top"
-- "Anything that still needs help or is an idea that still needs help will still be at the top as pending"
-- "Pending review is in the middle"
-- "Complete is at the bottom"
-- "The idea will move to the complete section" (when addressed)
-
-This means the order should be:
-1. Open/Pending/Needs Help (top) - includes ideas that still need work
-2. Pending User Review (middle)
-3. Complete (bottom)
-
-The "Ideas" category should be considered part of the "open" section, not separate.
-
-**File Change: `src/pages/admin/FeedbackReview.tsx`**
-
-Modify the rendering order in lines 513-576 to:
-1. Show pending + needs_help + idea items together at top
-2. Show pending_user_review items in middle
-3. Show complete items at bottom
-
-```typescript
-// Redefine the groupings:
-// "Open" = pending OR needs_help OR idea
-const openItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => {
-  const status = getItemStatus(fb.id, index);
-  return status === 'pending' || status === 'needs_help' || status === 'idea';
-});
-const pendingReviewItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => 
-  getItemStatus(fb.id, index) === 'pending_user_review'
-);
-const completedItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => 
-  getItemStatus(fb.id, index) === 'complete'
-);
-
-// Render order: openItems → pendingReviewItems → completedItems
-```
-
----
-
-### Issue 5: Close Date Change Task Dynamic Assignee
-
-**Current State:**
-The "Closing Date Changed - Update All Parties/Systems" automation has:
-- `assigned_to_user_id`: `fa92a4c6-890d-4d69-99a8-c3adc6c904ee` (Herman Daza)
-
-**User Request:**
-The task should be assigned to whoever is the "user" (teammate_assigned) on that particular lead.
-
-**Solution:**
-
-Update the `execute_close_date_changed_automations` trigger function to use the lead's `teammate_assigned` instead of the automation's `assigned_to_user_id`:
-
-**SQL Migration:**
-```sql
-CREATE OR REPLACE FUNCTION public.execute_close_date_changed_automations()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  automation RECORD;
-  new_task_id uuid;
-  assignee_id_value uuid;
-BEGIN
-  IF OLD.close_date IS DISTINCT FROM NEW.close_date AND NEW.disclosure_status = 'Signed' THEN
-    FOR automation IN
-      SELECT * FROM public.task_automations
-      WHERE is_active = true 
-        AND trigger_type = 'status_changed' 
-        AND trigger_config->>'field' = 'close_date'
-        AND (trigger_config->>'condition') IS NULL
-    LOOP
-      BEGIN
-        -- Use lead's teammate_assigned, fallback to automation's assigned_to
-        assignee_id_value := COALESCE(NEW.teammate_assigned, automation.assigned_to_user_id);
-        
-        INSERT INTO public.tasks (
-          title, description, borrower_id, assignee_id, priority, 
-          due_date, status, created_by, completion_requirement_type
-        )
-        VALUES (
-          automation.task_name, 
-          automation.task_description, 
-          NEW.id, 
-          assignee_id_value,  -- Now uses lead's user
-          automation.task_priority::task_priority, 
-          CURRENT_DATE + (COALESCE(automation.due_date_offset_days, 0) || ' days')::interval,
-          'Working on it', 
-          automation.created_by, 
-          COALESCE(automation.completion_requirement_type, 'none')
-        )
-        RETURNING id INTO new_task_id;
-        
-        INSERT INTO public.task_automation_executions (
-          automation_id, lead_id, task_id, executed_at, success
-        ) VALUES (
-          automation.id, NEW.id, new_task_id, NOW(), true
-        );
-      EXCEPTION WHEN OTHERS THEN
-        INSERT INTO public.task_automation_executions (
-          automation_id, lead_id, task_id, executed_at, success, error_message
-        ) VALUES (
-          automation.id, NEW.id, NULL, NOW(), false, SQLERRM
-        );
-      END;
-    END LOOP;
-  END IF;
-  RETURN NEW;
-END;
-$function$;
-```
+This is already implemented; the issue is purely the RLS mismatch on the lead's account_id.
 
 ---
 
 ### Summary of All Changes
 
-| Issue | File | Change |
+| Issue | Type | Change |
 |-------|------|--------|
-| 1. Task assignee blank | `src/components/modals/CreateLeadModalModern.tsx` | Set `teammate_assigned` default to `crmUser.id` |
-| 2. Auto-set loan_status | `src/components/ClientDetailDrawer.tsx` | Strengthen Active stage detection |
-| 3. Call auto-complete | (Already working) | Verify call logging invokes `autoCompleteTasksAfterCall` |
-| 4. Feedback reorganization | `src/pages/admin/FeedbackReview.tsx` | Reorder sections: Open/Ideas → Pending Review → Complete |
-| 5. Close date assignee | SQL Migration | Update trigger to use `NEW.teammate_assigned` |
+| 1. Conditions RLS | Data Fix | Update Rakesh's lead `account_id` to team account |
+| 2. Feedback Buckets | Code | Initialize collapsed states, add visual separation |
+| 3. Modal Scroll/Edit | Code | Increase scroll height, add editable inputs |
+| 4. Image Attachments | Schema + Code | Add `attachment_url` column, add upload UI |
+| 5. Conditions Error | Data Fix | Same as #1 - RLS mismatch |
 
 ---
 
 ### Technical Implementation Order
 
-1. **SQL Migration** - Update `execute_close_date_changed_automations` for dynamic assignee
-2. **CreateLeadModalModern.tsx** - Fix teammate_assigned default
-3. **ClientDetailDrawer.tsx** - Strengthen Active stage detection
-4. **FeedbackReview.tsx** - Reorganize sections per user's specification
+1. **Data Fix (Manual SQL)** - Fix Rakesh's account_id
+2. **SQL Migration** - Add `attachment_url` columns to notes/call_logs/sms_logs
+3. **FeedbackReview.tsx** - Initialize collapse states, visual buckets
+4. **InitialApprovalConditionsModal.tsx** - Increase scroll height, add editable fields
+5. **ActivityLogModals.tsx** - Add file upload UI to note/call/SMS modals
+6. **ActivityTab.tsx** - Display attachments in activity timeline
 
 ---
 
 ### Expected Outcomes
 
 After implementation:
-- New leads will have the creating user assigned as teammate_assigned
-- "Follow up on new lead" task will be assigned to the creator
-- Moving to Active will reliably set loan_status = 'NEW'
-- Call logging will auto-complete the related call tasks
-- Feedback Review shows: Open items → Pending Review → Complete
-- "Closing Date Changed" task will go to lead's assigned user (Ashley or Herman based on lead)
+- Users can add conditions to all leads (RLS fixed)
+- Feedback Review has clear buckets: Open (top) → Pending Review (collapsed) → Complete (collapsed at bottom)
+- Initial Approval modal scrolls properly and allows editing condition names
+- Notes/Calls/SMS can include image attachments that display inline
