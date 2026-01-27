@@ -1,186 +1,217 @@
 
+## Plan: Fix Task Automation Triggers, Quick Tasks UI, and Meeting Date Bug
 
-## Fix Plan: Four Issues with Lead Management & Task Automation
+### Issues Summary
 
-### Overview
-
-This plan addresses four distinct issues:
-1. **Likely to Apply popup too small** - Modal needs to be larger so fields are fully visible
-2. **Follow-up on new lead task has no due date** - Automation needs `due_date_offset_days` set to 0
-3. **New lead task not assigned to creator** - The task should be assigned to whoever created the lead, not a hardcoded user
-4. **Active stage tasks missing** - Need to create four task automations when a file moves to Active (via loan_status = 'New')
+This plan addresses 5 distinct issues:
+1. **Active stage tasks not being created** - Automations for `loan_status = 'New'` don't fire because of case sensitivity mismatch
+2. **Task assignee corrections** - Call tasks should be assigned to Yousif, not Herman
+3. **Quick task templates in "No Active Tasks" popup** - Add the quick task buttons to the CreateNextTaskModal
+4. **Face-to-face meeting dates off by one day** - Bug in date conversion causes meetings to appear one day earlier
+5. **Lead details page delay** - Investigate and improve loading experience
 
 ---
 
-### Issue 1: Likely to Apply Popup Size
+### Issue 1: Task Automations Not Firing (Case Sensitivity)
 
-**Problem**: The pipeline validation modal (triggered when moving to Pending App) is too small - the "Likely to Apply" field isn't fully visible.
+**Root Cause**: The trigger function compares `loan_status::text = 'New'` (mixed case), but some leads have `loan_status = 'NEW'` (uppercase). This is a case-sensitive comparison failure.
 
-**Root Cause**: The modal uses `max-w-md` (28rem / 448px) which is too narrow for the form fields.
+**Evidence**:
+```
+-- Automations target 'New' (mixed case)
+SELECT trigger_config->>'target_status' FROM task_automations WHERE name = 'Disclose New Client';
+-- Returns: 'New'
 
-**Solution**: Increase the modal width to `max-w-lg` (32rem / 512px) or `max-w-xl` for better visibility.
+-- Oscar's lead has 'NEW' (uppercase)
+SELECT loan_status FROM leads WHERE first_name = 'Oscar';
+-- Returns: 'NEW'
+```
 
-**File to Modify**: `src/components/ClientDetailDrawer.tsx`
+**Solution**: Update the trigger function to use case-insensitive comparison.
 
-**Change** (Line ~3177):
-```typescript
-// Before:
-<DialogContent className="max-w-md">
-
-// After:
-<DialogContent className="max-w-lg">
+**SQL Change**:
+```sql
+CREATE OR REPLACE FUNCTION public.execute_loan_status_changed_automations()
+...
+  -- Change this line:
+  AND ta.trigger_config->>'target_status' = NEW.loan_status::text
+  -- To:
+  AND LOWER(ta.trigger_config->>'target_status') = LOWER(NEW.loan_status::text)
 ```
 
 ---
 
-### Issue 2: Follow-up Task Missing Due Date
-
-**Problem**: When a new lead is created, the "Follow up on new lead" task is created without a due date.
-
-**Root Cause**: The `task_automations` record for "Follow up on new lead" (id: `30c8ebeb-b9e0-4347-b541-0e2eb755ac2a`) has `due_date_offset_days = NULL`.
+### Issue 2: Correct Task Assignees
 
 **Current State**:
-- `assigned_to_user_id`: Yousif Mohamed (08e73d69...)
-- `due_date_offset_days`: NULL
+- "Call Borrower - New Active File" → Herman Daza (`fa92a4c6-...`)
+- "Call Buyers Agent - New Active File" → Herman Daza (`fa92a4c6-...`)
 
-**Solution**: Update the automation to set `due_date_offset_days = 0` (due today).
+**Required State** (per user):
+- "Disclose" and "On-Board" → Herman Daza ✅ (already correct)
+- "Call Borrower" and "Call Buyers Agent" → **Yousif Mohamed** (`230ccf6d-48f5-4f3c-89fd-f2907ebdba1e`)
 
-**Database Change** (via migration):
+**SQL Change**:
 ```sql
+-- Update Call Borrower task to Yousif
 UPDATE task_automations 
-SET due_date_offset_days = 0 
-WHERE id = '30c8ebeb-b9e0-4347-b541-0e2eb755ac2a';
-```
+SET assigned_to_user_id = '230ccf6d-48f5-4f3c-89fd-f2907ebdba1e'
+WHERE task_name = 'Call Borrower - New Active File';
 
----
-
-### Issue 3: Task Assigned to Lead Creator
-
-**Problem**: The "Follow up on new lead" task should be assigned to whoever created the lead, not a hardcoded user.
-
-**Root Cause**: The automation has `assigned_to_user_id` set to Yousif Mohamed, and the trigger function falls back to this value even though the lead's `teammate_assigned` is available.
-
-**Current Logic** in `execute_lead_created_automations`:
-```sql
-assignee_id_value := COALESCE(automation.assigned_to_user_id, NEW.teammate_assigned);
-```
-This means the automation's hardcoded user takes precedence.
-
-**Solution**: 
-1. Set the automation's `assigned_to_user_id` to NULL
-2. Update the trigger function to use `NEW.teammate_assigned` (the lead creator) as the primary assignee
-
-**Changes**:
-
-**A. Database Update** (via migration):
-```sql
--- Remove hardcoded assignee so task goes to lead creator
+-- Update Call Buyers Agent task to Yousif
 UPDATE task_automations 
-SET assigned_to_user_id = NULL
-WHERE id = '30c8ebeb-b9e0-4347-b541-0e2eb755ac2a';
-```
-
-**B. Update Trigger Function** to prefer lead's `teammate_assigned`:
-```sql
--- Prefer lead's teammate_assigned (who created it), fall back to automation's assigned_to
-assignee_id_value := COALESCE(NEW.teammate_assigned, automation.assigned_to_user_id);
-```
-
-This ensures the lead creator gets the follow-up task.
-
----
-
-### Issue 4: Four Tasks When Moving to Active
-
-**Problem**: When a contract is uploaded or file moves to Active, four tasks should be created:
-1. To disclose
-2. On board  
-3. To have a borrower call
-4. To have a buyer's agent call
-
-**Current State**: 
-- There's already a "Disclose" automation (`71f663f2...`) for `loan_status = 'New'`
-- There's already an "On-Board New Client" automation (`a8d7ca55...`) for `loan_status = 'New'`
-- The borrower call and buyer's agent call tasks are **missing** for the Active/New status
-
-**Solution**: Create two new task automations for when `loan_status` changes to 'New':
-
-| Task Name | Assigned To | Trigger |
-|-----------|-------------|---------|
-| Call Borrower - New Active File | Herman Daza | loan_status = 'New' |
-| Call Buyer's Agent - New Active File | Herman Daza | loan_status = 'New' |
-
-**Database Change** (via migration):
-```sql
--- Create "Call Borrower - New Active File" automation
-INSERT INTO task_automations (
-  name, trigger_type, trigger_config, task_name, task_description,
-  assigned_to_user_id, task_priority, due_date_offset_days, is_active,
-  category, completion_requirement_type
-) VALUES (
-  'Call Borrower - New Active File',
-  'status_changed',
-  '{"field": "loan_status", "target_status": "New"}',
-  'Call Borrower - New Active File',
-  'Call the borrower to welcome them to active status and discuss next steps',
-  'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', -- Herman Daza
-  'High',
-  0,
-  true,
-  'active_loan',
-  'log_call_borrower'
-);
-
--- Create "Call Buyer's Agent - New Active File" automation
-INSERT INTO task_automations (
-  name, trigger_type, trigger_config, task_name, task_description,
-  assigned_to_user_id, task_priority, due_date_offset_days, is_active,
-  category, completion_requirement_type
-) VALUES (
-  'Call Buyers Agent - New Active File',
-  'status_changed',
-  '{"field": "loan_status", "target_status": "New"}',
-  'Call Buyers Agent - New Active File',
-  'Call the buyers agent to introduce yourself and coordinate on the active file',
-  'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', -- Herman Daza
-  'High',
-  0,
-  true,
-  'active_loan',
-  'log_call_buyer_agent'
-);
+SET assigned_to_user_id = '230ccf6d-48f5-4f3c-89fd-f2907ebdba1e'
+WHERE task_name = 'Call Buyers Agent - New Active File';
 ```
 
 ---
 
-### Summary of All Changes
+### Issue 3: Quick Task Templates in "No Active Tasks" Popup
 
-| Issue | File | Change Type |
-|-------|------|-------------|
-| 1. Popup size | `src/components/ClientDetailDrawer.tsx` | Change `max-w-md` to `max-w-lg` |
-| 2. Due date | Database migration | Set `due_date_offset_days = 0` |
-| 3. Assignee | Database migration + trigger function | Set automation's assignee to NULL, update trigger logic |
-| 4. Active tasks | Database migration | Insert 2 new task automations |
+**Current State**: The "No Active Tasks" popup (`CreateNextTaskModal.tsx`) has a manual form with title, description, due date, priority, and assignee fields, but no quick task buttons.
+
+**Required State**: Add the same quick task buttons from `CreateTaskModal.tsx`:
+- Lead Follow-up
+- Pending App Follow-up
+- Screen
+- Conditions
+- Pre-Qualify
+- Pre-Approve
+- Borrower Call
+- Buyer's Agent Call
+- Listing Agent Call
+- HSCI
+
+**Code Change** in `src/components/modals/CreateNextTaskModal.tsx`:
+
+1. Import the `QUICK_TASK_TEMPLATES` array or define a subset
+2. Add a "Quick Tasks" section with toggle buttons
+3. When a quick task is selected, auto-fill the form fields
+
+```typescript
+// Add Quick Tasks section before the form
+<div className="space-y-2 mb-4">
+  <Label className="text-sm font-medium">Quick Tasks</Label>
+  <div className="flex flex-wrap gap-2">
+    {QUICK_TASK_TEMPLATES.map((template) => (
+      <Button
+        key={template.id}
+        type="button"
+        variant={selectedTemplate === template.id ? "default" : "outline"}
+        size="sm"
+        onClick={() => applyTemplate(template.id)}
+        className="text-xs"
+      >
+        {template.label}
+      </Button>
+    ))}
+  </div>
+</div>
+```
 
 ---
 
-### Technical Details
+### Issue 4: Face-to-Face Meeting Dates Off by One Day
 
-**Modified Trigger Function Logic**:
+**Root Cause**: In `AgentMeetingLogModal.tsx` (line 74):
 
-The `execute_lead_created_automations` function will be updated so that:
-- If the automation has no `assigned_to_user_id`, use the lead's `teammate_assigned` (the creator)
-- If neither is set, the task will have no assignee (NULL)
-
-```sql
--- New priority order: lead creator first, then automation default
-assignee_id_value := COALESCE(NEW.teammate_assigned, automation.assigned_to_user_id);
+```typescript
+face_to_face_meeting: new Date(meetingDate).toISOString(),
 ```
 
-**Existing "On-Board" and "Disclose" Automations**:
-These already exist and will fire when `loan_status = 'New'`, so no changes needed there:
-- `Disclose` → Herman Daza
-- `On-Board New Client` → Herman Daza
+When `meetingDate = "2026-01-26"` (date-only string), JavaScript's `new Date("2026-01-26")` interprets it as **midnight UTC** (`2026-01-26T00:00:00Z`).
 
-With the two new call tasks, moving to Active will create all four required tasks.
+When displayed in Eastern Time (UTC-5), this becomes `2026-01-25T19:00:00` - **one day earlier**.
 
+**Evidence** from database:
+```
+face_to_face_meeting: 2026-01-26 00:00:00+00  ← UTC midnight
+meeting_date_et: 2026-01-25                    ← Displayed as Jan 25 in ET!
+```
+
+**Solution**: Convert to noon local time to prevent day-shift issues:
+
+```typescript
+// Before (line 74):
+face_to_face_meeting: new Date(meetingDate).toISOString(),
+
+// After:
+face_to_face_meeting: new Date(meetingDate + 'T12:00:00').toISOString(),
+```
+
+This matches the approach already used for the log entry (line 64).
+
+**Files to Modify**:
+- `src/components/modals/AgentMeetingLogModal.tsx` (line 74)
+- `src/components/modals/QuickAddActivityModal.tsx` (line 224) - Same issue exists here
+
+---
+
+### Issue 5: Lead Details Page Delay
+
+**Current Behavior**: After creating a lead, there's a delay before the details drawer can be opened, requiring a page refresh.
+
+**Root Cause**: After `onLeadCreated()` is called, the parent component refetches all leads. The new lead may not be immediately available in the list for selection.
+
+**Solution Options**:
+
+**Option A - Return lead ID and open immediately**:
+1. Modify `CreateLeadModalModern` to return the new lead's ID
+2. Parent component can immediately open the drawer with the new lead ID
+3. Drawer fetches lead data independently if not in list yet
+
+**Option B - Optimistic UI update**:
+1. Add the new lead to the local state immediately after creation
+2. Background refetch updates with server data
+
+**Recommended Implementation (Option A)**:
+```typescript
+// In CreateLeadModalModern:
+const handleSubmit = async () => {
+  // ... create lead ...
+  const newLead = await databaseService.createLead({...});
+  onLeadCreated(newLead.id); // Pass the ID back
+};
+
+// In parent (LeadsModern):
+const handleLeadCreated = (newLeadId: string) => {
+  // Immediately open drawer with new lead ID
+  setSelectedLeadId(newLeadId);
+  setIsDrawerOpen(true);
+  // Also refetch list in background
+  refetchLeads();
+};
+```
+
+---
+
+### Technical Summary
+
+| File | Changes |
+|------|---------|
+| SQL Migration | Fix case-insensitive comparison in trigger; Update assignees for call tasks |
+| `src/components/modals/CreateNextTaskModal.tsx` | Add Quick Tasks section with templates |
+| `src/components/modals/AgentMeetingLogModal.tsx` | Fix date conversion on line 74 |
+| `src/components/modals/QuickAddActivityModal.tsx` | Fix date conversion on line 224 |
+| `src/components/modals/CreateLeadModalModern.tsx` | Return lead ID on creation |
+| `src/pages/LeadsModern.tsx` | Accept lead ID and open drawer immediately |
+
+---
+
+### Order of Implementation
+
+1. **SQL Migration** - Fix trigger function case sensitivity + update task assignees
+2. **Date Bug Fix** - AgentMeetingLogModal.tsx and QuickAddActivityModal.tsx
+3. **Quick Tasks UI** - CreateNextTaskModal.tsx
+4. **Lead Details Delay** - CreateLeadModalModern.tsx and LeadsModern.tsx
+
+---
+
+### Expected Outcomes
+
+After implementation:
+- ✅ All 4 tasks (Disclose, On-board, Call Borrower, Call Buyer's Agent) will be created when moving to Active/New status
+- ✅ Disclose and On-board assigned to Herman; Call tasks assigned to Yousif
+- ✅ "No Active Tasks" popup will have quick task buttons
+- ✅ Face-to-face meetings will display correct dates
+- ✅ New leads can be opened immediately after creation
