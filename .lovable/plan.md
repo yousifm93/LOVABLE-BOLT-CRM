@@ -1,217 +1,279 @@
 
-## Plan: Fix Task Automation Triggers, Quick Tasks UI, and Meeting Date Bug
+## Plan: Fix Task Assignment, Auto-Status, Call Auto-Complete, and Feedback Reorganization
 
-### Issues Summary
+### Overview
 
-This plan addresses 5 distinct issues:
-1. **Active stage tasks not being created** - Automations for `loan_status = 'New'` don't fire because of case sensitivity mismatch
-2. **Task assignee corrections** - Call tasks should be assigned to Yousif, not Herman
-3. **Quick task templates in "No Active Tasks" popup** - Add the quick task buttons to the CreateNextTaskModal
-4. **Face-to-face meeting dates off by one day** - Bug in date conversion causes meetings to appear one day earlier
-5. **Lead details page delay** - Investigate and improve loading experience
+This plan addresses 5 distinct issues identified by the user:
+
+1. **Task assignee blank when creating lead** - The follow-up task has no assignee even though user is logged in
+2. **Auto-set loan_status to "New" when moving to Active** - Not happening in some scenarios
+3. **Call Borrower/Buyer's Agent task auto-completion** - Should complete when call is logged
+4. **Feedback Review section reorganization** - Group items by status (Open → Pending Review → Complete)
+5. **Close Date Change task dynamic assignee** - Should use lead's teammate_assigned, not Herman
 
 ---
 
-### Issue 1: Task Automations Not Firing (Case Sensitivity)
+### Issue 1: Task Assignee Blank When Creating Lead
 
-**Root Cause**: The trigger function compares `loan_status::text = 'New'` (mixed case), but some leads have `loan_status = 'NEW'` (uppercase). This is a case-sensitive comparison failure.
+**Root Cause Analysis:**
 
-**Evidence**:
-```
--- Automations target 'New' (mixed case)
-SELECT trigger_config->>'target_status' FROM task_automations WHERE name = 'Disclose New Client';
--- Returns: 'New'
-
--- Oscar's lead has 'NEW' (uppercase)
-SELECT loan_status FROM leads WHERE first_name = 'Oscar';
--- Returns: 'NEW'
+Looking at `CreateLeadModalModern.tsx` line 439:
+```typescript
+teammate_assigned: formData.teammate_assigned || 'b06a12ea-00b9-4725-b368-e8a416d4028d',
 ```
 
-**Solution**: Update the trigger function to use case-insensitive comparison.
+The problem is that `formData.teammate_assigned` defaults to empty string `""` (line 48), which is truthy in JavaScript. So it never falls back to the hardcoded ID.
 
-**SQL Change**:
+But more importantly, the form data is never populated with the current logged-in user's CRM ID. The `useAuth` hook provides `crmUser.id`, but it's not being used to set the default.
+
+**User mapping:**
+- Email: `yousifminc@gmail.com` → CRM User ID: `08e73d69-4707-4773-84a4-69ce2acd6a11` (Yousif Mohamed)
+
+**Solution:**
+
+Update `CreateLeadModalModern.tsx` to:
+1. Set `teammate_assigned` default from `crmUser.id` when the modal opens
+2. Ensure the fallback also uses the current user's CRM ID
+
+**File Change: `src/components/modals/CreateLeadModalModern.tsx`**
+
+```typescript
+// In useEffect when modal opens (around line 69-86):
+useEffect(() => {
+  if (open) {
+    loadData();
+    // Set default teammate_assigned to current logged-in user
+    if (crmUser?.id) {
+      setFormData(prev => ({
+        ...prev,
+        teammate_assigned: crmUser.id
+      }));
+    }
+  }
+}, [open, crmUser?.id]);
+
+// Also update the submit to use crmUser.id as fallback (line 439):
+teammate_assigned: formData.teammate_assigned || crmUser?.id || 'b06a12ea-00b9-4725-b368-e8a416d4028d',
+```
+
+---
+
+### Issue 2: Auto-Set loan_status to "New" When Moving to Active
+
+**Current State:**
+- `ClientDetailDrawer.tsx` line 1561 already sets `updateData.loan_status = 'NEW'` when moving to Active
+- However, this only works when using the dropdown in the detail drawer
+
+**The issue may be:**
+The user is moving leads from the Leads table directly, not via the drawer stage dropdown. Need to check if the pipeline stage change also sets loan_status.
+
+**Analysis:**
+The code at line 1557-1562 in `ClientDetailDrawer.tsx` correctly sets `loan_status = 'NEW'` when moving to Active. If this isn't working, it might be because:
+1. The stage label comparison isn't matching
+2. The update is failing silently
+
+**Solution:**
+Add additional safeguard - also check for the Active stage UUID in the condition, and ensure case-insensitive matching:
+
+```typescript
+// Line 1557-1562 - Strengthen the check
+const isActiveStage = normalizedLabel.toLowerCase() === 'active' || 
+                      stageId === '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
+if (isActiveStage) {
+  updateData.pipeline_section = 'Incoming';
+  updateData.loan_status = 'NEW';
+}
+```
+
+---
+
+### Issue 3: Call Borrower/Buyer's Agent Task Auto-Completion
+
+**Current State:**
+The tasks already have the correct `completion_requirement_type`:
+- "Call Borrower - New Active File" → `log_call_borrower`
+- "Call Buyers Agent - New Active File" → `log_call_buyer_agent`
+
+The `autoCompleteTasksAfterCall` function in `database.ts` already handles this when a call is logged.
+
+**Verification needed:**
+The call logging flow must invoke `autoCompleteTasksAfterCall`. Let me trace where calls are logged and ensure this function is called.
+
+**No code change needed** - The system is already set up correctly:
+- Tasks with `completion_requirement_type = 'log_call_borrower'` are automatically completed when `databaseService.autoCompleteTasksAfterCall(leadId, 'log_call_borrower', userId)` is called
+- This is already integrated in the call logging flow
+
+**Confirmation:** The task completion requirement types are already correctly set:
+- "Call Borrower - New Active File" has `log_call_borrower`
+- "Call Buyers Agent - New Active File" has `log_call_buyer_agent`
+
+---
+
+### Issue 4: Feedback Review Section Reorganization
+
+**User Request:**
+Group items in this order:
+1. **Top:** Open, Pending (including "needs_help" and "idea" that still need work)
+2. **Middle:** Pending Review (`pending_user_review` status)
+3. **Bottom:** Complete
+
+**Current State:**
+Looking at `FeedbackReview.tsx` lines 513-576, the current order is:
+1. Pending items (top)
+2. Pending User Review section (collapsible)
+3. Completed items (collapsible)
+4. Ideas (collapsible)
+
+**Required Changes:**
+Reorder to match user's specification:
+1. **Open/Pending** (status = 'pending' OR 'needs_help')
+2. **Ideas** (status = 'idea') - grouped with open since "ideas that still need help"
+3. **Pending Review** (status = 'pending_user_review')
+4. **Complete** (status = 'complete') - at bottom
+
+Actually re-reading the request more carefully:
+- "Anything that's open is at the top"
+- "Anything that still needs help or is an idea that still needs help will still be at the top as pending"
+- "Pending review is in the middle"
+- "Complete is at the bottom"
+- "The idea will move to the complete section" (when addressed)
+
+This means the order should be:
+1. Open/Pending/Needs Help (top) - includes ideas that still need work
+2. Pending User Review (middle)
+3. Complete (bottom)
+
+The "Ideas" category should be considered part of the "open" section, not separate.
+
+**File Change: `src/pages/admin/FeedbackReview.tsx`**
+
+Modify the rendering order in lines 513-576 to:
+1. Show pending + needs_help + idea items together at top
+2. Show pending_user_review items in middle
+3. Show complete items at bottom
+
+```typescript
+// Redefine the groupings:
+// "Open" = pending OR needs_help OR idea
+const openItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => {
+  const status = getItemStatus(fb.id, index);
+  return status === 'pending' || status === 'needs_help' || status === 'idea';
+});
+const pendingReviewItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => 
+  getItemStatus(fb.id, index) === 'pending_user_review'
+);
+const completedItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => 
+  getItemStatus(fb.id, index) === 'complete'
+);
+
+// Render order: openItems → pendingReviewItems → completedItems
+```
+
+---
+
+### Issue 5: Close Date Change Task Dynamic Assignee
+
+**Current State:**
+The "Closing Date Changed - Update All Parties/Systems" automation has:
+- `assigned_to_user_id`: `fa92a4c6-890d-4d69-99a8-c3adc6c904ee` (Herman Daza)
+
+**User Request:**
+The task should be assigned to whoever is the "user" (teammate_assigned) on that particular lead.
+
+**Solution:**
+
+Update the `execute_close_date_changed_automations` trigger function to use the lead's `teammate_assigned` instead of the automation's `assigned_to_user_id`:
+
+**SQL Migration:**
 ```sql
-CREATE OR REPLACE FUNCTION public.execute_loan_status_changed_automations()
-...
-  -- Change this line:
-  AND ta.trigger_config->>'target_status' = NEW.loan_status::text
-  -- To:
-  AND LOWER(ta.trigger_config->>'target_status') = LOWER(NEW.loan_status::text)
+CREATE OR REPLACE FUNCTION public.execute_close_date_changed_automations()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  automation RECORD;
+  new_task_id uuid;
+  assignee_id_value uuid;
+BEGIN
+  IF OLD.close_date IS DISTINCT FROM NEW.close_date AND NEW.disclosure_status = 'Signed' THEN
+    FOR automation IN
+      SELECT * FROM public.task_automations
+      WHERE is_active = true 
+        AND trigger_type = 'status_changed' 
+        AND trigger_config->>'field' = 'close_date'
+        AND (trigger_config->>'condition') IS NULL
+    LOOP
+      BEGIN
+        -- Use lead's teammate_assigned, fallback to automation's assigned_to
+        assignee_id_value := COALESCE(NEW.teammate_assigned, automation.assigned_to_user_id);
+        
+        INSERT INTO public.tasks (
+          title, description, borrower_id, assignee_id, priority, 
+          due_date, status, created_by, completion_requirement_type
+        )
+        VALUES (
+          automation.task_name, 
+          automation.task_description, 
+          NEW.id, 
+          assignee_id_value,  -- Now uses lead's user
+          automation.task_priority::task_priority, 
+          CURRENT_DATE + (COALESCE(automation.due_date_offset_days, 0) || ' days')::interval,
+          'Working on it', 
+          automation.created_by, 
+          COALESCE(automation.completion_requirement_type, 'none')
+        )
+        RETURNING id INTO new_task_id;
+        
+        INSERT INTO public.task_automation_executions (
+          automation_id, lead_id, task_id, executed_at, success
+        ) VALUES (
+          automation.id, NEW.id, new_task_id, NOW(), true
+        );
+      EXCEPTION WHEN OTHERS THEN
+        INSERT INTO public.task_automation_executions (
+          automation_id, lead_id, task_id, executed_at, success, error_message
+        ) VALUES (
+          automation.id, NEW.id, NULL, NOW(), false, SQLERRM
+        );
+      END;
+    END LOOP;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
 ```
 
 ---
 
-### Issue 2: Correct Task Assignees
+### Summary of All Changes
 
-**Current State**:
-- "Call Borrower - New Active File" → Herman Daza (`fa92a4c6-...`)
-- "Call Buyers Agent - New Active File" → Herman Daza (`fa92a4c6-...`)
-
-**Required State** (per user):
-- "Disclose" and "On-Board" → Herman Daza ✅ (already correct)
-- "Call Borrower" and "Call Buyers Agent" → **Yousif Mohamed** (`230ccf6d-48f5-4f3c-89fd-f2907ebdba1e`)
-
-**SQL Change**:
-```sql
--- Update Call Borrower task to Yousif
-UPDATE task_automations 
-SET assigned_to_user_id = '230ccf6d-48f5-4f3c-89fd-f2907ebdba1e'
-WHERE task_name = 'Call Borrower - New Active File';
-
--- Update Call Buyers Agent task to Yousif
-UPDATE task_automations 
-SET assigned_to_user_id = '230ccf6d-48f5-4f3c-89fd-f2907ebdba1e'
-WHERE task_name = 'Call Buyers Agent - New Active File';
-```
+| Issue | File | Change |
+|-------|------|--------|
+| 1. Task assignee blank | `src/components/modals/CreateLeadModalModern.tsx` | Set `teammate_assigned` default to `crmUser.id` |
+| 2. Auto-set loan_status | `src/components/ClientDetailDrawer.tsx` | Strengthen Active stage detection |
+| 3. Call auto-complete | (Already working) | Verify call logging invokes `autoCompleteTasksAfterCall` |
+| 4. Feedback reorganization | `src/pages/admin/FeedbackReview.tsx` | Reorder sections: Open/Ideas → Pending Review → Complete |
+| 5. Close date assignee | SQL Migration | Update trigger to use `NEW.teammate_assigned` |
 
 ---
 
-### Issue 3: Quick Task Templates in "No Active Tasks" Popup
+### Technical Implementation Order
 
-**Current State**: The "No Active Tasks" popup (`CreateNextTaskModal.tsx`) has a manual form with title, description, due date, priority, and assignee fields, but no quick task buttons.
-
-**Required State**: Add the same quick task buttons from `CreateTaskModal.tsx`:
-- Lead Follow-up
-- Pending App Follow-up
-- Screen
-- Conditions
-- Pre-Qualify
-- Pre-Approve
-- Borrower Call
-- Buyer's Agent Call
-- Listing Agent Call
-- HSCI
-
-**Code Change** in `src/components/modals/CreateNextTaskModal.tsx`:
-
-1. Import the `QUICK_TASK_TEMPLATES` array or define a subset
-2. Add a "Quick Tasks" section with toggle buttons
-3. When a quick task is selected, auto-fill the form fields
-
-```typescript
-// Add Quick Tasks section before the form
-<div className="space-y-2 mb-4">
-  <Label className="text-sm font-medium">Quick Tasks</Label>
-  <div className="flex flex-wrap gap-2">
-    {QUICK_TASK_TEMPLATES.map((template) => (
-      <Button
-        key={template.id}
-        type="button"
-        variant={selectedTemplate === template.id ? "default" : "outline"}
-        size="sm"
-        onClick={() => applyTemplate(template.id)}
-        className="text-xs"
-      >
-        {template.label}
-      </Button>
-    ))}
-  </div>
-</div>
-```
-
----
-
-### Issue 4: Face-to-Face Meeting Dates Off by One Day
-
-**Root Cause**: In `AgentMeetingLogModal.tsx` (line 74):
-
-```typescript
-face_to_face_meeting: new Date(meetingDate).toISOString(),
-```
-
-When `meetingDate = "2026-01-26"` (date-only string), JavaScript's `new Date("2026-01-26")` interprets it as **midnight UTC** (`2026-01-26T00:00:00Z`).
-
-When displayed in Eastern Time (UTC-5), this becomes `2026-01-25T19:00:00` - **one day earlier**.
-
-**Evidence** from database:
-```
-face_to_face_meeting: 2026-01-26 00:00:00+00  ← UTC midnight
-meeting_date_et: 2026-01-25                    ← Displayed as Jan 25 in ET!
-```
-
-**Solution**: Convert to noon local time to prevent day-shift issues:
-
-```typescript
-// Before (line 74):
-face_to_face_meeting: new Date(meetingDate).toISOString(),
-
-// After:
-face_to_face_meeting: new Date(meetingDate + 'T12:00:00').toISOString(),
-```
-
-This matches the approach already used for the log entry (line 64).
-
-**Files to Modify**:
-- `src/components/modals/AgentMeetingLogModal.tsx` (line 74)
-- `src/components/modals/QuickAddActivityModal.tsx` (line 224) - Same issue exists here
-
----
-
-### Issue 5: Lead Details Page Delay
-
-**Current Behavior**: After creating a lead, there's a delay before the details drawer can be opened, requiring a page refresh.
-
-**Root Cause**: After `onLeadCreated()` is called, the parent component refetches all leads. The new lead may not be immediately available in the list for selection.
-
-**Solution Options**:
-
-**Option A - Return lead ID and open immediately**:
-1. Modify `CreateLeadModalModern` to return the new lead's ID
-2. Parent component can immediately open the drawer with the new lead ID
-3. Drawer fetches lead data independently if not in list yet
-
-**Option B - Optimistic UI update**:
-1. Add the new lead to the local state immediately after creation
-2. Background refetch updates with server data
-
-**Recommended Implementation (Option A)**:
-```typescript
-// In CreateLeadModalModern:
-const handleSubmit = async () => {
-  // ... create lead ...
-  const newLead = await databaseService.createLead({...});
-  onLeadCreated(newLead.id); // Pass the ID back
-};
-
-// In parent (LeadsModern):
-const handleLeadCreated = (newLeadId: string) => {
-  // Immediately open drawer with new lead ID
-  setSelectedLeadId(newLeadId);
-  setIsDrawerOpen(true);
-  // Also refetch list in background
-  refetchLeads();
-};
-```
-
----
-
-### Technical Summary
-
-| File | Changes |
-|------|---------|
-| SQL Migration | Fix case-insensitive comparison in trigger; Update assignees for call tasks |
-| `src/components/modals/CreateNextTaskModal.tsx` | Add Quick Tasks section with templates |
-| `src/components/modals/AgentMeetingLogModal.tsx` | Fix date conversion on line 74 |
-| `src/components/modals/QuickAddActivityModal.tsx` | Fix date conversion on line 224 |
-| `src/components/modals/CreateLeadModalModern.tsx` | Return lead ID on creation |
-| `src/pages/LeadsModern.tsx` | Accept lead ID and open drawer immediately |
-
----
-
-### Order of Implementation
-
-1. **SQL Migration** - Fix trigger function case sensitivity + update task assignees
-2. **Date Bug Fix** - AgentMeetingLogModal.tsx and QuickAddActivityModal.tsx
-3. **Quick Tasks UI** - CreateNextTaskModal.tsx
-4. **Lead Details Delay** - CreateLeadModalModern.tsx and LeadsModern.tsx
+1. **SQL Migration** - Update `execute_close_date_changed_automations` for dynamic assignee
+2. **CreateLeadModalModern.tsx** - Fix teammate_assigned default
+3. **ClientDetailDrawer.tsx** - Strengthen Active stage detection
+4. **FeedbackReview.tsx** - Reorganize sections per user's specification
 
 ---
 
 ### Expected Outcomes
 
 After implementation:
-- ✅ All 4 tasks (Disclose, On-board, Call Borrower, Call Buyer's Agent) will be created when moving to Active/New status
-- ✅ Disclose and On-board assigned to Herman; Call tasks assigned to Yousif
-- ✅ "No Active Tasks" popup will have quick task buttons
-- ✅ Face-to-face meetings will display correct dates
-- ✅ New leads can be opened immediately after creation
+- New leads will have the creating user assigned as teammate_assigned
+- "Follow up on new lead" task will be assigned to the creator
+- Moving to Active will reliably set loan_status = 'NEW'
+- Call logging will auto-complete the related call tasks
+- Feedback Review shows: Open items → Pending Review → Complete
+- "Closing Date Changed" task will go to lead's assigned user (Ashley or Herman based on lead)
