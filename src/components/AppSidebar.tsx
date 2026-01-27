@@ -47,6 +47,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { EmailFieldSuggestionsModal } from "@/components/modals/EmailFieldSuggestionsModal";
 import { EmailAutomationQueueModal } from "@/components/modals/EmailAutomationQueueModal";
+import { LenderMarketingSuggestionsModal } from "@/components/modals/LenderMarketingSuggestionsModal";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions, UserPermissions } from "@/hooks/usePermissions";
 
@@ -139,6 +140,10 @@ export function AppSidebar() {
   
   // Pending contact approval count
   const [pendingContactCount, setPendingContactCount] = useState(0);
+  
+  // Lender marketing suggestions
+  const [pendingLenderSuggestionCount, setPendingLenderSuggestionCount] = useState(0);
+  const [lenderSuggestionsModalOpen, setLenderSuggestionsModalOpen] = useState(false);
   
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
@@ -420,6 +425,34 @@ export function AppSidebar() {
     };
   }, []);
 
+  // Fetch pending lender marketing suggestion count (last 24 hours)
+  useEffect(() => {
+    const fetchPendingLenderCount = async () => {
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await supabase
+        .from('lender_field_suggestions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending')
+        .gte('created_at', twentyFourHoursAgo);
+      setPendingLenderSuggestionCount(count || 0);
+    };
+
+    fetchPendingLenderCount();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('lender_field_suggestions_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'lender_field_suggestions' },
+        () => fetchPendingLenderCount()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const isActive = (path: string) => {
     if (path === "/") {
       return currentPath === "/";
@@ -660,7 +693,8 @@ export function AppSidebar() {
               <SidebarMenu>
                 {filterItemsByPermission(contactItems).map((item) => {
                   const isLocked = isItemLocked(item.permKey);
-                  const showPendingBadge = item.title === "Master Contact List" && pendingContactCount > 0;
+                  const showPendingContactBadge = item.title === "Master Contact List" && pendingContactCount > 0;
+                  const showLenderSuggestionBadge = item.title === "Approved Lenders" && pendingLenderSuggestionCount > 0;
                   
                   return (
                     <SidebarMenuItem key={item.title}>
@@ -681,12 +715,25 @@ export function AppSidebar() {
                             {!collapsed && (
                               <span className="flex items-center gap-2">
                                 {item.title}
-                                {showPendingBadge && (
+                                {showPendingContactBadge && (
                                   <Badge 
                                     variant="destructive" 
                                     className="h-5 min-w-5 px-1.5 text-xs"
                                   >
                                     {pendingContactCount}
+                                  </Badge>
+                                )}
+                                {showLenderSuggestionBadge && (
+                                  <Badge 
+                                    variant="destructive" 
+                                    className="h-5 min-w-5 px-1.5 text-xs cursor-pointer"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setLenderSuggestionsModalOpen(true);
+                                    }}
+                                  >
+                                    {pendingLenderSuggestionCount}
                                   </Badge>
                                 )}
                               </span>
@@ -890,6 +937,11 @@ export function AppSidebar() {
       <EmailAutomationQueueModal
         open={emailQueueModalOpen}
         onOpenChange={setEmailQueueModalOpen}
+      />
+
+      <LenderMarketingSuggestionsModal
+        open={lenderSuggestionsModalOpen}
+        onOpenChange={setLenderSuggestionsModalOpen}
       />
     </>
   );
