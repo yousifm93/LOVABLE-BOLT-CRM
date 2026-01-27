@@ -1,284 +1,232 @@
 
-## Plan: Fix Conditions RLS, Feedback Review Bucketing, Conditions Modal Scrolling, and Activity Image Attachments
+## Plan: Fix Feedback Review Buckets, Active Status, Modal Width, Conditions Scroll, and Note Image Upload
 
 ### Overview
 
 This plan addresses 5 distinct issues:
 
-1. **Conditions RLS Error** - Users can't add conditions to leads with mismatched account_id
-2. **Feedback Review Bucketing** - Reorganize sections into proper collapsible folders/buckets
-3. **Initial Approval Modal** - Fix scroll and enable editing condition names
-4. **Activity Log Image Attachments** - Allow attaching images to notes/calls/SMS logs
-5. **Conditions Insertion Error** - Modal shows "Failed to create conditions" error
+1. **Feedback Review - Two Buckets Only** - Simplify to just "Open" (top) and "Complete" (bottom collapsed)
+2. **Active Stage Not Setting Status to "New"** - Investigate pipeline move from table vs drawer
+3. **Likely to Apply Modal Width** - Increase modal size so dropdown is fully visible
+4. **Conditions Modal Scroll + Width** - Fix scroll and expand horizontally for more columns
+5. **Note Image Upload "Failed to add note"** - Fix duplicate key constraint error in storage upload
 
 ---
 
-### Issue 1: Conditions RLS Error
+### Issue 1: Feedback Review - Only Two Buckets
 
-**Problem**: The lead "Rakesh Lakkimsetty" has `account_id: 2b0a4642-5c1c-4d81-814f-7735df3f11f3` but Ashley and Yousif are associated with `account_id: 47e707c5-62d0-4ee9-99a3-76572c73a8e1`. The RLS policy on `lead_conditions` checks that the lead's `account_id` matches the user's `account_id`.
+**User Request (Clarified)**:
+- **Top Bucket (Always Expanded)**: Everything that's NOT complete (Open, Needs Help, Ideas, Pending Review)
+- **Bottom Bucket (Collapsed by Default)**: Everything that IS Complete
 
-**Solution**: Fix the lead's account_id to match the team's account_id.
+**Current Problem**: The page shows every feedback entry as a separate card/accordion, creating a long list. User wants just 2 global buckets across ALL feedback.
 
-**Database Fix (via SQL run in Supabase Dashboard)**:
-```sql
--- Update Rakesh's lead to use the correct team account_id
-UPDATE leads 
-SET account_id = '47e707c5-62d0-4ee9-99a3-76572c73a8e1' 
-WHERE id = '2e66a1f4-5378-43b8-80e2-cdf591299626';
-```
+**Root Cause**: The current structure iterates over each feedback entry and shows Open/Pending Review/Complete sections within EACH card.
 
-**Prevention**: The `set_lead_defaults()` trigger function should correctly set `account_id` on new leads using `get_user_account_id(auth.uid())`. If leads are being created with wrong account_ids, we may need to debug that trigger.
-
----
-
-### Issue 2: Feedback Review - Collapsible Buckets/Folders
-
-**User Request**:
-- **Top (Always Open)**: Open/Still Needs Help items (no status or `needs_help`)
-- **Below That**: Pending User Review (collapsible)
-- **Bottom (Collapsed by default)**: Complete section
-
-**Current State**: Already partially implemented but needs tweaking:
-1. Ideas (`idea` status) should be grouped with Open, not separate
-2. Complete section should be **collapsed by default**
-3. Clear visual separation between buckets
+**Solution**: Restructure the page to:
+1. Create TWO global collapsible sections at the top level
+2. "Open Items" section at top - groups all non-complete items across all feedback entries
+3. "Completed Items" section at bottom - groups all complete items across all feedback entries (collapsed by default)
 
 **File to Modify**: `src/pages/admin/FeedbackReview.tsx`
 
-**Changes**:
-1. Initialize `completedSectionsOpen` to `false` by default (currently not initialized)
-2. Initialize `pendingReviewSectionsOpen` to `false` by default
-3. Add visual card/border to each bucket section for better grouping
-4. Ensure Open items (pending + needs_help + idea) are always expanded and visible
-
-**Code Changes**:
+**Key Changes**:
 ```typescript
-// In useEffect after fetching data, initialize collapse states
-const initialCompletedOpen: Record<string, boolean> = {};
-const initialPendingReviewOpen: Record<string, boolean> = {};
-feedbackData?.forEach(f => {
-  initialCompletedOpen[f.id] = false;  // Complete collapsed by default
-  initialPendingReviewOpen[f.id] = false; // Pending review collapsed by default
+// Instead of rendering per-feedback-entry, aggregate all items:
+const allOpenItems: Array<{fb: FeedbackItem; item: FeedbackItemContent | string; index: number}> = [];
+const allCompletedItems: Array<{fb: FeedbackItem; item: FeedbackItemContent | string; index: number}> = [];
+
+userFeedback.forEach(fb => {
+  fb.feedback_items.forEach((item, index) => {
+    const status = getItemStatus(fb.id, index);
+    if (status === 'complete') {
+      allCompletedItems.push({ fb, item, index });
+    } else {
+      allOpenItems.push({ fb, item, index });
+    }
+  });
 });
-setCompletedSectionsOpen(initialCompletedOpen);
-setPendingReviewSectionsOpen(initialPendingReviewOpen);
+
+// Render two buckets:
+// 1. Open Items (always expanded, shows count)
+// 2. Completed Items (collapsed by default, shows count)
 ```
 
 ---
 
-### Issue 3: Initial Approval Conditions Modal - Scroll & Edit
+### Issue 2: Active Stage Not Setting Status to "New"
+
+**Current Behavior**: When moving a lead to Active from the Leads table (not drawer), the `loan_status` is not being set to "New".
+
+**Analysis**: The code in `ClientDetailDrawer.tsx` lines 1557-1564 correctly sets `loan_status = 'NEW'` when:
+- The dropdown in the drawer is used (calls `handleStageChange`)
+- Uses both label and UUID check
+
+**Possible Causes**:
+1. If moving from DataTable directly, a different code path might be used
+2. The new lead "This is a test" was moved from Leads page, which may use a different handler
+
+**Investigation Needed**: Search for where leads are moved from the table view:
+
+**Solution**: Check and add the same Active stage logic to:
+- Any DataTable row actions that move pipeline stages
+- Any bulk move operations
+- The `InlineEditSelect` component for pipeline_stage if used in table
+
+**Files to Check**:
+- `src/pages/LeadsModern.tsx` - Look for pipeline move handlers
+- `src/pages/Leads.tsx` - Look for pipeline move handlers
+- Any inline edit component for pipeline_stage
+
+---
+
+### Issue 3: Likely to Apply Modal Width
+
+**Problem**: The "Action Required" modal that appears when moving to Pending App doesn't show the "Likely to Apply" dropdown fully - it's cut off at the bottom.
+
+**Current State**: The modal uses `max-w-md` (line 3177 in ClientDetailDrawer.tsx would be where it's defined, but the DialogContent was at line ~3179).
+
+**Solution**: Increase the modal width from `max-w-md` to `max-w-lg` (or `max-w-xl`) to give more room for the form fields.
+
+**File to Modify**: `src/components/ClientDetailDrawer.tsx`
+
+**Change**:
+```typescript
+// Find the DialogContent for pipelineValidationModalOpen
+// Change max-w-md to max-w-lg
+<DialogContent className="max-w-lg">
+```
+
+---
+
+### Issue 4: Conditions Modal - Scroll and Horizontal Expansion
 
 **Problems**:
-1. Can't scroll to see all conditions in the modal
-2. Can't edit condition names/descriptions before saving
-3. Error "Failed to create conditions" when trying to add
+1. Cannot scroll to see all conditions (user sees 21 conditions but can't scroll)
+2. Need to expand horizontally to add columns: ETA, Responsible person, Borrower/Lender
 
-**Root Cause Analysis**:
-- The modal at `src/components/modals/InitialApprovalConditionsModal.tsx` already has a `ScrollArea` with `max-h-[50vh]` (line 167)
-- However, the modal content might be overflowing; need to increase scroll area height
-- The conditions are not editable - just checkboxes for selection
-- The insertion error is likely the same RLS issue as #1
+**Current State**: 
+- Modal has `max-w-4xl max-h-[85vh]`
+- ScrollArea has `max-h-[60vh]`
+- Each condition row only shows description and phase/underwriter
 
-**Files to Modify**: `src/components/modals/InitialApprovalConditionsModal.tsx`
+**Solution**:
+
+**A. Fix Scrolling**:
+- Ensure ScrollArea has proper flex behavior
+- Remove overflow-hidden from parent if present
+- The issue may be that the DialogContent is intercepting scroll events
+
+**B. Horizontal Expansion**:
+- Change modal to `max-w-6xl` or full width
+- Add additional columns to each condition row:
+  - ETA (input or date picker)
+  - Responsible (select: Borrower, Lender, Broker, Title, etc.)
+  - Type (Borrower vs Lender condition)
+
+**File to Modify**: `src/components/modals/InitialApprovalConditionsModal.tsx`
 
 **Changes**:
-1. Increase `max-h-[50vh]` to `max-h-[60vh]` for more scroll space
-2. Add editable input fields for each condition description
-3. Store edited conditions in local state before submission
-
-**Code Changes**:
-
 ```typescript
-// Add state for editable conditions
-const [editedConditions, setEditedConditions] = useState<Map<number, string>>(new Map());
+// Increase modal width
+<DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
 
-// Update condition description
-const handleDescriptionChange = (index: number, value: string) => {
-  setEditedConditions(prev => new Map(prev).set(index, value));
-};
+// Update ScrollArea height
+<ScrollArea className="flex-1 min-h-0 pr-4">
 
-// Get final description (edited or original)
-const getFinalDescription = (index: number, original: string) => {
-  return editedConditions.get(index) ?? original;
-};
-
-// In the condition item render, replace static text with input:
-<Input
-  value={getFinalDescription(index, condition.description)}
-  onChange={(e) => handleDescriptionChange(index, e.target.value)}
-  className="text-sm"
-/>
-```
-
-Also update `handleConfirm` to use edited descriptions:
-```typescript
-const handleConfirm = () => {
-  const selected = conditions.filter((_, i) => selectedIndices.has(i)).map((c, i) => ({
-    ...c,
-    description: getFinalDescription(conditions.indexOf(c), c.description)
-  }));
-  onConfirm(selected);
-};
-```
-
----
-
-### Issue 4: Activity Log Image Attachments
-
-**User Request**: Attach images to notes, call logs, and SMS logs so they can be viewed when reviewing the activity.
-
-**Current State**:
-- `notes` table: `id`, `lead_id`, `author_id`, `body`, `created_at` - **No image column**
-- `call_logs` table: `id`, `lead_id`, `user_id`, `timestamp`, `outcome`, `duration_seconds`, `notes`, `created_at` - **No image column**
-- `sms_logs` table: Same - **No image column**
-
-**Solution**: Add `attachment_url` column to relevant tables and add image upload UI to modals.
-
-**Database Migration**:
-```sql
--- Add attachment_url columns
-ALTER TABLE notes ADD COLUMN IF NOT EXISTS attachment_url TEXT;
-ALTER TABLE call_logs ADD COLUMN IF NOT EXISTS attachment_url TEXT;
-ALTER TABLE sms_logs ADD COLUMN IF NOT EXISTS attachment_url TEXT;
-```
-
-**Files to Modify**:
-- `src/components/modals/ActivityLogModals.tsx` - Add file upload button to `AddNoteModal`, `CallLogModal`, `SmsLogModal`
-- `src/services/database.ts` - Update types and insert functions
-
-**UI Changes for AddNoteModal**:
-```typescript
-// Add state for attachment
-const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
-const [uploading, setUploading] = useState(false);
-
-// File upload handler
-const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  
-  setUploading(true);
-  try {
-    // Upload to documents storage bucket
-    const filePath = `activity-attachments/${leadId}/${Date.now()}_${file.name}`;
-    const { data, error } = await supabase.storage
-      .from('documents')
-      .upload(filePath, file);
-    
-    if (error) throw error;
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('documents')
-      .getPublicUrl(data.path);
-    
-    setAttachmentUrl(publicUrl);
-    toast({ title: "Image Uploaded", description: "Attachment ready to save with note." });
-  } catch (error) {
-    toast({ title: "Upload Failed", variant: "destructive" });
-  } finally {
-    setUploading(false);
-  }
-};
-
-// Update submit to include attachment_url
-const noteData = {
-  lead_id: leadId,
-  author_id: crmUser.id,
-  body: noteBody.trim(),
-  attachment_url: attachmentUrl,
-};
-```
-
-**UI Component**:
-```tsx
-<div className="space-y-2">
-  <Label>Attachment (optional)</Label>
-  <div className="flex items-center gap-2">
-    <Input
-      type="file"
-      accept="image/*"
-      onChange={handleFileUpload}
-      disabled={uploading}
-    />
-    {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
+// Add new columns to each condition row:
+<div className="grid grid-cols-12 gap-2 items-start">
+  <div className="col-span-1">
+    <Checkbox ... />
   </div>
-  {attachmentUrl && (
-    <img src={attachmentUrl} alt="Preview" className="max-h-32 rounded-md" />
-  )}
+  <div className="col-span-5">
+    <Input value={description} ... />
+  </div>
+  <div className="col-span-2">
+    <Select placeholder="Responsible">
+      <SelectItem value="borrower">Borrower</SelectItem>
+      <SelectItem value="lender">Lender</SelectItem>
+      <SelectItem value="broker">Broker</SelectItem>
+      <SelectItem value="title">Title</SelectItem>
+    </Select>
+  </div>
+  <div className="col-span-2">
+    <Input type="date" placeholder="ETA" />
+  </div>
+  <div className="col-span-2">
+    <span className="text-xs">Phase: {phase}</span>
+  </div>
 </div>
 ```
 
-**Display in Activity Tab**:
-When rendering notes in activity timeline, display the attachment if present:
-```tsx
-{note.attachment_url && (
-  <a href={note.attachment_url} target="_blank" rel="noopener noreferrer">
-    <img 
-      src={note.attachment_url} 
-      alt="Attachment" 
-      className="max-h-48 rounded-md mt-2 cursor-pointer hover:opacity-80"
-    />
-  </a>
-)}
-```
-
 ---
 
-### Issue 5: Conditions Insertion Error
+### Issue 5: Note Image Upload Fails
 
-**Problem**: "Failed to create conditions" error when using the Initial Approval modal.
+**Error**: "Upload Failed. Could not upload the image. Please try again."
 
-**Root Cause**: Same RLS issue as #1 - the user's `account_id` doesn't match the lead's `account_id`.
-
-**Solution**: 
-1. Fix Rakesh's `account_id` (covered in Issue #1)
-2. Add better error handling to show the actual RLS error message to help diagnose future issues
-
-**File to Modify**: `src/components/lead-details/ConditionsTab.tsx` and wherever the Initial Approval conditions are imported
-
-**Change** in error handling:
-```typescript
-} catch (error: any) {
-  console.error("Error creating bulk conditions:", error);
-  toast({
-    title: "Error",
-    description: error?.message || "Failed to create conditions",
-    variant: "destructive",
-  });
-}
+**Root Cause**: Database logs show:
+```
+duplicate key value violates unique constraint "bucketid_objname"
 ```
 
-This is already implemented; the issue is purely the RLS mismatch on the lead's account_id.
+This means the storage upload path collides with an existing file. The current path is:
+```typescript
+const filePath = `activity-attachments/${leadId}/${Date.now()}_${file.name}`;
+```
+
+**Problem**: If two uploads happen in the same millisecond, or if the user retries quickly, the path can collide.
+
+**Solution**: Add a random suffix to ensure uniqueness:
+
+**File to Modify**: `src/components/modals/ActivityLogModals.tsx`
+
+**Change** (around line 740):
+```typescript
+// Before:
+const filePath = `activity-attachments/${leadId}/${Date.now()}_${file.name}`;
+
+// After:
+const randomSuffix = Math.random().toString(36).substring(2, 8);
+const filePath = `activity-attachments/${leadId}/${Date.now()}_${randomSuffix}_${file.name}`;
+```
+
+Also, add upsert option to handle duplicates gracefully:
+```typescript
+const { data, error } = await supabase.storage
+  .from('documents')
+  .upload(filePath, file, { upsert: true });  // Add upsert option
+```
 
 ---
 
 ### Summary of All Changes
 
-| Issue | Type | Change |
+| Issue | File | Change |
 |-------|------|--------|
-| 1. Conditions RLS | Data Fix | Update Rakesh's lead `account_id` to team account |
-| 2. Feedback Buckets | Code | Initialize collapsed states, add visual separation |
-| 3. Modal Scroll/Edit | Code | Increase scroll height, add editable inputs |
-| 4. Image Attachments | Schema + Code | Add `attachment_url` column, add upload UI |
-| 5. Conditions Error | Data Fix | Same as #1 - RLS mismatch |
+| 1. Feedback Buckets | `src/pages/admin/FeedbackReview.tsx` | Restructure to 2 global buckets: Open (top) and Complete (bottom collapsed) |
+| 2. Active Status | Multiple files | Ensure all pipeline move paths set `loan_status = 'NEW'` for Active |
+| 3. Modal Width | `src/components/ClientDetailDrawer.tsx` | Change validation modal to `max-w-lg` |
+| 4. Conditions Modal | `src/components/modals/InitialApprovalConditionsModal.tsx` | Expand to `max-w-6xl`, fix scroll, add ETA/Responsible columns |
+| 5. Image Upload | `src/components/modals/ActivityLogModals.tsx` | Add random suffix to file path + upsert option |
 
 ---
 
 ### Technical Implementation Order
 
-1. **Data Fix (Manual SQL)** - Fix Rakesh's account_id
-2. **SQL Migration** - Add `attachment_url` columns to notes/call_logs/sms_logs
-3. **FeedbackReview.tsx** - Initialize collapse states, visual buckets
-4. **InitialApprovalConditionsModal.tsx** - Increase scroll height, add editable fields
-5. **ActivityLogModals.tsx** - Add file upload UI to note/call/SMS modals
-6. **ActivityTab.tsx** - Display attachments in activity timeline
+1. **ActivityLogModals.tsx** - Fix image upload (quick fix for immediate issue)
+2. **ClientDetailDrawer.tsx** - Increase modal width for Likely to Apply
+3. **InitialApprovalConditionsModal.tsx** - Fix scroll and expand with new columns
+4. **FeedbackReview.tsx** - Restructure to two global buckets
+5. **Pipeline move handlers** - Verify Active stage sets loan_status
 
 ---
 
 ### Expected Outcomes
 
 After implementation:
-- Users can add conditions to all leads (RLS fixed)
-- Feedback Review has clear buckets: Open (top) → Pending Review (collapsed) → Complete (collapsed at bottom)
-- Initial Approval modal scrolls properly and allows editing condition names
-- Notes/Calls/SMS can include image attachments that display inline
+- Feedback Review shows 2 clean buckets: Open at top, Complete (collapsed) at bottom
+- Moving to Active always sets loan_status to "New" regardless of how move is initiated
+- "Likely to Apply" dropdown is fully visible in the validation modal
+- Initial Approval Conditions modal scrolls properly and has columns for ETA, Responsible person
+- Note image attachments upload successfully without duplicate key errors
