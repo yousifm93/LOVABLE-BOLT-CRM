@@ -63,7 +63,9 @@ export default function FeedbackReview() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [newComments, setNewComments] = useState<Record<string, string>>({});
   const [submittingComment, setSubmittingComment] = useState<string | null>(null);
-  const [openBucketOpen, setOpenBucketOpen] = useState(true);
+  const [openBucketOpen, setOpenBucketOpen] = useState(false);
+  const [pendingReviewBucketOpen, setPendingReviewBucketOpen] = useState(false);
+  const [ideasBucketOpen, setIdeasBucketOpen] = useState(false);
   const [completeBucketOpen, setCompleteBucketOpen] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const { toast } = useToast();
@@ -452,10 +454,12 @@ export default function FeedbackReview() {
     );
   };
 
-  // Aggregate all items across all feedback entries into two buckets
+  // Aggregate all items across all feedback entries into four buckets
   const getAggregatedItems = (userId: string) => {
     const userFeedback = getUserFeedback(userId);
     const openItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
+    const pendingReviewItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
+    const ideaItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
     const completeItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
 
     userFeedback.forEach(fb => {
@@ -463,14 +467,18 @@ export default function FeedbackReview() {
         const status = getItemStatus(fb.id, index);
         if (status === 'complete') {
           completeItems.push({ fb, item, index, status });
+        } else if (status === 'pending_user_review') {
+          pendingReviewItems.push({ fb, item, index, status });
+        } else if (status === 'idea') {
+          ideaItems.push({ fb, item, index, status });
         } else {
-          // Everything else goes to Open: pending, needs_help, idea, pending_user_review
+          // pending, needs_help go to Open Items
           openItems.push({ fb, item, index, status });
         }
       });
     });
 
-    return { openItems, completeItems };
+    return { openItems, pendingReviewItems, ideaItems, completeItems };
   };
 
   return (
@@ -509,7 +517,7 @@ export default function FeedbackReview() {
           })}
         </TabsList>
         {teamMembers.map((member) => {
-          const { openItems, completeItems } = getAggregatedItems(member.id);
+          const { openItems, pendingReviewItems, ideaItems, completeItems } = getAggregatedItems(member.id);
           
           return (
             <TabsContent key={member.id} value={member.id} className="space-y-6">
@@ -517,38 +525,92 @@ export default function FeedbackReview() {
                 <Card><CardContent className="py-8 text-center text-muted-foreground">No feedback submitted by {member.first_name} yet.</CardContent></Card>
               ) : (
                 <div className="space-y-4">
-                  {/* Open Bucket - Everything NOT complete */}
-                  <Collapsible open={openBucketOpen} onOpenChange={setOpenBucketOpen}>
-                    <Card>
-                      <CollapsibleTrigger asChild>
-                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              {openBucketOpen ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
-                              <HelpCircle className="h-5 w-5 text-orange-500" />
-                              <CardTitle className="text-xl">Open Items</CardTitle>
-                              <Badge variant="outline" className="ml-2">
-                                {openItems.length}
-                              </Badge>
+                  {/* Open Bucket - pending, needs_help */}
+                  {openItems.length > 0 && (
+                    <Collapsible open={openBucketOpen} onOpenChange={setOpenBucketOpen}>
+                      <Card>
+                        <CollapsibleTrigger asChild>
+                          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {openBucketOpen ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                                <HelpCircle className="h-5 w-5 text-orange-500" />
+                                <CardTitle className="text-xl">Open Items</CardTitle>
+                                <Badge variant="outline" className="ml-2">
+                                  {openItems.length}
+                                </Badge>
+                              </div>
                             </div>
-                          </div>
-                        </CardHeader>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <CardContent className="space-y-3">
-                          {openItems.length === 0 ? (
-                            <p className="text-center text-muted-foreground py-4">All items complete! 🎉</p>
-                          ) : (
-                            openItems.map(({ fb, item, index, status }) => {
-                              const isIdea = status === 'idea';
-                              const isPendingReview = status === 'pending_user_review';
-                              return renderFeedbackItem(fb, item, index, false, isIdea, isPendingReview);
-                            })
-                          )}
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Card>
-                  </Collapsible>
+                          </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <CardContent className="space-y-3">
+                            {openItems.map(({ fb, item, index, status }) => {
+                              return renderFeedbackItem(fb, item, index, false, false, false);
+                            })}
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
+                  )}
+
+                  {/* Pending Review Bucket */}
+                  {pendingReviewItems.length > 0 && (
+                    <Collapsible open={pendingReviewBucketOpen} onOpenChange={setPendingReviewBucketOpen}>
+                      <Card className="border-blue-200 dark:border-blue-800">
+                        <CollapsibleTrigger asChild>
+                          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {pendingReviewBucketOpen ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                                <Clock className="h-5 w-5 text-blue-500" />
+                                <CardTitle className="text-xl">Pending Review</CardTitle>
+                                <Badge variant="outline" className="ml-2 border-blue-500 text-blue-600">
+                                  {pendingReviewItems.length}
+                                </Badge>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <CardContent className="space-y-3">
+                            {pendingReviewItems.map(({ fb, item, index }) => 
+                              renderFeedbackItem(fb, item, index, false, false, true)
+                            )}
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
+                  )}
+
+                  {/* Ideas Bucket */}
+                  {ideaItems.length > 0 && (
+                    <Collapsible open={ideasBucketOpen} onOpenChange={setIdeasBucketOpen}>
+                      <Card className="border-purple-200 dark:border-purple-800">
+                        <CollapsibleTrigger asChild>
+                          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {ideasBucketOpen ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                                <Lightbulb className="h-5 w-5 text-purple-500" />
+                                <CardTitle className="text-xl">Ideas</CardTitle>
+                                <Badge variant="outline" className="ml-2 border-purple-500 text-purple-600">
+                                  {ideaItems.length}
+                                </Badge>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <CardContent className="space-y-3">
+                            {ideaItems.map(({ fb, item, index }) => 
+                              renderFeedbackItem(fb, item, index, false, true, false)
+                            )}
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
+                  )}
 
                   {/* Complete Bucket - Only complete items */}
                   {completeItems.length > 0 && (
