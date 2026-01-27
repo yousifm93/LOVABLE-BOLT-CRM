@@ -1,203 +1,255 @@
 
 
-# Plan: Team Feedback Review - Four-Section Layout with All Collapsed
+# Plan: Lender Marketing Update Suggestions System
 
 ## Overview
-Restructure the Team Feedback Review page to have four separate sections instead of two, with all sections collapsed by default when viewing.
+Add a notification indicator next to "Approved Lenders" in the sidebar that opens a modal showing pending lender marketing updates from emails. Users can approve/deny suggestions to update lender records directly from the modal.
 
 ---
 
 ## Summary of Changes
 
-| Change | Description |
-|--------|-------------|
-| Default Collapsed | All sections start collapsed instead of Open Items being expanded |
-| Four Sections | Split into: Open Items, Pending Review, Ideas, and Completed |
-| Filtering Logic | Each section filters by specific status values |
+| Component | Description |
+|-----------|-------------|
+| New Hook | `useLenderMarketingSuggestions` - fetch, approve, deny lender field suggestions |
+| New Modal | `LenderMarketingSuggestionsModal` - displays pending/completed suggestions |
+| Sidebar Update | Add badge and click handler for "Approved Lenders" item |
+| Time Filter | Show last 24 hours of suggestions by default |
 
 ---
 
-## Current Structure
-```
-├── Open Items (pending, needs_help, idea, pending_user_review)
-└── Completed (complete)
-```
-
-## New Structure
-```
-├── Open Items (pending, needs_help) - collapsed by default
-├── Pending Review (pending_user_review) - collapsed by default
-├── Ideas (idea) - collapsed by default  
-└── Completed (complete) - collapsed by default
-```
+## Current State
+- 1,414 pending lender field suggestions already exist in `lender_field_suggestions` table
+- Table schema includes: `id`, `email_log_id`, `lender_id`, `is_new_lender`, `suggested_lender_name`, `field_name`, `current_value`, `suggested_value`, `confidence`, `reason`, `status`, `created_at`, `processed_at`, `processed_by`
+- `LenderMarketingPopover` already has approve/deny logic for individual emails
 
 ---
 
-## Implementation Details
+## Detailed Implementation
 
-### 1. Update Default State for All Sections to Collapsed
+### 1. Create New Hook: `useLenderMarketingSuggestions`
 
-**File:** `src/pages/admin/FeedbackReview.tsx`
+**File:** `src/hooks/useLenderMarketingSuggestions.tsx`
 
-Change the initial state values (around lines 66-67):
+This hook mirrors `useEmailSuggestions` but for lender field suggestions:
 
 ```typescript
-// Change from:
-const [openBucketOpen, setOpenBucketOpen] = useState(true);
-const [completeBucketOpen, setCompleteBucketOpen] = useState(false);
+export interface LenderFieldSuggestion {
+  id: string;
+  email_log_id: string;
+  lender_id: string | null;
+  is_new_lender: boolean;
+  suggested_lender_name: string | null;
+  field_name: string;
+  current_value: string | null;
+  suggested_value: string;
+  confidence: number;
+  reason: string;
+  status: 'pending' | 'approved' | 'denied';
+  created_at: string;
+  processed_at?: string | null;
+  processed_by?: string | null;
+  lender?: { lender_name: string };
+  email_log?: { subject: string; from_email: string; timestamp: string };
+}
 
-// Change to:
-const [openBucketOpen, setOpenBucketOpen] = useState(false);
-const [pendingReviewBucketOpen, setPendingReviewBucketOpen] = useState(false);
-const [ideasBucketOpen, setIdeasBucketOpen] = useState(false);
-const [completeBucketOpen, setCompleteBucketOpen] = useState(false);
+export function useLenderMarketingSuggestions() {
+  // State: suggestions, completedSuggestions, pendingCount, isLoading, isLoadingCompleted
+  // Methods: fetchSuggestions, fetchPendingCount, approveSuggestion, denySuggestion
+  // Real-time subscription for count updates
+}
 ```
+
+**Key Functions:**
+- `fetchSuggestions(status, hours = 24)` - Filter by last 24 hours by default
+- `approveSuggestion(suggestion)` - Update lender field OR create new lender
+- `denySuggestion(suggestionId)` - Mark as denied
+- `fetchCompletedSuggestions()` - Get approved/denied items
 
 ---
 
-### 2. Update the `getAggregatedItems` Function
+### 2. Create New Modal: `LenderMarketingSuggestionsModal`
 
-**File:** `src/pages/admin/FeedbackReview.tsx` (around lines 456-474)
+**File:** `src/components/modals/LenderMarketingSuggestionsModal.tsx`
 
-Split items into four buckets instead of two:
-
-```typescript
-const getAggregatedItems = (userId: string) => {
-  const userFeedback = getUserFeedback(userId);
-  const openItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
-  const pendingReviewItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
-  const ideaItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
-  const completeItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
-
-  userFeedback.forEach(fb => {
-    fb.feedback_items.forEach((item, index) => {
-      const status = getItemStatus(fb.id, index);
-      if (status === 'complete') {
-        completeItems.push({ fb, item, index, status });
-      } else if (status === 'pending_user_review') {
-        pendingReviewItems.push({ fb, item, index, status });
-      } else if (status === 'idea') {
-        ideaItems.push({ fb, item, index, status });
-      } else {
-        // pending, needs_help go to Open Items
-        openItems.push({ fb, item, index, status });
-      }
-    });
-  });
-
-  return { openItems, pendingReviewItems, ideaItems, completeItems };
-};
-```
-
----
-
-### 3. Add Two New Section Collapsibles in the Render
-
-**File:** `src/pages/admin/FeedbackReview.tsx` (around lines 511-580)
-
-Add "Pending Review" and "Ideas" sections between Open Items and Completed:
-
-**Section Order:**
-1. **Open Items** - Orange icon, items with status `pending` or `needs_help`
-2. **Pending Review** - Blue icon (Clock), items with status `pending_user_review`
-3. **Ideas** - Purple icon (Lightbulb), items with status `idea`
-4. **Completed** - Green icon (Check), items with status `complete`
-
-**Pending Review Section:**
-```typescript
-{/* Pending Review Bucket */}
-{pendingReviewItems.length > 0 && (
-  <Collapsible open={pendingReviewBucketOpen} onOpenChange={setPendingReviewBucketOpen}>
-    <Card className="border-blue-200 dark:border-blue-800">
-      <CollapsibleTrigger asChild>
-        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {pendingReviewBucketOpen ? <ChevronDown /> : <ChevronRight />}
-              <Clock className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-xl">Pending Review</CardTitle>
-              <Badge variant="outline" className="ml-2 border-blue-500 text-blue-600">
-                {pendingReviewItems.length}
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <CardContent className="space-y-3">
-          {pendingReviewItems.map(({ fb, item, index }) => 
-            renderFeedbackItem(fb, item, index, false, false, true)
-          )}
-        </CardContent>
-      </CollapsibleContent>
-    </Card>
-  </Collapsible>
-)}
-```
-
-**Ideas Section:**
-```typescript
-{/* Ideas Bucket */}
-{ideaItems.length > 0 && (
-  <Collapsible open={ideasBucketOpen} onOpenChange={setIdeasBucketOpen}>
-    <Card className="border-purple-200 dark:border-purple-800">
-      <CollapsibleTrigger asChild>
-        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {ideasBucketOpen ? <ChevronDown /> : <ChevronRight />}
-              <Lightbulb className="h-5 w-5 text-purple-500" />
-              <CardTitle className="text-xl">Ideas</CardTitle>
-              <Badge variant="outline" className="ml-2 border-purple-500 text-purple-600">
-                {ideaItems.length}
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <CardContent className="space-y-3">
-          {ideaItems.map(({ fb, item, index }) => 
-            renderFeedbackItem(fb, item, index, false, true, false)
-          )}
-        </CardContent>
-      </CollapsibleContent>
-    </Card>
-  </Collapsible>
-)}
-```
-
----
-
-## Visual Representation
+Structure mirrors `EmailFieldSuggestionsModal`:
 
 ```text
-Team Feedback Review
-├── [User Tab 1] [User Tab 2] ...
-│
-│   > Open Items (5)          ← Collapsed by default, orange icon
-│   > Pending Review (3)      ← Collapsed by default, blue icon
-│   > Ideas (2)               ← Collapsed by default, purple icon
-│   > Completed (10)          ← Collapsed by default, green icon
++--------------------------------------------------+
+| [Building Icon] Lender Marketing Updates         |
++--------------------------------------------------+
+| [Pending (12)] [Completed]     [Last 24h ▾]      |
++--------------------------------------------------+
+|                                                  |
+|  ▼ Angel Oak Mortgage (3 suggestions)            |
+|  +----------------------------------------------+
+|  | max_loan_amount                              |
+|  | $2,000,000 → $3,500,000                     |
+|  | "Email mentions Max Loan Amount..."          |
+|  |                              [✗] [✓]         |
+|  +----------------------------------------------+
+|  | product_dscr                                 |
+|  | Empty → Y                                    |
+|  | "Email mentions DSCR Product: Y"             |
+|  |                              [✗] [✓]         |
+|  +----------------------------------------------+
+|                                                  |
+|  ▼ NEW: Velocity Mortgage (1 suggestion)        |
+|  +----------------------------------------------+
+|  | Add New Lender                               |
+|  | Create "Velocity Mortgage" in Not Approved   |
+|  |                    [Link Existing] [✗] [✓]   |
+|  +----------------------------------------------+
+|                                                  |
++--------------------------------------------------+
+```
+
+**Features:**
+- Tabs: Pending | Completed
+- Time filter dropdown: Last 24 Hours (default) | Last 7 Days | All Time
+- Group by lender (existing or new)
+- For new lenders: option to "Link to Existing" or "Add as New"
+- Approve/Deny buttons on each suggestion
+- Click lender name to navigate to lender detail
+- "Deny All" button per lender group
+
+---
+
+### 3. Update AppSidebar for Approved Lenders Badge
+
+**File:** `src/components/AppSidebar.tsx`
+
+**Add new state and subscription:**
+```typescript
+const [pendingLenderSuggestionCount, setPendingLenderSuggestionCount] = useState(0);
+const [lenderSuggestionsModalOpen, setLenderSuggestionsModalOpen] = useState(false);
+
+// Fetch pending lender suggestion count (last 24 hours)
+useEffect(() => {
+  const fetchPendingCount = async () => {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await supabase
+      .from('lender_field_suggestions')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .gte('created_at', twentyFourHoursAgo);
+    setPendingLenderSuggestionCount(count || 0);
+  };
+  // ... real-time subscription
+}, []);
+```
+
+**Update Approved Lenders menu item (around line 661-700):**
+```typescript
+{item.title === "Approved Lenders" ? (
+  <NavLink to={item.url} className={getNavClassName}>
+    <item.icon className="mr-2 h-4 w-4" />
+    {!collapsed && (
+      <span className="flex items-center gap-2">
+        {item.title}
+        {pendingLenderSuggestionCount > 0 && (
+          <Badge 
+            variant="destructive" 
+            className="h-5 min-w-5 px-1.5 text-xs cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setLenderSuggestionsModalOpen(true);
+            }}
+          >
+            {pendingLenderSuggestionCount}
+          </Badge>
+        )}
+      </span>
+    )}
+  </NavLink>
+) : ...
+```
+
+**Add modal at end of component:**
+```typescript
+<LenderMarketingSuggestionsModal
+  open={lenderSuggestionsModalOpen}
+  onOpenChange={setLenderSuggestionsModalOpen}
+/>
 ```
 
 ---
+
+## Visual Flow
+
+```text
+Sidebar                    Modal (on badge click)
++------------------+       +--------------------------------+
+| CONTACTS         |       | Lender Marketing Updates       |
+|  - Agents        |       +--------------------------------+
+|  - Contacts      |       | [Pending (7)] [Completed]      |
+|  - Approved [7]◄─────────| Time: [Last 24 Hours ▾]        |
++------------------+       +--------------------------------+
+        │                  | ▼ Angel Oak (2)               |
+        │                  |   max_loan: $2M→$3.5M    [✗][✓]|
+        │                  |   product_dscr: →Y       [✗][✓]|
+        │                  +--------------------------------+
+        │                  | ▼ NEW: Velocity (1)           |
+        │                  |   Add new lender         [✗][✓]|
+        │                  +--------------------------------+
+        │
+   Click badge opens modal
+```
+
+---
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/hooks/useLenderMarketingSuggestions.tsx` | Hook for fetching and managing lender suggestions |
+| `src/components/modals/LenderMarketingSuggestionsModal.tsx` | Modal UI for pending/completed suggestions |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/admin/FeedbackReview.tsx` | Add new state variables, update aggregation logic, add two new collapsible sections |
+| `src/components/AppSidebar.tsx` | Add badge to Approved Lenders, add modal state, render modal |
 
 ---
 
-## Status Mapping
+## Database
 
-| Status Value | Goes To Section |
-|--------------|-----------------|
-| `pending` | Open Items |
-| `needs_help` | Open Items |
-| `pending_user_review` | Pending Review |
-| `idea` | Ideas |
-| `complete` | Completed |
+No database changes needed - the `lender_field_suggestions` table already exists with all required fields:
+- `status`: pending, approved, denied
+- `is_new_lender`: boolean to identify new lender suggestions
+- `suggested_lender_name`: name for new lenders
+- `lender_id`: reference to existing lender (when updating)
+- `field_name`, `current_value`, `suggested_value`: field update details
+
+---
+
+## Approval Logic
+
+When approving a suggestion:
+
+**For existing lender updates:**
+1. Update the lender field in `lenders` table
+2. Mark suggestion as `approved` with `processed_at` and `processed_by`
+
+**For new lender creation:**
+1. Create new lender in `lenders` table with status "Pending" (goes to Not Approved section)
+2. Populate available fields from email extraction data
+3. Mark suggestion as `approved`
+
+**For "Link to Existing" option:**
+1. Update the existing lender with extracted data
+2. Mark suggestion as `approved` and set `lender_id`
+
+---
+
+## Time Filtering
+
+The modal will default to showing suggestions from the last 24 hours but include a dropdown to expand:
+- Last 24 Hours (default)
+- Last 7 Days
+- All Time
+
+This prevents the UI from being overwhelmed by the 1,400+ pending suggestions while still allowing users to see older items if needed.
 
