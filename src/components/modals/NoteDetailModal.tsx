@@ -21,6 +21,7 @@ interface NoteDetailModalProps {
     timestamp: string;
     user?: string;
     author_id?: string;
+    attachment_url?: string;
   } | null;
   onActivityUpdated?: () => void;
 }
@@ -180,6 +181,20 @@ export function NoteDetailModal({ open, onOpenChange, note, onActivityUpdated }:
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(note.description || 'No description provided.') }}
               />
             </ScrollArea>
+          )}
+
+          {/* Display attachment if present */}
+          {note.attachment_url && (
+            <div className="mt-4 border rounded-lg p-2">
+              <p className="text-xs text-muted-foreground mb-2">Attachment:</p>
+              <a href={note.attachment_url} target="_blank" rel="noopener noreferrer">
+                <img 
+                  src={note.attachment_url} 
+                  alt="Note attachment" 
+                  className="max-h-64 rounded-md cursor-pointer hover:opacity-80 transition-opacity"
+                />
+              </a>
+            </div>
           )}
 
           <div className="flex justify-between">
