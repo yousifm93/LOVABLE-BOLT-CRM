@@ -24,7 +24,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 interface CreateLeadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onLeadCreated: () => void;
+  onLeadCreated: (newLeadId?: string) => void;
 }
 
 interface BulkLead {
@@ -508,7 +508,8 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         });
         setSelectedFiles([]);
         
-        onLeadCreated();
+        // Pass the new lead ID so parent can open it immediately
+        onLeadCreated(newLead.id);
         onOpenChange(false);
       } catch (err: any) {
         console.error('Error creating lead:', err);
