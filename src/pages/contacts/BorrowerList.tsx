@@ -151,7 +151,7 @@ const getColumns = (
         const fullName = contact.person ? 
           `${contact.person.firstName} ${contact.person.lastName}` :
           `${contact.first_name} ${contact.last_name}`;
-        const subtitle = contact.job_title || 
+        const subtitle = contact.company || 
           (contact.source_type === 'email_import' ? 'Email' : contact.type);
         
         return (
@@ -338,8 +338,8 @@ const getColumns = (
         const fullName = contact.person ? 
           `${contact.person.firstName} ${contact.person.lastName}` : 
           `${contact.first_name} ${contact.last_name}`;
-        // Show job_title underneath the name (fall back to source type if no job title)
-        const subtitle = contact.job_title || 
+        // Show company underneath the name (fall back to source type if no company)
+        const subtitle = contact.company || 
           (contact.source_type === 'email_import' ? 'Email' : contact.type);
         
         return (
