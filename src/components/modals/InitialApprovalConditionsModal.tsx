@@ -151,8 +151,8 @@ export function InitialApprovalConditionsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="max-w-6xl h-[90vh] !flex !flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Import Conditions from Initial Approval
@@ -164,7 +164,7 @@ export function InitialApprovalConditionsModal({
 
         {/* Loan Info Summary */}
         {loanInfo && (loanInfo.lender || loanInfo.note_rate || loanInfo.loan_amount) && (
-          <div className="bg-muted/50 rounded-lg p-3 flex flex-wrap gap-4 text-sm">
+          <div className="shrink-0 bg-muted/50 rounded-lg p-3 flex flex-wrap gap-4 text-sm">
             {loanInfo.lender && (
               <div>
                 <span className="text-muted-foreground">Lender:</span>{" "}
@@ -195,7 +195,7 @@ export function InitialApprovalConditionsModal({
         )}
 
         {/* Selection Controls */}
-        <div className="flex items-center gap-2 border-b pb-2">
+        <div className="shrink-0 flex items-center gap-2 border-b pb-2">
           <Button variant="outline" size="sm" onClick={handleSelectAll}>
             <Check className="h-3 w-3 mr-1" />
             Select All
@@ -210,7 +210,7 @@ export function InitialApprovalConditionsModal({
         </div>
 
         {/* Conditions List */}
-        <ScrollArea className="flex-1 min-h-0 -mx-6 px-6" style={{ maxHeight: 'calc(90vh - 280px)' }}>
+        <ScrollArea className="flex-1 min-h-0 -mx-6 px-6" onWheelCapture={(e) => e.stopPropagation()}>
           <div className="space-y-4 py-2">
             {Object.entries(groupedConditions).map(([category, items]) => (
               <div key={category} className="space-y-2">
@@ -300,7 +300,7 @@ export function InitialApprovalConditionsModal({
           </div>
         </ScrollArea>
 
-        <DialogFooter className="border-t pt-4">
+        <DialogFooter className="shrink-0 border-t pt-4">
           <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
