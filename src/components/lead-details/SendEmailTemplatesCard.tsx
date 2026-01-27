@@ -9,6 +9,7 @@ import { Mail, ChevronDown, ChevronRight, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MissingMergeTagsModal } from "@/components/modals/MissingMergeTagsModal";
+import { EmailPreviewModal } from "@/components/modals/EmailPreviewModal";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,15 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
   const [missingFields, setMissingFields] = useState<MissingField[]>([]);
   const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    subject: string;
+    htmlContent: string;
+    sender: { email: string; name: string };
+    toEmails: string[];
+    ccEmails: string[];
+  } | null>(null);
+  const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const sendEmailPermission = hasPermission('lead_details_send_email');
@@ -195,6 +205,53 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
     }
 
     try {
+      // Generate preview instead of sending directly
+      const { data, error } = await supabase.functions.invoke("preview-template-email", {
+        body: {
+          leadId,
+          templateId: selectedTemplate,
+          senderId: selectedSender,
+        },
+      });
+
+      if (error) throw error;
+
+      if (!data?.success) {
+        throw new Error(data?.error || "Failed to generate preview");
+      }
+
+      // Build recipient lists for preview display
+      const toEmails: string[] = [];
+      const ccEmails: string[] = [];
+
+      if (recipients.borrower && borrowerEmail) toEmails.push(borrowerEmail);
+      if (recipients.agent && agentEmail) ccEmails.push(agentEmail);
+      if (recipients.thirdParty && thirdPartyEmail.trim()) ccEmails.push(thirdPartyEmail.trim());
+
+      setPreviewData({
+        subject: data.subject,
+        htmlContent: data.htmlContent,
+        sender: data.sender,
+        toEmails,
+        ccEmails,
+      });
+      setShowPreviewModal(true);
+    } catch (error: any) {
+      console.error("Error generating preview:", error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to generate email preview", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmSend = async (editedHtml: string) => {
+    setIsSending(true);
+
+    try {
       const { data, error } = await supabase.functions.invoke("send-template-email", {
         body: {
           leadId,
@@ -205,6 +262,8 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
             agent: recipients.agent,
             thirdParty: recipients.thirdParty ? thirdPartyEmail : "",
           },
+          customHtml: editedHtml,
+          customSubject: previewData?.subject,
         },
       });
 
@@ -217,6 +276,8 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
         setRecipients({ borrower: false, agent: false, thirdParty: false });
         setThirdPartyEmail("");
         setShowThirdPartyEmail(false);
+        setShowPreviewModal(false);
+        setPreviewData(null);
       } else {
         throw new Error(data?.error || "Failed to send email");
       }
@@ -228,7 +289,7 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
         variant: "destructive" 
       });
     } finally {
-      setLoading(false);
+      setIsSending(false);
     }
   };
 
@@ -352,6 +413,14 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
         open={showMissingFieldsModal}
         onOpenChange={setShowMissingFieldsModal}
         missingFields={missingFields}
+      />
+
+      <EmailPreviewModal
+        open={showPreviewModal}
+        onOpenChange={setShowPreviewModal}
+        previewData={previewData}
+        onSend={handleConfirmSend}
+        isSending={isSending}
       />
     </>
   );
