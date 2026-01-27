@@ -6,30 +6,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface SendEmailRequest {
+interface PreviewEmailRequest {
   leadId: string;
   templateId: string;
   senderId: string;
-  recipients: {
-    borrower: boolean;
-    agent: boolean;
-    thirdParty: string;
-  };
-  customHtml?: string; // Optional: Use this HTML instead of processing template
-  customSubject?: string; // Optional: Use this subject instead of template name
 }
 
 function convertPlainTextToHtml(text: string): string {
-  // Check if content already looks like HTML
   const trimmed = text.trim();
   if (trimmed.startsWith('<!DOCTYPE') || 
       trimmed.startsWith('<html') || 
       trimmed.startsWith('<div') ||
       trimmed.startsWith('<p')) {
-    return text; // Already HTML, return as-is
+    return text;
   }
 
-  // Convert plain text with newlines to HTML
   const paragraphs = text
     .split('\n\n')
     .map(para => para.trim())
@@ -62,9 +53,9 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { leadId, templateId, senderId, recipients, customHtml, customSubject }: SendEmailRequest = await req.json();
+    const { leadId, templateId, senderId }: PreviewEmailRequest = await req.json();
 
-    console.log("Sending email:", { leadId, templateId, senderId, recipients, hasCustomHtml: !!customHtml });
+    console.log("Generating email preview:", { leadId, templateId, senderId });
 
     // Fetch ALL crm_fields for dynamic merge data
     const { data: crmFields } = await supabase
@@ -179,115 +170,52 @@ const handler = async (req: Request): Promise<Response> => {
       mergeData.account_executive_phone = lead.approved_lender.ae_phone || '';
     }
 
-    // Use custom HTML/subject if provided, otherwise process template
-    let htmlContent: string;
-    let subject: string;
+    // Replace merge tags in template
+    let htmlContent = template.html || "";
+    
+    // Convert plain text to HTML if needed
+    htmlContent = convertPlainTextToHtml(htmlContent);
+    
+    let subject = template.name;
 
-    if (customHtml) {
-      // Use the pre-processed/edited HTML from preview modal
-      htmlContent = customHtml;
-      subject = customSubject || template.name;
-    } else {
-      // Replace merge tags in template
-      htmlContent = template.html || "";
+    Object.entries(mergeData).forEach(([key, value]) => {
+      const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+      htmlContent = htmlContent.replace(regex, String(value ?? ''));
+      subject = subject.replace(regex, String(value ?? ''));
+    });
+
+    // Append email signature if sender has one
+    if (sender.email_signature) {
+      const signatureHtml = `<br><br>${sender.email_signature}`;
       
-      // Convert plain text to HTML if needed (before replacing merge tags)
-      htmlContent = convertPlainTextToHtml(htmlContent);
-      
-      subject = template.name;
-
-      Object.entries(mergeData).forEach(([key, value]) => {
-        const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
-        htmlContent = htmlContent.replace(regex, String(value ?? ''));
-        subject = subject.replace(regex, String(value ?? ''));
-      });
-
-      // Append email signature if sender has one
-      if (sender.email_signature) {
-        const signatureHtml = `<br><br>${sender.email_signature}`;
-        
-        // Insert signature before closing body/html tags, or append at end
-        if (htmlContent.includes('</body>')) {
-          htmlContent = htmlContent.replace('</body>', `${signatureHtml}</body>`);
-        } else if (htmlContent.includes('</html>')) {
-          htmlContent = htmlContent.replace('</html>', `${signatureHtml}</html>`);
-        } else {
-          htmlContent += signatureHtml;
-        }
+      if (htmlContent.includes('</body>')) {
+        htmlContent = htmlContent.replace('</body>', `${signatureHtml}</body>`);
+      } else if (htmlContent.includes('</html>')) {
+        htmlContent = htmlContent.replace('</html>', `${signatureHtml}</html>`);
+      } else {
+        htmlContent += signatureHtml;
       }
     }
 
-
-    // Build recipient lists
-    const toEmails: string[] = [];
-    const ccEmails: string[] = [];
-
-    if (recipients.borrower && lead.email) toEmails.push(lead.email);
-    if (recipients.agent && lead.buyer_agent?.email) ccEmails.push(lead.buyer_agent.email);
-    if (recipients.thirdParty?.trim()) ccEmails.push(recipients.thirdParty.trim());
-
-    if (toEmails.length === 0) throw new Error("At least one recipient email is required");
-
-    // Send email via SendGrid
-    const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
-    if (!SENDGRID_API_KEY) {
-      throw new Error("SendGrid API key not configured");
-    }
-
-    const personalizations: any = {
-      to: toEmails.map(email => ({ email }))
-    };
-    
-    if (ccEmails.length > 0) {
-      personalizations.cc = ccEmails.map(email => ({ email }));
-    }
-
-    const sendGridResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${SENDGRID_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        personalizations: [personalizations],
-        from: { 
-          email: sender.email, 
-          name: `${sender.first_name} ${sender.last_name}` 
-        },
-        reply_to: { email: sender.email },
-        subject: subject,
-        content: [{ type: "text/html", value: htmlContent }],
-      }),
-    });
-
-    if (!sendGridResponse.ok) {
-      const errorText = await sendGridResponse.text();
-      throw new Error(`SendGrid API error: ${sendGridResponse.status} - ${errorText}`);
-    }
-
-    // SendGrid returns 202 with empty body on success
-    const messageId = sendGridResponse.headers.get('X-Message-Id') || `sg-${Date.now()}`;
-
-    await supabase.from("email_logs").insert({
-      lead_id: leadId,
-      timestamp: new Date().toISOString(),
-      direction: 'Out',
-      to_email: toEmails.join(', '),
-      from_email: sender.email,
-      subject: subject,
-      snippet: htmlContent.substring(0, 200).replace(/<[^>]*>/g, ''),
-      html_body: htmlContent,
-      body: htmlContent.replace(/<[^>]*>/g, ''),
-      provider_message_id: messageId,
-      delivery_status: 'sent',
-    });
-
+    // Return preview data
     return new Response(
-      JSON.stringify({ success: true, emailId: messageId }),
+      JSON.stringify({
+        success: true,
+        subject,
+        htmlContent,
+        sender: {
+          email: sender.email,
+          name: `${sender.first_name} ${sender.last_name}`.trim(),
+        },
+        recipientEmails: {
+          borrower: lead.email || null,
+          agent: lead.buyer_agent?.email || null,
+        },
+      }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
-    console.error("Error sending email:", error);
+    console.error("Error generating email preview:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
