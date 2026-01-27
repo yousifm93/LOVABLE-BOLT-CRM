@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface ExtractedCondition {
@@ -69,6 +70,21 @@ export function InitialApprovalConditionsModal({
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
     new Set(conditions.map((_, i) => i))
   );
+  const [editedDescriptions, setEditedDescriptions] = useState<Map<number, string>>(new Map());
+
+  // Reset edited descriptions when conditions change
+  useEffect(() => {
+    setEditedDescriptions(new Map());
+    setSelectedIndices(new Set(conditions.map((_, i) => i)));
+  }, [conditions]);
+
+  const handleDescriptionChange = (index: number, value: string) => {
+    setEditedDescriptions(prev => new Map(prev).set(index, value));
+  };
+
+  const getFinalDescription = (index: number, original: string) => {
+    return editedDescriptions.get(index) ?? original;
+  };
 
   const handleToggle = (index: number) => {
     const newSelected = new Set(selectedIndices);
@@ -89,7 +105,9 @@ export function InitialApprovalConditionsModal({
   };
 
   const handleConfirm = () => {
-    const selected = conditions.filter((_, i) => selectedIndices.has(i));
+    const selected = conditions
+      .map((c, i) => ({ ...c, description: getFinalDescription(i, c.description) }))
+      .filter((_, i) => selectedIndices.has(i));
     onConfirm(selected);
   };
 
@@ -164,7 +182,7 @@ export function InitialApprovalConditionsModal({
         </div>
 
         {/* Conditions List */}
-        <ScrollArea className="flex-1 max-h-[50vh] -mx-6 px-6">
+        <ScrollArea className="flex-1 max-h-[60vh] -mx-6 px-6">
           <div className="space-y-4 py-2">
             {Object.entries(groupedConditions).map(([category, items]) => (
               <div key={category} className="space-y-2">
@@ -194,12 +212,18 @@ export function InitialApprovalConditionsModal({
                       <Checkbox
                         checked={selectedIndices.has(index)}
                         onCheckedChange={() => handleToggle(index)}
-                        className="mt-0.5"
+                        className="mt-2 shrink-0"
                       />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm">{condition.description}</p>
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <Input
+                          value={getFinalDescription(index, condition.description)}
+                          onChange={(e) => handleDescriptionChange(index, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-sm"
+                          placeholder="Condition description..."
+                        />
                         {(condition.phase || condition.underwriter) && (
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2">
                             {condition.phase && (
                               <span className="text-xs text-muted-foreground">
                                 Phase: {condition.phase}
