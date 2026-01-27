@@ -360,6 +360,22 @@ CRITICAL DOMAIN-SPECIFIC RULES:
     - "Refinance", "Refi", "Rate/Term" → "Refinance"
     - "HELOC", "Home Equity" → "HELOC"
 
+17. **CD STATUS - EXPLICIT VERBIAGE REQUIRED**:
+    - **cd_status → "Requested"**: ONLY suggest this if the email explicitly contains phrases like:
+      - "Please prepare the initial closing disclosure"
+      - "CD has been requested"
+      - "Need the closing disclosure"
+      - "Requesting initial CD"
+      - "Please send CD"
+      - "Please prepare CD"
+    - Do NOT suggest "Requested" based on:
+      - "Missing conditions" emails (these are about underwriting conditions, not CD)
+      - General status update emails
+      - Lock confirmation emails (unless they explicitly request a CD)
+    - **cd_status → "Sent"**: Only if email explicitly says "CD sent", "Closing Disclosure has been sent", "Initial CD sent"
+    - **cd_status → "Signed"**: Only if email explicitly says "CD signed", "Closing Disclosure signed"
+    - When in doubt, do NOT suggest cd_status changes
+
 INSTRUCTIONS:
 1. Analyze the email subject and body for any status updates or field changes
 2. Look for phrases like "clear to close", "CTC", "appraisal received", "rate locked", "closing date confirmed", etc.

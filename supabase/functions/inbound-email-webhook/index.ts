@@ -743,83 +743,91 @@ serve(async (req) => {
     // SKIP field parsing for internal @mortgagebolt.com emails
     const isMortgageBoltEmail = fromEmailToStore.toLowerCase().includes('@mortgagebolt.com');
     
+    // ACTIVE PIPELINE STAGE ID - only generate suggestions for leads in Active pipeline
+    const ACTIVE_PIPELINE_ID = '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
+    
     if (isMortgageBoltEmail) {
       console.log('[Inbound Email Webhook] Skipping field suggestions for internal team email from:', fromEmailToStore);
     } else {
       try {
-        // Fetch current lead data for context - include ALL fields that can be suggested
+        // Fetch current lead data for context - include pipeline_stage_id for filtering
         const { data: leadData } = await supabase
           .from('leads')
-          .select('loan_status, appraisal_status, title_status, hoi_status, condo_status, disclosure_status, cd_status, package_status, epo_status, interest_rate, lock_expiration_date, close_date, discount_points, loan_amount, sales_price, appraisal_value, program, property_taxes, homeowners_insurance, total_monthly_income, escrows, occupancy, loan_type, cash_to_close, property_type, dscr_ratio, fico_score, term, prepayment_penalty, appr_date_time')
+          .select('pipeline_stage_id, loan_status, appraisal_status, title_status, hoi_status, condo_status, disclosure_status, cd_status, package_status, epo_status, interest_rate, lock_expiration_date, close_date, discount_points, loan_amount, sales_price, appraisal_value, program, property_taxes, homeowners_insurance, total_monthly_income, escrows, occupancy, loan_type, cash_to_close, property_type, dscr_ratio, fico_score, term, prepayment_penalty, appr_date_time')
           .eq('id', leadId)
           .single();
 
-        // Field name mapping: AI parser field names -> database column names
-        const fieldNameMap: Record<string, string> = {
-          'loan_program': 'program',
-          'monthly_taxes': 'property_taxes',
-          'monthly_insurance': 'homeowners_insurance',
-          'insurance_amount': 'homeowners_insurance',
-          'transaction_type': 'loan_type',
-          'escrow': 'escrows',
-          'appraisal_date_time': 'appr_date_time',
-        };
-
-        const fieldUpdateResponse = await fetch(`${supabaseUrl}/functions/v1/parse-email-field-updates`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-          },
-          body: JSON.stringify({
-            subject: subject,
-            body: textBody,
-            htmlBody: htmlBody,
-            leadId: leadId,
-            currentLeadData: leadData,
-          }),
-        });
-
-        if (fieldUpdateResponse.ok) {
-          const fieldUpdateData = await fieldUpdateResponse.json();
-          if (fieldUpdateData.suggestions && fieldUpdateData.suggestions.length > 0) {
-            console.log('[Inbound Email Webhook] Field update suggestions:', fieldUpdateData.suggestions.length);
-            
-            // Insert suggestions into database
-            for (const suggestion of fieldUpdateData.suggestions) {
-              // Map AI field name to database column name
-              const mappedFieldName = fieldNameMap[suggestion.field_name] || suggestion.field_name;
-              const currentValue = leadData?.[mappedFieldName as keyof typeof leadData]?.toString() || null;
-              
-              // Skip suggestions where current value equals suggested value
-              if (currentValue && currentValue === suggestion.suggested_value) {
-                console.log(`[Inbound Email Webhook] Skipping suggestion for ${suggestion.field_name}: value already set to ${currentValue}`);
-                continue;
-              }
-              
-              await supabase
-                .from('email_field_suggestions')
-                .insert({
-                  email_log_id: emailLog.id,
-                  lead_id: leadId,
-                  field_name: suggestion.field_name,
-                  field_display_name: suggestion.field_display_name,
-                  current_value: currentValue,
-                  suggested_value: suggestion.suggested_value,
-                  reason: suggestion.reason,
-                  confidence: suggestion.confidence || 0.8,
-                  status: 'pending',
-                });
-            }
-            console.log('[Inbound Email Webhook] Inserted field update suggestions');
-          }
+        // ONLY generate suggestions for leads in Active pipeline
+        if (!leadData || leadData.pipeline_stage_id !== ACTIVE_PIPELINE_ID) {
+          console.log('[Inbound Email Webhook] Skipping field suggestions - lead not in Active pipeline. Stage:', leadData?.pipeline_stage_id);
         } else {
-          console.log('[Inbound Email Webhook] Failed to parse field updates:', await fieldUpdateResponse.text());
+          // Field name mapping: AI parser field names -> database column names
+          const fieldNameMap: Record<string, string> = {
+            'loan_program': 'program',
+            'monthly_taxes': 'property_taxes',
+            'monthly_insurance': 'homeowners_insurance',
+            'insurance_amount': 'homeowners_insurance',
+            'transaction_type': 'loan_type',
+            'escrow': 'escrows',
+            'appraisal_date_time': 'appr_date_time',
+          };
+
+          const fieldUpdateResponse = await fetch(`${supabaseUrl}/functions/v1/parse-email-field-updates`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            },
+            body: JSON.stringify({
+              subject: subject,
+              body: textBody,
+              htmlBody: htmlBody,
+              leadId: leadId,
+              currentLeadData: leadData,
+            }),
+          });
+
+          if (fieldUpdateResponse.ok) {
+            const fieldUpdateData = await fieldUpdateResponse.json();
+            if (fieldUpdateData.suggestions && fieldUpdateData.suggestions.length > 0) {
+              console.log('[Inbound Email Webhook] Field update suggestions:', fieldUpdateData.suggestions.length);
+              
+              // Insert suggestions into database
+              for (const suggestion of fieldUpdateData.suggestions) {
+                // Map AI field name to database column name
+                const mappedFieldName = fieldNameMap[suggestion.field_name] || suggestion.field_name;
+                const currentValue = leadData?.[mappedFieldName as keyof typeof leadData]?.toString() || null;
+                
+                // Skip suggestions where current value equals suggested value
+                if (currentValue && currentValue === suggestion.suggested_value) {
+                  console.log(`[Inbound Email Webhook] Skipping suggestion for ${suggestion.field_name}: value already set to ${currentValue}`);
+                  continue;
+                }
+                
+                await supabase
+                  .from('email_field_suggestions')
+                  .insert({
+                    email_log_id: emailLog.id,
+                    lead_id: leadId,
+                    field_name: suggestion.field_name,
+                    field_display_name: suggestion.field_display_name,
+                    current_value: currentValue,
+                    suggested_value: suggestion.suggested_value,
+                    reason: suggestion.reason,
+                    confidence: suggestion.confidence || 0.8,
+                    status: 'pending',
+                  });
+              }
+              console.log('[Inbound Email Webhook] Inserted field update suggestions');
+            }
+          } else {
+            console.log('[Inbound Email Webhook] Failed to parse field updates:', await fieldUpdateResponse.text());
+          }
         }
       } catch (fieldUpdateError) {
         console.error('[Inbound Email Webhook] Error parsing field updates:', fieldUpdateError);
-      // Don't fail the webhook if field update parsing fails
-    }
+        // Don't fail the webhook if field update parsing fails
+      }
 
     // Parse email for lender marketing content (applies to ALL emails, including those without leads)
     try {
