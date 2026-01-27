@@ -118,6 +118,16 @@ export function useEmailSuggestions() {
         }
       }
       
+      // Handle datetime fields - ensure time is stored correctly without UTC shift
+      // If this is a datetime field and value doesn't have timezone, treat as local Eastern time
+      if (suggestion.field_name === 'appr_date_time' || actualFieldName === 'appr_date_time') {
+        // If no timezone in the value, append Eastern timezone offset (-05:00 for EST)
+        if (!actualValue.includes('+') && !actualValue.includes('Z') && !actualValue.match(/-\d{2}:\d{2}$/)) {
+          actualValue = actualValue + '-05:00';
+          console.log(`[useEmailSuggestions] Datetime field adjusted with EST timezone: ${actualValue}`);
+        }
+      }
+      
       console.log(`[useEmailSuggestions] Approving suggestion: ${suggestion.field_name} -> ${actualFieldName} = ${actualValue}`);
       
       // Update the lead field using RPC function to handle enum types properly

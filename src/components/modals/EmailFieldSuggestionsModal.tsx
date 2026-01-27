@@ -12,6 +12,33 @@ import { useEmailSuggestions, type EmailFieldSuggestion } from "@/hooks/useEmail
 import { Input } from "@/components/ui/input";
 import DOMPurify from 'dompurify';
 
+// Format datetime for display (e.g., "Wednesday, January 28, 2026, 10:30 AM EST")
+const formatAppraisalDateTime = (value: string | null): string => {
+  if (!value) return 'Empty';
+  
+  // If it looks like an ISO datetime
+  if (value.includes('T') || value.match(/^\d{4}-\d{2}-\d{2}/)) {
+    try {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZoneName: 'short'
+        });
+      }
+    } catch {
+      // Fall through to return raw value
+    }
+  }
+  return value;
+};
+
 interface EmailFieldSuggestionsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -167,11 +194,15 @@ export function EmailFieldSuggestionsModal({
             )}
             <div className="flex items-center gap-1 text-sm">
               <span className="text-muted-foreground truncate max-w-[150px]">
-                {suggestion.current_value || 'Empty'}
+                {suggestion.field_name === 'appr_date_time' 
+                  ? formatAppraisalDateTime(suggestion.current_value)
+                  : (suggestion.current_value || 'Empty')}
               </span>
               <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
               <span className="font-medium text-primary truncate max-w-[200px]">
-                {suggestion.suggested_value}
+                {suggestion.field_name === 'appr_date_time' 
+                  ? formatAppraisalDateTime(suggestion.suggested_value)
+                  : suggestion.suggested_value}
               </span>
             </div>
           </div>
