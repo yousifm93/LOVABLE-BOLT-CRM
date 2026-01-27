@@ -1,114 +1,186 @@
 
 
-## Plan: Reset and Configure 16 Daily Rate Scenarios with 30-Minute Spacing
+## Fix Plan: Four Issues with Lead Management & Task Automation
 
 ### Overview
-This plan will:
-1. Clear all existing rate-related cron jobs
-2. Create 16 new cron jobs spaced 30 minutes apart, starting at midnight Eastern
-3. Fix the "always show a rate" issue so rate boxes never appear empty
+
+This plan addresses four distinct issues:
+1. **Likely to Apply popup too small** - Modal needs to be larger so fields are fully visible
+2. **Follow-up on new lead task has no due date** - Automation needs `due_date_offset_days` set to 0
+3. **New lead task not assigned to creator** - The task should be assigned to whoever created the lead, not a hardcoded user
+4. **Active stage tasks missing** - Need to create four task automations when a file moves to Active (via loan_status = 'New')
 
 ---
 
-### Part 1: Clear Existing Cron Jobs
+### Issue 1: Likely to Apply Popup Size
 
-Currently active rate cron jobs to remove:
-- `refresh-15yr-fixed-daily` (11:05 UTC)
-- `refresh-fha-30yr-daily` (11:10 UTC)
+**Problem**: The pipeline validation modal (triggered when moving to Pending App) is too small - the "Likely to Apply" field isn't fully visible.
 
-SQL to unschedule:
-```sql
-SELECT cron.unschedule('refresh-15yr-fixed-daily');
-SELECT cron.unschedule('refresh-fha-30yr-daily');
-```
+**Root Cause**: The modal uses `max-w-md` (28rem / 448px) which is too narrow for the form fields.
 
----
+**Solution**: Increase the modal width to `max-w-lg` (32rem / 512px) or `max-w-xl` for better visibility.
 
-### Part 2: Schedule 16 Scenarios (30 minutes apart)
+**File to Modify**: `src/components/ClientDetailDrawer.tsx`
 
-Using Eastern Time (midnight = 5:00 UTC), all scenarios will run between midnight and 7:30 AM ET:
-
-| Time (ET) | Time (UTC) | Scenario | Scenario Type |
-|-----------|------------|----------|---------------|
-| 12:00 AM | 5:00 | 15yr Fixed 80% | `15yr_fixed` |
-| 12:30 AM | 5:30 | 15yr Fixed 90% | `15yr_fixed_90ltv` |
-| 1:00 AM | 6:00 | 15yr Fixed 95% | `15yr_fixed_95ltv` |
-| 1:30 AM | 6:30 | 15yr Fixed 97% | `15yr_fixed_97ltv` |
-| 2:00 AM | 7:00 | 30yr Fixed 70% | `30yr_fixed_70ltv` |
-| 2:30 AM | 7:30 | 30yr Fixed 80% | `30yr_fixed` |
-| 3:00 AM | 8:00 | 30yr Fixed 95% | `30yr_fixed_95ltv` |
-| 3:30 AM | 8:30 | 30yr Fixed 97% | `30yr_fixed_97ltv` |
-| 4:00 AM | 9:00 | FHA 30yr 96.5% | `fha_30yr_965ltv` |
-| 4:30 AM | 9:30 | Bank Stmt 70% | `bank_statement_70ltv` |
-| 5:00 AM | 10:00 | Bank Stmt 80% | `bank_statement` |
-| 5:30 AM | 10:30 | Bank Stmt 85% | `bank_statement_85ltv` |
-| 6:00 AM | 11:00 | Bank Stmt 90% | `bank_statement_90ltv` |
-| 6:30 AM | 11:30 | DSCR 70% | `dscr_70ltv` |
-| 7:00 AM | 12:00 | DSCR 75% | `dscr_75ltv` |
-| 7:30 AM | 12:30 | DSCR 80% | `dscr` |
-
-Each cron job calls the `fetch-single-rate` edge function with the appropriate `scenario_type`.
-
----
-
-### Part 3: Fix "Always Show a Rate" Issue
-
-**Problem**: The current code only looks back 10 days in `daily_market_updates` table. If a scenario hasn't run in 10 days or ever, it shows "—".
-
-**Solution**: Modify `fetchMarketData` in `MarketRatesCard.tsx` to:
-1. First try merging from recent `daily_market_updates` (current behavior)
-2. For any still-null fields, query `pricing_runs` table for the most recent completed run of that scenario type
-
-**Code Change** in `src/components/dashboard/MarketRatesCard.tsx`:
-
+**Change** (Line ~3177):
 ```typescript
-// After merging from daily_market_updates, check pricing_runs for any still-null fields
-const scenarioToFieldMapping: Record<string, { rateField: string; pointsField: string }> = {
-  '15yr_fixed': { rateField: 'rate_15yr_fixed', pointsField: 'points_15yr_fixed' },
-  '15yr_fixed_90ltv': { rateField: 'rate_15yr_fixed_90ltv', pointsField: 'points_15yr_fixed_90ltv' },
-  // ... all 16 scenarios
-};
+// Before:
+<DialogContent className="max-w-md">
 
-// For each scenario with null values, fetch from pricing_runs
-for (const [scenario, fields] of Object.entries(scenarioToFieldMapping)) {
-  if (mergedData[fields.rateField] === null) {
-    const { data: latestRun } = await supabase
-      .from('pricing_runs')
-      .select('results_json')
-      .eq('scenario_type', scenario)
-      .eq('status', 'completed')
-      .order('completed_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    
-    if (latestRun?.results_json) {
-      const results = latestRun.results_json;
-      mergedData[fields.rateField] = parseFloat(String(results.rate).replace(/[^0-9.]/g, ''));
-      mergedData[fields.pointsField] = results.discount_points ? 100 - results.discount_points : null;
-    }
-  }
-}
+// After:
+<DialogContent className="max-w-lg">
 ```
 
-This ensures that every rate box displays the most recent rate available, regardless of when it was last run.
+---
+
+### Issue 2: Follow-up Task Missing Due Date
+
+**Problem**: When a new lead is created, the "Follow up on new lead" task is created without a due date.
+
+**Root Cause**: The `task_automations` record for "Follow up on new lead" (id: `30c8ebeb-b9e0-4347-b541-0e2eb755ac2a`) has `due_date_offset_days = NULL`.
+
+**Current State**:
+- `assigned_to_user_id`: Yousif Mohamed (08e73d69...)
+- `due_date_offset_days`: NULL
+
+**Solution**: Update the automation to set `due_date_offset_days = 0` (due today).
+
+**Database Change** (via migration):
+```sql
+UPDATE task_automations 
+SET due_date_offset_days = 0 
+WHERE id = '30c8ebeb-b9e0-4347-b541-0e2eb755ac2a';
+```
 
 ---
 
-### Part 4: Files to Modify
+### Issue 3: Task Assigned to Lead Creator
 
-| File | Changes |
-|------|---------|
-| Database (via SQL) | Unschedule old cron jobs, create 16 new cron jobs |
-| `src/components/dashboard/MarketRatesCard.tsx` | Update `fetchMarketData` to fall back to `pricing_runs` |
+**Problem**: The "Follow up on new lead" task should be assigned to whoever created the lead, not a hardcoded user.
+
+**Root Cause**: The automation has `assigned_to_user_id` set to Yousif Mohamed, and the trigger function falls back to this value even though the lead's `teammate_assigned` is available.
+
+**Current Logic** in `execute_lead_created_automations`:
+```sql
+assignee_id_value := COALESCE(automation.assigned_to_user_id, NEW.teammate_assigned);
+```
+This means the automation's hardcoded user takes precedence.
+
+**Solution**: 
+1. Set the automation's `assigned_to_user_id` to NULL
+2. Update the trigger function to use `NEW.teammate_assigned` (the lead creator) as the primary assignee
+
+**Changes**:
+
+**A. Database Update** (via migration):
+```sql
+-- Remove hardcoded assignee so task goes to lead creator
+UPDATE task_automations 
+SET assigned_to_user_id = NULL
+WHERE id = '30c8ebeb-b9e0-4347-b541-0e2eb755ac2a';
+```
+
+**B. Update Trigger Function** to prefer lead's `teammate_assigned`:
+```sql
+-- Prefer lead's teammate_assigned (who created it), fall back to automation's assigned_to
+assignee_id_value := COALESCE(NEW.teammate_assigned, automation.assigned_to_user_id);
+```
+
+This ensures the lead creator gets the follow-up task.
 
 ---
 
-### Expected Outcome
+### Issue 4: Four Tasks When Moving to Active
 
-1. **Tonight at midnight ET**: First scenario (15yr Fixed 80%) runs
-2. **Every 30 minutes**: Next scenario runs
-3. **By 7:30 AM ET**: All 16 scenarios completed
-4. **Dashboard**: Always shows a rate in every yellow box (never "—")
+**Problem**: When a contract is uploaded or file moves to Active, four tasks should be created:
+1. To disclose
+2. On board  
+3. To have a borrower call
+4. To have a buyer's agent call
 
-The 30-minute spacing gives Axiom plenty of time to complete each run before the next one starts, avoiding the conflicts that caused previous failures.
+**Current State**: 
+- There's already a "Disclose" automation (`71f663f2...`) for `loan_status = 'New'`
+- There's already an "On-Board New Client" automation (`a8d7ca55...`) for `loan_status = 'New'`
+- The borrower call and buyer's agent call tasks are **missing** for the Active/New status
+
+**Solution**: Create two new task automations for when `loan_status` changes to 'New':
+
+| Task Name | Assigned To | Trigger |
+|-----------|-------------|---------|
+| Call Borrower - New Active File | Herman Daza | loan_status = 'New' |
+| Call Buyer's Agent - New Active File | Herman Daza | loan_status = 'New' |
+
+**Database Change** (via migration):
+```sql
+-- Create "Call Borrower - New Active File" automation
+INSERT INTO task_automations (
+  name, trigger_type, trigger_config, task_name, task_description,
+  assigned_to_user_id, task_priority, due_date_offset_days, is_active,
+  category, completion_requirement_type
+) VALUES (
+  'Call Borrower - New Active File',
+  'status_changed',
+  '{"field": "loan_status", "target_status": "New"}',
+  'Call Borrower - New Active File',
+  'Call the borrower to welcome them to active status and discuss next steps',
+  'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', -- Herman Daza
+  'High',
+  0,
+  true,
+  'active_loan',
+  'log_call_borrower'
+);
+
+-- Create "Call Buyer's Agent - New Active File" automation
+INSERT INTO task_automations (
+  name, trigger_type, trigger_config, task_name, task_description,
+  assigned_to_user_id, task_priority, due_date_offset_days, is_active,
+  category, completion_requirement_type
+) VALUES (
+  'Call Buyers Agent - New Active File',
+  'status_changed',
+  '{"field": "loan_status", "target_status": "New"}',
+  'Call Buyers Agent - New Active File',
+  'Call the buyers agent to introduce yourself and coordinate on the active file',
+  'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', -- Herman Daza
+  'High',
+  0,
+  true,
+  'active_loan',
+  'log_call_buyer_agent'
+);
+```
+
+---
+
+### Summary of All Changes
+
+| Issue | File | Change Type |
+|-------|------|-------------|
+| 1. Popup size | `src/components/ClientDetailDrawer.tsx` | Change `max-w-md` to `max-w-lg` |
+| 2. Due date | Database migration | Set `due_date_offset_days = 0` |
+| 3. Assignee | Database migration + trigger function | Set automation's assignee to NULL, update trigger logic |
+| 4. Active tasks | Database migration | Insert 2 new task automations |
+
+---
+
+### Technical Details
+
+**Modified Trigger Function Logic**:
+
+The `execute_lead_created_automations` function will be updated so that:
+- If the automation has no `assigned_to_user_id`, use the lead's `teammate_assigned` (the creator)
+- If neither is set, the task will have no assignee (NULL)
+
+```sql
+-- New priority order: lead creator first, then automation default
+assignee_id_value := COALESCE(NEW.teammate_assigned, automation.assigned_to_user_id);
+```
+
+**Existing "On-Board" and "Disclose" Automations**:
+These already exist and will fire when `loan_status = 'New'`, so no changes needed there:
+- `Disclose` → Herman Daza
+- `On-Board New Client` → Herman Daza
+
+With the two new call tasks, moving to Active will create all four required tasks.
 
