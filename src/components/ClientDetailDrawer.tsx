@@ -3174,7 +3174,7 @@ export function ClientDetailDrawer({
                 setModalLikelyToApply((client as any).likely_to_apply || '');
               }
             }}>
-              <DialogContent className="max-w-md">
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <div className="flex items-center gap-2 text-amber-600">
                     <AlertCircle className="h-5 w-5" />
