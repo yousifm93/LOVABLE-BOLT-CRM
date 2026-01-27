@@ -458,7 +458,7 @@ const allAvailableColumns = useMemo(() => {
           // When Incoming, move to Active board with default status "New"
           updateData.pipeline_stage_id = '76eb2e82-e1d9-4f2d-a57d-2120a25696db'; // Active
           updateData.pipeline_section = 'Incoming';
-          updateData.loan_status = 'New'; // Set initial loan status
+          updateData.loan_status = 'NEW'; // Set initial loan status (uppercase to match database enum)
           updateData.active_at = new Date().toISOString(); // Set timestamp
           toast({
             title: "Moving to Active",

@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface ExtractedCondition {
@@ -20,6 +21,8 @@ interface ExtractedCondition {
   description: string;
   underwriter?: string;
   phase?: string;
+  eta?: string;
+  responsible?: string;
 }
 
 interface InitialApprovalConditionsModalProps {
@@ -71,10 +74,14 @@ export function InitialApprovalConditionsModal({
     new Set(conditions.map((_, i) => i))
   );
   const [editedDescriptions, setEditedDescriptions] = useState<Map<number, string>>(new Map());
+  const [editedEtas, setEditedEtas] = useState<Map<number, string>>(new Map());
+  const [editedResponsibles, setEditedResponsibles] = useState<Map<number, string>>(new Map());
 
-  // Reset edited descriptions when conditions change
+  // Reset edited values when conditions change
   useEffect(() => {
     setEditedDescriptions(new Map());
+    setEditedEtas(new Map());
+    setEditedResponsibles(new Map());
     setSelectedIndices(new Set(conditions.map((_, i) => i)));
   }, [conditions]);
 
@@ -82,8 +89,24 @@ export function InitialApprovalConditionsModal({
     setEditedDescriptions(prev => new Map(prev).set(index, value));
   };
 
+  const handleEtaChange = (index: number, value: string) => {
+    setEditedEtas(prev => new Map(prev).set(index, value));
+  };
+
+  const handleResponsibleChange = (index: number, value: string) => {
+    setEditedResponsibles(prev => new Map(prev).set(index, value));
+  };
+
   const getFinalDescription = (index: number, original: string) => {
     return editedDescriptions.get(index) ?? original;
+  };
+
+  const getFinalEta = (index: number, original?: string) => {
+    return editedEtas.get(index) ?? original ?? '';
+  };
+
+  const getFinalResponsible = (index: number, original?: string) => {
+    return editedResponsibles.get(index) ?? original ?? '';
   };
 
   const handleToggle = (index: number) => {
@@ -106,7 +129,12 @@ export function InitialApprovalConditionsModal({
 
   const handleConfirm = () => {
     const selected = conditions
-      .map((c, i) => ({ ...c, description: getFinalDescription(i, c.description) }))
+      .map((c, i) => ({ 
+        ...c, 
+        description: getFinalDescription(i, c.description),
+        eta: getFinalEta(i, c.eta) || undefined,
+        responsible: getFinalResponsible(i, c.responsible) || undefined
+      }))
       .filter((_, i) => selectedIndices.has(i));
     onConfirm(selected);
   };
@@ -123,7 +151,7 @@ export function InitialApprovalConditionsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -182,7 +210,7 @@ export function InitialApprovalConditionsModal({
         </div>
 
         {/* Conditions List */}
-        <ScrollArea className="flex-1 max-h-[60vh] -mx-6 px-6">
+        <ScrollArea className="flex-1 min-h-0 -mx-6 px-6" style={{ maxHeight: 'calc(90vh - 280px)' }}>
           <div className="space-y-4 py-2">
             {Object.entries(groupedConditions).map(([category, items]) => (
               <div key={category} className="space-y-2">
@@ -202,39 +230,66 @@ export function InitialApprovalConditionsModal({
                     <div
                       key={index}
                       className={cn(
-                        "flex items-start gap-3 p-2 rounded-lg border transition-colors cursor-pointer",
+                        "grid grid-cols-12 gap-2 p-3 rounded-lg border transition-colors",
                         selectedIndices.has(index)
                           ? "bg-primary/5 border-primary/20"
                           : "bg-background hover:bg-muted/50"
                       )}
-                      onClick={() => handleToggle(index)}
                     >
-                      <Checkbox
-                        checked={selectedIndices.has(index)}
-                        onCheckedChange={() => handleToggle(index)}
-                        className="mt-2 shrink-0"
-                      />
-                      <div className="flex-1 min-w-0 space-y-2">
+                      {/* Checkbox */}
+                      <div className="col-span-1 flex items-center justify-center">
+                        <Checkbox
+                          checked={selectedIndices.has(index)}
+                          onCheckedChange={() => handleToggle(index)}
+                        />
+                      </div>
+                      
+                      {/* Description */}
+                      <div className="col-span-5">
                         <Input
                           value={getFinalDescription(index, condition.description)}
                           onChange={(e) => handleDescriptionChange(index, e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
                           className="text-sm"
                           placeholder="Condition description..."
                         />
-                        {(condition.phase || condition.underwriter) && (
-                          <div className="flex items-center gap-2">
-                            {condition.phase && (
-                              <span className="text-xs text-muted-foreground">
-                                Phase: {condition.phase}
-                              </span>
-                            )}
-                            {condition.underwriter && condition.underwriter !== "Unknown" && (
-                              <span className="text-xs text-muted-foreground">
-                                • {condition.underwriter}
-                              </span>
-                            )}
-                          </div>
+                      </div>
+                      
+                      {/* Responsible */}
+                      <div className="col-span-2">
+                        <Select 
+                          value={getFinalResponsible(index, condition.responsible)} 
+                          onValueChange={(value) => handleResponsibleChange(index, value)}
+                        >
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue placeholder="Responsible" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Borrower">Borrower</SelectItem>
+                            <SelectItem value="Lender">Lender</SelectItem>
+                            <SelectItem value="Broker">Broker</SelectItem>
+                            <SelectItem value="Title">Title</SelectItem>
+                            <SelectItem value="Appraiser">Appraiser</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* ETA */}
+                      <div className="col-span-2">
+                        <Input
+                          type="date"
+                          value={getFinalEta(index, condition.eta)}
+                          onChange={(e) => handleEtaChange(index, e.target.value)}
+                          className="text-sm h-9"
+                          placeholder="ETA"
+                        />
+                      </div>
+                      
+                      {/* Phase/Info */}
+                      <div className="col-span-2 flex items-center">
+                        {condition.phase && (
+                          <span className="text-xs text-muted-foreground truncate">
+                            {condition.phase}
+                          </span>
                         )}
                       </div>
                     </div>
