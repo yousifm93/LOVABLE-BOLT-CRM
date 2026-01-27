@@ -4,13 +4,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Building2, Mail, Phone, User, Calendar, Tag, FileText } from "lucide-react";
+import { Building2, Mail, Phone, User, Calendar, Tag, FileText, X, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface ContactDetailDialogProps {
@@ -22,6 +23,7 @@ interface ContactDetailDialogProps {
 
 export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated }: ContactDetailDialogProps) {
   const { toast } = useToast();
+  const [newTag, setNewTag] = useState('');
 
   // Early return AFTER all hooks to prevent null access errors
   if (!contact) {
@@ -52,6 +54,18 @@ export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated
         variant: "destructive",
       });
     }
+  };
+
+  const handleAddTag = async () => {
+    if (!newTag.trim()) return;
+    const updatedTags = [...(contact.tags || []), newTag.trim()];
+    await handleFieldUpdate('tags', updatedTags);
+    setNewTag('');
+  };
+
+  const handleRemoveTag = async (index: number) => {
+    const updatedTags = (contact.tags || []).filter((_: string, i: number) => i !== index);
+    await handleFieldUpdate('tags', updatedTags);
   };
 
   const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || 'Unknown Contact';
@@ -205,32 +219,64 @@ export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated
               </div>
             )}
 
-            {/* Tags Section */}
-            {contact.tags && contact.tags.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  <Tag className="h-4 w-4" />
-                  Tags
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {contact.tags.map((tag: string, index: number) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
+            {/* Editable Tags Section */}
+            <div>
+              <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                Tags
+              </h3>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {(contact.tags || []).length > 0 ? (
+                  (contact.tags || []).map((tag: string, index: number) => (
+                    <Badge key={index} variant="secondary" className="text-xs flex items-center gap-1 pr-1">
                       {tag}
+                      <button 
+                        onClick={() => handleRemoveTag(index)}
+                        className="ml-1 hover:bg-muted rounded-full p-0.5 transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </Badge>
-                  ))}
-                </div>
+                  ))
+                ) : (
+                  <span className="text-sm text-muted-foreground">No tags</span>
+                )}
               </div>
-            )}
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="Add new tag..." 
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                  className="flex-1 h-8 text-sm"
+                />
+                <Button size="sm" onClick={handleAddTag} disabled={!newTag.trim()}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              </div>
+            </div>
 
-            {/* Notes Section */}
+            {/* Contact Source Section - auto-extracted, read-only */}
+            <div>
+              <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Contact Source
+              </h3>
+              <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+                {contact.notes || 'No source information'}
+              </div>
+            </div>
+
+            {/* Notes Section - user-editable */}
             <div>
               <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Notes
               </h3>
               <InlineEditNotes
-                value={contact.notes}
-                onValueChange={(value) => handleFieldUpdate('notes', value)}
+                value={contact.user_notes}
+                onValueChange={(value) => handleFieldUpdate('user_notes', value)}
                 placeholder="Add notes about this contact..."
               />
             </div>

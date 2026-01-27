@@ -1073,6 +1073,7 @@ export type Database = {
           tags: string[] | null
           type: Database["public"]["Enums"]["contact_type"]
           updated_at: string
+          user_notes: string | null
         }
         Insert: {
           approval_status?: string | null
@@ -1092,6 +1093,7 @@ export type Database = {
           tags?: string[] | null
           type: Database["public"]["Enums"]["contact_type"]
           updated_at?: string
+          user_notes?: string | null
         }
         Update: {
           approval_status?: string | null
@@ -1111,6 +1113,7 @@ export type Database = {
           tags?: string[] | null
           type?: Database["public"]["Enums"]["contact_type"]
           updated_at?: string
+          user_notes?: string | null
         }
         Relationships: [
           {

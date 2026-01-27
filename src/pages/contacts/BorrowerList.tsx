@@ -92,6 +92,12 @@ const checkIsDuplicate = (contact: any, allContacts: any[]): boolean => {
   });
 };
 
+// Check if a contact has a valid phone number (10+ digits)
+const hasValidPhone = (contact: any): boolean => {
+  const phone = contact.phone?.replace(/\D/g, '') || '';
+  return phone.length >= 10;
+};
+
 // Build columns dynamically based on activeFilter
 const getColumns = (
   activeFilter: string, 
@@ -99,6 +105,229 @@ const getColumns = (
   onApprove?: (contact: any) => void, 
   onDeny?: (contact: any) => void
 ): ColumnDef<any>[] => {
+  // For Pending Approval tab, use specific column order
+  if (activeFilter === 'Pending Approval') {
+    const columns: ColumnDef<any>[] = [];
+    
+    // Action column first (approve/deny)
+    if (onApprove && onDeny) {
+      columns.push({
+        accessorKey: "actions",
+        header: "Action",
+        cell: ({ row }) => {
+          const contact = row.original;
+          if (contact.source_type !== 'email_import' || contact.approval_status !== 'pending') {
+            return <span className="text-xs text-green-600 font-medium">✓ Approved</span>;
+          }
+          return (
+            <div className="flex gap-1">
+              <button 
+                className="h-6 w-6 p-0 inline-flex items-center justify-center rounded text-green-600 hover:bg-green-50 transition-colors"
+                onClick={(e) => { e.stopPropagation(); onApprove(contact); }}
+                title="Approve contact"
+              >
+                <Check className="h-4 w-4" />
+              </button>
+              <button 
+                className="h-6 w-6 p-0 inline-flex items-center justify-center rounded text-red-600 hover:bg-red-50 transition-colors"
+                onClick={(e) => { e.stopPropagation(); onDeny(contact); }}
+                title="Remove contact"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          );
+        },
+      });
+    }
+    
+    // Contact Name (centered header)
+    columns.push({
+      accessorKey: "name",
+      header: "Contact Name",
+      headerClassName: "text-center",
+      cell: ({ row }) => {
+        const contact = row.original;
+        const fullName = contact.person ? 
+          `${contact.person.firstName} ${contact.person.lastName}` :
+          `${contact.first_name} ${contact.last_name}`;
+        const subtitle = contact.job_title || 
+          (contact.source_type === 'email_import' ? 'Email' : contact.type);
+        
+        return (
+          <div className="pl-2">
+            <div className="font-medium">{fullName}</div>
+            <div className="text-sm text-muted-foreground">{subtitle}</div>
+          </div>
+        );
+      },
+      sortable: true,
+    });
+    
+    // Created On
+    columns.push({
+      accessorKey: "created_at",
+      header: "Created On",
+      cell: ({ row }) => {
+        const date = row.original.created_at;
+        if (!date) return <span className="text-sm">—</span>;
+        const d = new Date(date);
+        const month = d.toLocaleDateString('en-US', { month: 'short' });
+        const day = d.getDate();
+        const time = d.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+        return (
+          <div className="text-sm">
+            <div>{month} {day}</div>
+            <div className="text-muted-foreground text-xs">{time}</div>
+          </div>
+        );
+      },
+      sortable: true,
+    });
+    
+    // Email
+    columns.push({
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => {
+        const email = row.original.person?.email || row.original.email;
+        return (
+          <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+            <Mail className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{email || "—"}</span>
+          </div>
+        );
+      },
+    });
+    
+    // Phone
+    columns.push({
+      accessorKey: "phone",
+      header: "Phone",
+      cell: ({ row }) => {
+        const phone = row.original.person?.phoneMobile || row.original.phone;
+        return (
+          <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+            <Phone className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{formatPhoneNumber(phone)}</span>
+          </div>
+        );
+      },
+    });
+    
+    // Company
+    columns.push({
+      accessorKey: "company",
+      header: "Company",
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.company || "—"}</span>
+      ),
+      sortable: true,
+    });
+    
+    // Job Title
+    columns.push({
+      accessorKey: "job_title",
+      header: "Job Title",
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.job_title || "—"}</span>
+      ),
+      sortable: true,
+    });
+    
+    // Duplicate?
+    columns.push({
+      accessorKey: "is_duplicate",
+      header: "Duplicate?",
+      cell: ({ row }) => {
+        const isDuplicate = checkIsDuplicate(row.original, allContacts);
+        return (
+          <span className={`text-sm font-medium ${isDuplicate ? "text-destructive" : "text-muted-foreground"}`}>
+            {isDuplicate ? "Yes" : "No"}
+          </span>
+        );
+      },
+    });
+    
+    // Last Associated File
+    columns.push({
+      accessorKey: "associated_lead",
+      header: "Last Associated File",
+      cell: ({ row }) => {
+        const leadName = row.original.associated_lead_name;
+        return (
+          <span className="text-sm">{leadName || "—"}</span>
+        );
+      },
+    });
+    
+    // Tags
+    columns.push({
+      accessorKey: "tags",
+      header: "Tags",
+      cell: ({ row }) => (
+        <div className="flex flex-wrap gap-1">
+          {row.original.tags?.slice(0, 2).map((tag: string, index: number) => (
+            <span
+              key={index}
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-accent/20 text-accent-foreground"
+            >
+              {tag}
+            </span>
+          ))}
+          {(row.original.tags?.length || 0) > 2 && (
+            <span className="text-xs text-muted-foreground">
+              +{(row.original.tags?.length || 0) - 2} more
+            </span>
+          )}
+        </div>
+      ),
+    });
+    
+    // Description
+    columns.push({
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground truncate max-w-[250px]">
+          {row.original.description || "—"}
+        </div>
+      ),
+    });
+    
+    // Notes (user_notes)
+    columns.push({
+      accessorKey: "user_notes",
+      header: "Notes",
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+          {row.original.user_notes ? (
+            <span className="flex items-center gap-1">
+              <FileText className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{row.original.user_notes}</span>
+            </span>
+          ) : "—"}
+        </div>
+      ),
+    });
+    
+    // Source Email (at end)
+    columns.push({
+      accessorKey: "source",
+      header: "Source Email",
+      cell: ({ row }) => (
+        <span className="text-sm">{getSourceDisplayName(row.original.source, row.original.type, row.original.source_type)}</span>
+      ),
+      sortable: true,
+    });
+    
+    return columns;
+  }
+
   const baseColumns: ColumnDef<any>[] = [
     {
       accessorKey: "name",
@@ -257,8 +486,8 @@ const getColumns = (
     },
   ];
 
-  // Add "Duplicate?" column for "Other" and "From Emails" tabs - insert between Notes and Description
-  if (activeFilter === 'Other' || activeFilter === 'From Emails') {
+  // Add "Duplicate?" column for "Other" tab
+  if (activeFilter === 'Other') {
     const duplicateColumn: ColumnDef<any> = {
       accessorKey: "is_duplicate",
       header: "Duplicate?",
@@ -271,48 +500,11 @@ const getColumns = (
         );
       },
     };
-    // Find index of notes column and insert after it (between Notes and Description)
+    // Find index of notes column and insert after it
     const notesIndex = baseColumns.findIndex(col => col.accessorKey === 'notes');
-    let columnsWithDuplicate = notesIndex !== -1 
+    return notesIndex !== -1 
       ? [...baseColumns.slice(0, notesIndex + 1), duplicateColumn, ...baseColumns.slice(notesIndex + 1)]
       : [...baseColumns.slice(0, 4), duplicateColumn, ...baseColumns.slice(4)];
-    
-    // Add Action column for "From Emails" tab with approve/deny buttons
-    if (activeFilter === 'From Emails' && onApprove && onDeny) {
-      const actionColumn: ColumnDef<any> = {
-        accessorKey: "actions",
-        header: "Action",
-        cell: ({ row }) => {
-          const contact = row.original;
-          // Only show buttons for pending email-imported contacts
-          if (contact.source_type !== 'email_import' || contact.approval_status !== 'pending') {
-            return <span className="text-xs text-green-600 font-medium">✓ Approved</span>;
-          }
-          return (
-            <div className="flex gap-1">
-              <button 
-                className="h-6 w-6 p-0 inline-flex items-center justify-center rounded text-green-600 hover:bg-green-50 transition-colors"
-                onClick={(e) => { e.stopPropagation(); onApprove(contact); }}
-                title="Approve contact"
-              >
-                <Check className="h-4 w-4" />
-              </button>
-              <button 
-                className="h-6 w-6 p-0 inline-flex items-center justify-center rounded text-red-600 hover:bg-red-50 transition-colors"
-                onClick={(e) => { e.stopPropagation(); onDeny(contact); }}
-                title="Remove contact"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          );
-        },
-      };
-      // Insert action column at the beginning
-      columnsWithDuplicate = [actionColumn, ...columnsWithDuplicate];
-    }
-    
-    return columnsWithDuplicate;
   }
 
   return baseColumns;
@@ -348,6 +540,10 @@ export default function BorrowerList() {
   const [pendingExpanded, setPendingExpanded] = useState(false);
   const [recentExpanded, setRecentExpanded] = useState(false);
   const [allExpanded, setAllExpanded] = useState(false);
+  
+  // Sub-section states for pending approval
+  const [pendingWithPhoneExpanded, setPendingWithPhoneExpanded] = useState(true);
+  const [pendingEmailOnlyExpanded, setPendingEmailOnlyExpanded] = useState(false);
 
   useEffect(() => {
     loadContacts();
@@ -579,8 +775,8 @@ export default function BorrowerList() {
 
   const getFilteredContacts = () => {
     if (activeFilter === 'All') return contacts;
-    if (activeFilter === 'From Emails') {
-      return contacts.filter(c => c.source_type === 'email_import');
+    if (activeFilter === 'Pending Approval') {
+      return contacts.filter(c => c.approval_status === 'pending');
     }
     return contacts.filter(c => c.type === activeFilter);
   };
@@ -593,6 +789,10 @@ export default function BorrowerList() {
   
   // Pending approval contacts (from email imports)
   const pendingContacts = filteredContacts.filter(c => c.approval_status === 'pending');
+  
+  // Split pending into two groups: with phone and email only
+  const pendingWithPhone = pendingContacts.filter(hasValidPhone);
+  const pendingEmailOnly = pendingContacts.filter(c => !hasValidPhone(c));
   
   // Recently added (approved contacts from last 7 days)
   const recentContacts = filteredContacts.filter(c => {
@@ -611,8 +811,8 @@ export default function BorrowerList() {
   const borrowerCount = contacts.filter((c: any) => c.type === 'Borrower').length;
   const agentCount = contacts.filter((c: any) => c.type === 'Agent').length;
   const lenderCount = contacts.filter((c: any) => c.type === 'Lender').length;
-  const fromEmailsCount = contacts.filter((c: any) => c.source_type === 'email_import').length;
-  const otherCount = contacts.filter((c: any) => !['Borrower', 'Agent', 'Lender'].includes(c.type) && c.source_type !== 'email_import').length;
+  const pendingApprovalCount = contacts.filter((c: any) => c.approval_status === 'pending').length;
+  const otherCount = contacts.filter((c: any) => !['Borrower', 'Agent', 'Lender'].includes(c.type) && c.approval_status !== 'pending').length;
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
@@ -677,7 +877,7 @@ export default function BorrowerList() {
         <CardHeader>
           <CardTitle>All Contacts</CardTitle>
           <div className="flex gap-2 mb-4 flex-wrap">
-            {['All', 'Borrower', 'Agent', 'Lender', 'From Emails', 'Other'].map(filter => (
+            {['All', 'Borrower', 'Agent', 'Lender', 'Pending Approval', 'Other'].map(filter => (
               <Button
                 key={filter}
                 variant={activeFilter === filter ? 'default' : 'outline'}
@@ -689,7 +889,7 @@ export default function BorrowerList() {
                 {filter === 'Borrower' && ` (${borrowerCount})`}
                 {filter === 'Agent' && ` (${agentCount})`}
                 {filter === 'Lender' && ` (${lenderCount})`}
-                {filter === 'From Emails' && ` (${fromEmailsCount})`}
+                {filter === 'Pending Approval' && ` (${pendingApprovalCount})`}
                 {filter === 'Other' && ` (${otherCount})`}
               </Button>
             ))}
@@ -733,7 +933,7 @@ export default function BorrowerList() {
             </div>
           )}
 
-          {/* Pending Approval Section */}
+          {/* Pending Approval Section with sub-groups */}
           {pendingContacts.length > 0 && (
             <Collapsible open={pendingExpanded} onOpenChange={setPendingExpanded}>
               <CollapsibleTrigger asChild>
@@ -745,21 +945,71 @@ export default function BorrowerList() {
                   </Badge>
                 </div>
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2">
-                <DataTable
-                  columns={getColumns(activeFilter, contacts, handleApproveContact, handleDenyContact)}
-                  data={pendingContacts}
-                  searchTerm={searchTerm}
-                  onRowClick={handleRowClick}
-                  onViewDetails={handleViewDetails}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  selectable={true}
-                  selectedIds={selectedContactIds}
-                  onSelectionChange={setSelectedContactIds}
-                  getRowId={(row) => row.source_id || row.id}
-                  showRowNumbers={true}
-                />
+              <CollapsibleContent className="mt-2 ml-4 space-y-3">
+                {/* With Phone Number - Priority group */}
+                {pendingWithPhone.length > 0 && (
+                  <Collapsible open={pendingWithPhoneExpanded} onOpenChange={setPendingWithPhoneExpanded}>
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors">
+                        {pendingWithPhoneExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        <span className="font-medium">With Phone Number</span>
+                        <Badge variant="default" className="ml-1 bg-green-600">
+                          {pendingWithPhone.length}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                          Priority
+                        </Badge>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2">
+                      <DataTable
+                        columns={getColumns('Pending Approval', contacts, handleApproveContact, handleDenyContact)}
+                        data={pendingWithPhone}
+                        searchTerm={searchTerm}
+                        onRowClick={handleRowClick}
+                        onViewDetails={handleViewDetails}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        selectable={true}
+                        selectedIds={selectedContactIds}
+                        onSelectionChange={setSelectedContactIds}
+                        getRowId={(row) => row.source_id || row.id}
+                        showRowNumbers={true}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+                
+                {/* Email Only - Secondary group */}
+                {pendingEmailOnly.length > 0 && (
+                  <Collapsible open={pendingEmailOnlyExpanded} onOpenChange={setPendingEmailOnlyExpanded}>
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors">
+                        {pendingEmailOnlyExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        <span className="font-medium">Email Only</span>
+                        <Badge variant="secondary" className="ml-1">
+                          {pendingEmailOnly.length}
+                        </Badge>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2">
+                      <DataTable
+                        columns={getColumns('Pending Approval', contacts, handleApproveContact, handleDenyContact)}
+                        data={pendingEmailOnly}
+                        searchTerm={searchTerm}
+                        onRowClick={handleRowClick}
+                        onViewDetails={handleViewDetails}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        selectable={true}
+                        selectedIds={selectedContactIds}
+                        onSelectionChange={setSelectedContactIds}
+                        getRowId={(row) => row.source_id || row.id}
+                        showRowNumbers={true}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
               </CollapsibleContent>
             </Collapsible>
           )}
