@@ -1,194 +1,253 @@
 
-# Plan: CRM Update Suggestions - Active Pipeline Filter, Date Formatting & CD Logic Fixes
+# Plan: Master Contact List Improvements
 
 ## Overview
-Fix four issues with the CRM Update Suggestions feature:
-1. Only generate suggestions for Active pipeline leads
-2. Format dates/times in human-readable format (e.g., "Wednesday, January 28, 2026, 10:30 AM EST")
-3. Fix timezone handling so times don't shift when approved
-4. Tighten CD status logic to require explicit verbiage
+Enhance the Master Contact List with several improvements to the pending approval workflow, contact detail dialog, and column organization.
 
 ---
 
-## Issue 1: Active Pipeline Filter
+## Summary of Changes
 
-### Current Behavior
-- Email field suggestions are generated for ANY lead that matches an inbound email
-- Non-Active leads (Screening, Pre-Qualified, etc.) get suggestions that clutter the modal
+| Area | Change |
+|------|--------|
+| Tab Naming | Rename "From Emails" tab to "Pending Approval" |
+| Pending Section | Split into two sub-groups: "With Phone Number" (priority) and "Email Only" |
+| Column Order | Reorganize columns for better workflow |
+| Column Header | Center "Contact Name" header text |
+| Contact Dialog | Add editable Tags section with ability to add custom tags |
+| Contact Dialog | Rename "Notes" to "Contact Source" (for auto-extracted info) |
+| Contact Dialog | Add new editable "Notes" section for manual notes |
+| Database | Add new `user_notes` column to store manual notes separately from auto-extracted notes |
 
-### Solution
-Add a pipeline stage check in `inbound-email-webhook/index.ts` before calling the field update parser.
+---
 
-### File: `supabase/functions/inbound-email-webhook/index.ts`
+## Detailed Implementation
 
-**Changes at line ~750:**
+### 1. Rename "From Emails" Tab to "Pending Approval"
+
+**File:** `src/pages/contacts/BorrowerList.tsx`
+
+Change the filter button array from `'From Emails'` to `'Pending Approval'`:
 ```typescript
-// Fetch current lead data for context - include pipeline_stage_id to filter
-const { data: leadData } = await supabase
-  .from('leads')
-  .select('pipeline_stage_id, loan_status, appraisal_status, ...')
-  .eq('id', leadId)
-  .single();
+// Line 680 - Update filter options
+{['All', 'Borrower', 'Agent', 'Lender', 'Pending Approval', 'Other'].map(filter => (
+```
 
-// ONLY generate suggestions for Active pipeline leads
-const ACTIVE_PIPELINE_ID = '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
-if (!leadData || leadData.pipeline_stage_id !== ACTIVE_PIPELINE_ID) {
-  console.log('[Inbound Email Webhook] Skipping field suggestions - lead not in Active pipeline');
-} else {
-  // ... existing field update logic
+Update the count display and filter logic to use `'Pending Approval'` instead of `'From Emails'`:
+- Update `fromEmailsCount` to `pendingApprovalCount`
+- Filter contacts with `approval_status === 'pending'` instead of just `source_type === 'email_import'`
+
+---
+
+### 2. Split Pending Approval into Two Sub-Groups
+
+**File:** `src/pages/contacts/BorrowerList.tsx`
+
+Within the "Pending Approval" collapsible section, create two nested sub-sections:
+
+```text
+v Pending Approval (32)
+    v With Phone Number (12)  <- Priority group, shown first
+        [Table with contacts that have both email AND phone]
+    v Email Only (20)
+        [Table with contacts that have email but NO phone]
+```
+
+**Logic:**
+```typescript
+// Split pending contacts into two groups
+const pendingWithPhone = pendingContacts.filter(c => {
+  const phone = c.phone?.replace(/\D/g, '') || '';
+  return phone.length >= 10;
+});
+
+const pendingEmailOnly = pendingContacts.filter(c => {
+  const phone = c.phone?.replace(/\D/g, '') || '';
+  return phone.length < 10;
+});
+```
+
+Both sub-groups will be collapsible, with "With Phone Number" expanded by default and "Email Only" collapsed.
+
+---
+
+### 3. Reorganize Column Order
+
+**File:** `src/pages/contacts/BorrowerList.tsx`
+
+New column order for the "Pending Approval" (formerly "From Emails") tab:
+1. **Action** (approve/deny buttons)
+2. **#** (row number)
+3. **Contact Name** (centered header)
+4. **Created On**
+5. **Email**
+6. **Phone**
+7. **Company**
+8. **Job Title**
+9. **Duplicate?**
+10. **Last Associated File**
+11. **Tags**
+12. **Description**
+13. **Notes**
+14. **Source Email** (moved to end - could show the email log reference)
+
+Update `getColumns` function to:
+- Reorder columns as specified
+- Center the "Contact Name" header using `headerClassName: "text-center"`
+- Move Source column to the end when in Pending Approval view
+
+---
+
+### 4. Center "Contact Name" Column Header
+
+**File:** `src/pages/contacts/BorrowerList.tsx`
+
+Update the name column definition:
+```typescript
+{
+  accessorKey: "name",
+  header: "Contact Name",
+  headerClassName: "text-center",  // Add centering
+  cell: ({ row }) => {
+    // ... existing cell content
+  },
 }
 ```
 
 ---
 
-## Issue 2: Human-Readable Date/Time Formatting
+### 5. Add Editable Tags Section to Contact Dialog
 
-### Current Behavior
-- Dates display as ISO strings: `2026-01-19T11:30:00` → `2026-01-28T10:30:00`
-- Confusing and hard to read
+**File:** `src/components/ContactDetailDialog.tsx`
 
-### Solution
-Update the modal to format datetime values in a friendly format.
+Create a new inline tag editor component that allows:
+- Viewing existing tags
+- Adding new custom tags (text input + Add button)
+- Removing tags (X button on each tag badge)
 
-### File: `src/components/modals/EmailFieldSuggestionsModal.tsx`
-
-**Add helper function:**
 ```typescript
-// Format datetime for display (e.g., "Wednesday, January 28, 2026, 10:30 AM EST")
-const formatAppraisalDateTime = (value: string | null): string => {
-  if (!value) return 'Empty';
-  
-  // If it looks like an ISO datetime
-  if (value.includes('T') || value.match(/^\d{4}-\d{2}-\d{2}/)) {
-    try {
-      const date = new Date(value);
-      if (!isNaN(date.getTime())) {
-        return date.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-          timeZoneName: 'short'
-        });
-      }
-    } catch {
-      // Fall through to return raw value
-    }
-  }
-  return value;
+// New Tags section with add functionality
+<div>
+  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+    <Tag className="h-4 w-4" />
+    Tags
+  </h3>
+  <div className="flex flex-wrap gap-2 mb-2">
+    {(contact.tags || []).map((tag: string, index: number) => (
+      <Badge key={index} variant="secondary" className="text-xs flex items-center gap-1">
+        {tag}
+        <button onClick={() => handleRemoveTag(index)}>
+          <X className="h-3 w-3" />
+        </button>
+      </Badge>
+    ))}
+  </div>
+  <div className="flex gap-2">
+    <Input 
+      placeholder="Add new tag..." 
+      value={newTag}
+      onChange={(e) => setNewTag(e.target.value)}
+      onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+    />
+    <Button size="sm" onClick={handleAddTag}>Add</Button>
+  </div>
+</div>
+```
+
+**Handler functions:**
+```typescript
+const handleAddTag = async () => {
+  if (!newTag.trim()) return;
+  const updatedTags = [...(contact.tags || []), newTag.trim()];
+  await handleFieldUpdate('tags', updatedTags);
+  setNewTag('');
+};
+
+const handleRemoveTag = async (index: number) => {
+  const updatedTags = (contact.tags || []).filter((_, i) => i !== index);
+  await handleFieldUpdate('tags', updatedTags);
 };
 ```
 
-**Update the display logic (around line 169-174):**
-```typescript
-// Check if this is a datetime field
-const isDateTimeField = suggestion.field_name === 'appr_date_time';
-
-<span className="text-muted-foreground truncate max-w-[150px]">
-  {isDateTimeField 
-    ? formatAppraisalDateTime(suggestion.current_value)
-    : (suggestion.current_value || 'Empty')}
-</span>
-<ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-<span className="font-medium text-primary truncate max-w-[200px]">
-  {isDateTimeField 
-    ? formatAppraisalDateTime(suggestion.suggested_value)
-    : suggestion.suggested_value}
-</span>
-```
-
 ---
 
-## Issue 3: Timezone Fix for Appraisal Date/Time
+### 6. Rename "Notes" to "Contact Source" and Add Separate "Notes" Field
 
-### Current Behavior
-- When a datetime like `2026-01-28T10:30:00` is approved, it gets saved incorrectly
-- The time shifts (e.g., 10:30 AM EST becomes 5:00 AM because it's interpreted as UTC)
+**Database Migration:**
+Add a new column `user_notes` to the contacts table to store manual user notes, separate from the auto-extracted `notes` field:
 
-### Solution
-Update the approval logic in `useEmailSuggestions.tsx` to handle datetime fields specially - preserve the time as-is without timezone conversion.
-
-### File: `src/hooks/useEmailSuggestions.tsx`
-
-**Update `approveSuggestion` function (around line 110):**
-```typescript
-let actualValue = suggestion.suggested_value;
-
-// Handle datetime fields - ensure time is stored correctly without UTC shift
-// If this is a datetime field and value doesn't have timezone, treat as local Eastern time
-if (suggestion.field_name === 'appr_date_time') {
-  // Store the value as-is (the AI already parsed it to ISO format)
-  // The database column is timestamptz, so we need to indicate the timezone
-  // If no timezone in the value, append Eastern timezone offset
-  if (!actualValue.includes('+') && !actualValue.includes('Z') && !actualValue.includes('-', 10)) {
-    // Append Eastern timezone (EST = -05:00, but during daylight saving EDT = -04:00)
-    // For simplicity, assume EST (-05:00) 
-    actualValue = actualValue + '-05:00';
-  }
-  console.log(`[useEmailSuggestions] Datetime field adjusted to: ${actualValue}`);
-}
-```
-
----
-
-## Issue 4: Stricter CD Status Logic
-
-### Current Behavior
-- AI is suggesting CD status → "Requested" based on vague email context
-- Example: "We are missing these conditions" incorrectly triggers CD status change
-
-### Solution
-Update the AI system prompt in `parse-email-field-updates/index.ts` to require explicit verbiage for CD status changes.
-
-### File: `supabase/functions/parse-email-field-updates/index.ts`
-
-**Add new rule in the system prompt (around line 308):**
-```text
-17. **CD STATUS - EXPLICIT VERBIAGE REQUIRED**:
-    - **cd_status → "Requested"**: ONLY suggest this if the email explicitly contains phrases like:
-      - "Please prepare the initial closing disclosure"
-      - "CD has been requested"
-      - "Need the closing disclosure"
-      - "Requesting initial CD"
-      - "Please send CD"
-    - Do NOT suggest "Requested" based on:
-      - "Missing conditions" emails (these are about underwriting conditions, not CD)
-      - General status update emails
-      - Lock confirmation emails (unless they explicitly request a CD)
-    - **cd_status → "Sent"**: Only if email explicitly says "CD sent", "Closing Disclosure has been sent"
-    - **cd_status → "Signed"**: Only if email explicitly says "CD signed", "Closing Disclosure signed"
-    - When in doubt, do NOT suggest cd_status changes
-```
-
----
-
-## Issue 5: Reprocess Pending Suggestions
-
-### Approach
-After the above fixes are deployed, we have two options:
-
-**Option A (Recommended)**: Delete/deny the current pending suggestions that don't meet criteria
-- Query `email_field_suggestions` for pending entries where the lead is not in Active pipeline
-- Bulk deny those suggestions with notes "Auto-denied: Lead not in Active pipeline"
-
-**Option B**: Clean up via SQL
-After deployment, run a cleanup query:
 ```sql
-UPDATE email_field_suggestions 
-SET status = 'denied', 
-    notes = 'Auto-denied: Lead not in Active pipeline',
-    reviewed_at = NOW()
-WHERE status = 'pending' 
-AND lead_id NOT IN (
-  SELECT id FROM leads 
-  WHERE pipeline_stage_id = '76eb2e82-e1d9-4f2d-a57d-2120a25696db'
-);
+ALTER TABLE contacts ADD COLUMN user_notes TEXT;
 ```
 
-For the CD status suggestions that were created with weak reasoning, we'll leave those for manual review since the new logic only affects future suggestions.
+**File:** `src/components/ContactDetailDialog.tsx`
+
+Rename the existing "Notes" section to "Contact Source" and make it read-only (for auto-extracted info):
+
+```typescript
+{/* Contact Source Section - auto-extracted, read-only */}
+<div>
+  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+    <FileText className="h-4 w-4" />
+    Contact Source
+  </h3>
+  <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+    {contact.notes || 'No source information'}
+  </div>
+</div>
+
+{/* Notes Section - user-editable */}
+<div>
+  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+    <FileText className="h-4 w-4" />
+    Notes
+  </h3>
+  <InlineEditNotes
+    value={contact.user_notes}
+    onValueChange={(value) => handleFieldUpdate('user_notes', value)}
+    placeholder="Add notes about this contact..."
+  />
+</div>
+```
+
+---
+
+### 7. Update Column Definitions for New Layout
+
+**File:** `src/pages/contacts/BorrowerList.tsx`
+
+Create a specialized `getPendingApprovalColumns` function with the exact column order:
+
+```typescript
+const getPendingApprovalColumns = (allContacts: any[], onApprove, onDeny): ColumnDef<any>[] => [
+  // Action column (approve/deny)
+  { accessorKey: "actions", header: "Action", ... },
+  // Contact Name (centered)
+  { accessorKey: "name", header: "Contact Name", headerClassName: "text-center", ... },
+  // Created On
+  { accessorKey: "created_at", header: "Created On", ... },
+  // Email
+  { accessorKey: "email", header: "Email", ... },
+  // Phone
+  { accessorKey: "phone", header: "Phone", ... },
+  // Company
+  { accessorKey: "company", header: "Company", ... },
+  // Job Title
+  { accessorKey: "job_title", header: "Job Title", ... },
+  // Duplicate?
+  { accessorKey: "is_duplicate", header: "Duplicate?", ... },
+  // Last Associated File
+  { accessorKey: "associated_lead", header: "Last Associated File", ... },
+  // Tags
+  { accessorKey: "tags", header: "Tags", ... },
+  // Description
+  { accessorKey: "description", header: "Description", ... },
+  // Notes (user notes)
+  { accessorKey: "user_notes", header: "Notes", ... },
+  // Source Email (at end) - could link to the email_log
+  { accessorKey: "source_email", header: "Source Email", ... },
+];
+```
 
 ---
 
@@ -196,45 +255,51 @@ For the CD status suggestions that were created with weak reasoning, we'll leave
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/inbound-email-webhook/index.ts` | Add Active pipeline filter before generating suggestions |
-| `supabase/functions/parse-email-field-updates/index.ts` | Add stricter CD status verbiage requirement to AI prompt |
-| `src/components/modals/EmailFieldSuggestionsModal.tsx` | Add datetime formatting helper, format appr_date_time values nicely |
-| `src/hooks/useEmailSuggestions.tsx` | Fix timezone handling for datetime field approvals |
+| `src/pages/contacts/BorrowerList.tsx` | Rename tab, split pending section, reorder columns, center header |
+| `src/components/ContactDetailDialog.tsx` | Add editable tags, rename Notes to Contact Source, add user_notes field |
+| Database migration | Add `user_notes` column to contacts table |
 
 ---
 
-## Technical Details
+## Visual Representation
 
-### Active Pipeline Stage ID
-The Active pipeline stage has ID: `76eb2e82-e1d9-4f2d-a57d-2120a25696db`
+### Pending Approval Section (New Structure)
+```text
+v Pending Approval (32)
+  |
+  +-- v With Phone Number (12)  [Badge: green, "Priority"]
+  |     [DataTable with contacts that have phone numbers]
+  |
+  +-- > Email Only (20)  [Collapsed by default]
+        [DataTable with contacts without phone numbers]
+```
 
-### Datetime Format Examples
-- **Before**: `2026-01-28T10:30:00`
-- **After**: `Wednesday, January 28, 2026, 10:30 AM EST`
+### Contact Detail Dialog (New Layout)
+```text
++----------------------------------+
+| Avatar | Name                     |
+|        | Company | Badge: Contact |
++----------------------------------+
+| First Name     | Last Name        |
+| Email          | Phone            |
+| Company        | Job Title        |
+| Created Date   | Last Contact     |
+| Duplicate?     | Last Assoc. File |
++----------------------------------+
+| Description (if exists)          |
++----------------------------------+
+| Tags                             |
+| [Tag1] [Tag2] [+Add new tag]     |
++----------------------------------+
+| Contact Source                   |
+| "Extracted from email: ..."      |
++----------------------------------+
+| Notes                            |
+| [Editable text area]             |
++----------------------------------+
+```
 
-### Timezone Handling
-- AI parses times as local Eastern time
-- When storing to database, we'll append `-05:00` (EST) to preserve the intended time
-- This ensures 10:30 AM in the email becomes 10:30 AM in the CRM
-
----
-
-## Expected Outcome
-
-1. **Active Pipeline Only**: Only leads currently in the Active pipeline will generate CRM update suggestions
-2. **Readable Dates**: Appraisal date/times display as "Wednesday, January 28, 2026, 10:30 AM EST"
-3. **Correct Times**: When approved, the time will be saved correctly (10:30 AM stays 10:30 AM)
-4. **Stricter CD Logic**: CD status will only be suggested with explicit verbiage like "please prepare the CD"
-5. **Clean Suggestions**: After cleanup, only valid Active pipeline suggestions remain
-
----
-
-## After Implementation
-
-Once deployed, the current 7 pending suggestions will be re-evaluated:
-- Jackeline Londono appraisal date/time: Will display nicely and save correctly when approved
-- Cullen Mahoney appraisal value: No change needed (currency field)
-- Cullen Mahoney CD status: Should be manually denied since the reasoning was weak ("missing conditions" ≠ CD requested)
-- Rakesh Lakkimsetty appraisal date/time: Will display nicely
-
-The Claudia Schumann suggestion (from a non-Active lead) will no longer appear because of the pipeline filter on future emails.
+### Column Order for Pending Approval Tab
+```text
+| Action | # | Contact Name | Created On | Email | Phone | Company | Job Title | Duplicate? | Last Assoc. File | Tags | Description | Notes | Source Email |
+```
