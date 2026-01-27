@@ -737,10 +737,13 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
     
     setUploading(true);
     try {
-      const filePath = `activity-attachments/${leadId}/${Date.now()}_${file.name}`;
+      // Add random suffix to prevent duplicate key errors from concurrent uploads
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filePath = `activity-attachments/${leadId}/${Date.now()}_${randomSuffix}_${sanitizedFileName}`;
       const { data, error } = await supabase.storage
         .from('documents')
-        .upload(filePath, file);
+        .upload(filePath, file, { upsert: true });
       
       if (error) throw error;
       
