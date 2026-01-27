@@ -542,6 +542,7 @@ export function ClientDetailDrawer({
           lead_id: activity.lead_id || leadId,
           to_email: activity.to_email,
           ai_summary: activity.ai_summary,
+          attachment_url: activity.attachment_url,
         };
       });
       setActivities(transformedActivities);

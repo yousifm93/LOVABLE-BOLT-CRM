@@ -737,21 +737,15 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
     
     setUploading(true);
     try {
-      // Add random suffix to prevent duplicate key errors from concurrent uploads
-      const randomSuffix = Math.random().toString(36).substring(2, 8);
-      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const filePath = `activity-attachments/${leadId}/${Date.now()}_${randomSuffix}_${sanitizedFileName}`;
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .upload(filePath, file, { upsert: true });
+      // Upload to storage and create documents record so it appears in Documents section
+      const document = await databaseService.uploadLeadDocument(leadId, file, {
+        source: 'Manual',
+        title: `Note Attachment: ${file.name}`,
+      });
       
-      if (error) throw error;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(data.path);
-      
-      setAttachmentUrl(publicUrl);
+      // Use the storage path (file_url) for the note attachment
+      // This will be resolved to a signed URL when displaying
+      setAttachmentUrl(document.file_url);
       toast({ title: "Image Uploaded", description: "Attachment ready to save with note." });
     } catch (error) {
       console.error('Error uploading file:', error);
