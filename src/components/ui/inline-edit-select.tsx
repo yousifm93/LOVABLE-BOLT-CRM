@@ -94,7 +94,7 @@ export function InlineEditSelect({
         </DropdownMenuTrigger>
         <DropdownMenuContent 
           align="start" 
-          className={cn("bg-background border border-border shadow-lg z-50", fixedWidth)}
+          className={cn("bg-background border border-border shadow-lg z-[100]", fixedWidth)}
         >
           {/* Clear option at top */}
           {showClearOption && hasValue && (
@@ -145,7 +145,7 @@ export function InlineEditSelect({
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[120px] max-h-60 overflow-y-auto bg-popover border z-50">
+      <DropdownMenuContent align="start" className="min-w-[120px] max-h-60 overflow-y-auto bg-popover border z-[100]">
         {/* Clear option at top */}
         {showClearOption && hasValue && (
           <DropdownMenuItem
