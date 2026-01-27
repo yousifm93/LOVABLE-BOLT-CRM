@@ -66,11 +66,20 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
   const { toast } = useToast();
   const { user } = useAuth();
 
+  const { crmUser } = useAuth();
+
   useEffect(() => {
     if (open) {
       loadData();
+      // Set default teammate_assigned to current logged-in user
+      if (crmUser?.id) {
+        setFormData(prev => ({
+          ...prev,
+          teammate_assigned: crmUser.id
+        }));
+      }
     }
-  }, [open]);
+  }, [open, crmUser?.id]);
 
   const loadData = async () => {
     try {
@@ -436,7 +445,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
           buyer_agent_id: formData.buyer_agent_id,
           task_eta: `${formData.task_eta.getFullYear()}-${String(formData.task_eta.getMonth() + 1).padStart(2, '0')}-${String(formData.task_eta.getDate()).padStart(2, '0')}`,
           status: 'Working on it',
-          teammate_assigned: formData.teammate_assigned || 'b06a12ea-00b9-4725-b368-e8a416d4028d',
+          teammate_assigned: formData.teammate_assigned || crmUser?.id || 'b06a12ea-00b9-4725-b368-e8a416d4028d',
           referred_via: formData.referred_via === 'none' ? null : formData.referred_via,
           referral_source: formData.source === 'none' ? null : formData.source,
           interest_rate: 7.0,

@@ -1555,7 +1555,9 @@ export function ClientDetailDrawer({
       }
 
       // If moving to Active, also update the pipeline_section to Incoming and always set loan_status to NEW
-      if (normalizedLabel === 'Active') {
+      // Use both label and UUID to ensure reliable detection
+      const isActiveStage = normalizedLabel.toLowerCase() === 'active' || stageId === '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
+      if (isActiveStage) {
         updateData.pipeline_section = 'Incoming';
         // Always set NEW loan_status when moving to Active stage (triggers task automations)
         updateData.loan_status = 'NEW';

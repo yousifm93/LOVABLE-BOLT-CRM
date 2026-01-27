@@ -511,14 +511,17 @@ export default function FeedbackReview() {
           <TabsContent key={member.id} value={member.id} className="space-y-6">
             {getUserFeedback(member.id).length === 0 ? (<Card><CardContent className="py-8 text-center text-muted-foreground">No feedback submitted by {member.first_name} yet.</CardContent></Card>) : (
               getUserFeedback(member.id).map((fb) => {
-                // Pending items exclude complete, idea, AND pending_user_review
-                const pendingItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => {
+                // Group items by status:
+                // 1. Open (top) = pending + needs_help + idea (ideas that still need work are considered open)
+                const openItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => {
                   const status = getItemStatus(fb.id, index);
-                  return status !== 'complete' && status !== 'idea' && status !== 'pending_user_review';
+                  return status === 'pending' || status === 'needs_help' || status === 'idea';
                 });
-                const completedItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(fb.id, index) === 'complete');
-                const ideaItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(fb.id, index) === 'idea');
+                // 2. Pending User Review (middle)
                 const pendingReviewItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(fb.id, index) === 'pending_user_review');
+                // 3. Complete (bottom)
+                const completedItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(fb.id, index) === 'complete');
+                
                 const isExpanded = expandedSections[fb.id] ?? true;
 
                 return (
@@ -531,7 +534,7 @@ export default function FeedbackReview() {
                               {isExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
                               <MessageSquare className="h-5 w-5 text-primary" />
                               <CardTitle className="text-xl">{fb.section_label}</CardTitle>
-                              {pendingItems.length === 0 && (
+                              {openItems.length === 0 && (
                                 <Badge variant="outline" className="ml-2 text-green-600 border-green-600">
                                   <Check className="h-3 w-3 mr-1" /> All reviewed
                                 </Badge>
@@ -543,9 +546,22 @@ export default function FeedbackReview() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <CardContent className="space-y-4">
-                          {pendingItems.length > 0 && <div className="space-y-3">{pendingItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, false, false, false))}</div>}
+                          {/* 1. Open items at top (pending + needs_help + ideas) */}
+                          {openItems.length > 0 && (
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                                <HelpCircle className="h-4 w-4" />
+                                Open ({openItems.length})
+                              </div>
+                              {openItems.map(({ item, index }) => {
+                                const status = getItemStatus(fb.id, index);
+                                const isIdea = status === 'idea';
+                                return renderFeedbackItem(fb, item, index, false, isIdea, false);
+                              })}
+                            </div>
+                          )}
                           
-                          {/* Pending User Review Section */}
+                          {/* 2. Pending User Review Section (middle) */}
                           {pendingReviewItems.length > 0 && (
                             <Collapsible open={pendingReviewSectionsOpen[fb.id]} onOpenChange={(open) => setPendingReviewSectionsOpen(prev => ({ ...prev, [fb.id]: open }))}>
                               <CollapsibleTrigger asChild>
@@ -561,16 +577,11 @@ export default function FeedbackReview() {
                             </Collapsible>
                           )}
                           
+                          {/* 3. Completed items at bottom */}
                           {completedItems.length > 0 && (
                             <Collapsible open={completedSectionsOpen[fb.id]} onOpenChange={(open) => setCompletedSectionsOpen(prev => ({ ...prev, [fb.id]: open }))}>
                               <CollapsibleTrigger asChild><Button variant="ghost" className="w-full justify-start gap-2 text-green-600 hover:text-green-700 hover:bg-green-50">{completedSectionsOpen[fb.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}<Check className="h-4 w-4" />Completed ({completedItems.length})</Button></CollapsibleTrigger>
                               <CollapsibleContent className="space-y-3 mt-2">{completedItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, true, false, false))}</CollapsibleContent>
-                            </Collapsible>
-                          )}
-                          {ideaItems.length > 0 && (
-                            <Collapsible open={ideasSectionsOpen[fb.id]} onOpenChange={(open) => setIdeasSectionsOpen(prev => ({ ...prev, [fb.id]: open }))}>
-                              <CollapsibleTrigger asChild><Button variant="ghost" className="w-full justify-start gap-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50">{ideasSectionsOpen[fb.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}<Lightbulb className="h-4 w-4" />Ideas ({ideaItems.length})</Button></CollapsibleTrigger>
-                              <CollapsibleContent className="space-y-3 mt-2">{ideaItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, false, true, false))}</CollapsibleContent>
                             </Collapsible>
                           )}
                         </CardContent>
