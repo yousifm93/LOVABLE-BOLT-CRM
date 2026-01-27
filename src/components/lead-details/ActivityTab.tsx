@@ -13,6 +13,7 @@ import { formatDistance } from "date-fns";
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 import { ReplyEmailModal } from "@/components/modals/ReplyEmailModal";
 import { ActivityCommentSection } from "@/components/lead-details/ActivityCommentSection";
+import { AttachmentImage } from "@/components/lead-details/AttachmentImage";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -427,18 +428,12 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                     
                     {/* Attachment Image Display */}
                     {activity.attachment_url && (
-                      <a 
-                        href={activity.attachment_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
+                      <AttachmentImage 
+                        attachmentUrl={activity.attachment_url}
+                        alt="Note attachment"
+                        className="max-h-48"
                         onClick={(e) => e.stopPropagation()}
-                      >
-                        <img 
-                          src={activity.attachment_url} 
-                          alt="Attached image" 
-                          className="max-h-48 rounded-md border cursor-pointer hover:opacity-80 transition-opacity"
-                        />
-                      </a>
+                      />
                     )}
                   </div>
                 </CollapsibleContent>

@@ -49,6 +49,7 @@ export function NoteDetailModal({ open, onOpenChange, note, onActivityUpdated }:
   const [editedContent, setEditedContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [resolvedAttachmentUrl, setResolvedAttachmentUrl] = useState<string | null>(null);
   const { crmUser } = useAuth();
 
   const canEdit = note?.author_id === crmUser?.id;
@@ -57,6 +58,24 @@ export function NoteDetailModal({ open, onOpenChange, note, onActivityUpdated }:
     if (note) {
       setEditedContent(note.description || '');
       setIsEditing(false);
+      
+      // Resolve attachment URL (could be storage path or full URL)
+      if (note.attachment_url) {
+        if (note.attachment_url.startsWith('http')) {
+          // Already a full URL
+          setResolvedAttachmentUrl(note.attachment_url);
+        } else {
+          // Storage path - get signed URL
+          databaseService.getDocumentSignedUrl(note.attachment_url)
+            .then(url => setResolvedAttachmentUrl(url))
+            .catch(err => {
+              console.error('Error getting signed URL:', err);
+              setResolvedAttachmentUrl(null);
+            });
+        }
+      } else {
+        setResolvedAttachmentUrl(null);
+      }
     }
   }, [note]);
 
@@ -184,12 +203,12 @@ export function NoteDetailModal({ open, onOpenChange, note, onActivityUpdated }:
           )}
 
           {/* Display attachment if present */}
-          {note.attachment_url && (
+          {resolvedAttachmentUrl && (
             <div className="mt-4 border rounded-lg p-2">
               <p className="text-xs text-muted-foreground mb-2">Attachment:</p>
-              <a href={note.attachment_url} target="_blank" rel="noopener noreferrer">
+              <a href={resolvedAttachmentUrl} target="_blank" rel="noopener noreferrer">
                 <img 
-                  src={note.attachment_url} 
+                  src={resolvedAttachmentUrl} 
                   alt="Note attachment" 
                   className="max-h-64 rounded-md cursor-pointer hover:opacity-80 transition-opacity"
                 />
