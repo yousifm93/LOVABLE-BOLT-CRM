@@ -66,6 +66,7 @@ interface Activity {
   ai_summary?: string;
   old_value?: string;
   new_value?: string;
+  attachment_url?: string;
 }
 
 interface ActivityTabProps {
@@ -380,7 +381,7 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                 </div>
               </div>
               
-              {activity.description && (
+              {(activity.description || activity.attachment_url) && (
                 <CollapsibleContent>
                   <div className="pl-11 pr-2 pt-2 space-y-3">
                     {/* AI Summary Box - only for inbound emails with summary */}
@@ -396,31 +397,49 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                     )}
                     
                     {/* Email Content - with forwarding stripped for inbound emails */}
-                    <div 
-                      className="text-sm text-muted-foreground prose prose-sm max-w-none cursor-pointer hover:text-foreground transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isClickable) {
-                          if (activity.type === 'task' && onTaskActivityClick) {
-                            onTaskActivityClick(activity);
-                          } else if (activity.type === 'email' && activity.direction === 'In') {
-                            // Open reply modal for inbound emails
-                            setSelectedEmailForReply(activity);
-                            setShowReplyEmailModal(true);
-                          } else {
-                            setSelectedNote(activity);
-                            setShowNoteDetailModal(true);
+                    {activity.description && (
+                      <div 
+                        className="text-sm text-muted-foreground prose prose-sm max-w-none cursor-pointer hover:text-foreground transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isClickable) {
+                            if (activity.type === 'task' && onTaskActivityClick) {
+                              onTaskActivityClick(activity);
+                            } else if (activity.type === 'email' && activity.direction === 'In') {
+                              // Open reply modal for inbound emails
+                              setSelectedEmailForReply(activity);
+                              setShowReplyEmailModal(true);
+                            } else {
+                              setSelectedNote(activity);
+                              setShowNoteDetailModal(true);
+                            }
                           }
-                        }
-                      }}
-                      dangerouslySetInnerHTML={{ 
-                        __html: DOMPurify.sanitize(
-                          activity.type === 'email' && activity.direction === 'In'
-                            ? stripForwardingContent(activity.description || '')
-                            : activity.description || ''
-                        )
-                      }}
-                    />
+                        }}
+                        dangerouslySetInnerHTML={{ 
+                          __html: DOMPurify.sanitize(
+                            activity.type === 'email' && activity.direction === 'In'
+                              ? stripForwardingContent(activity.description || '')
+                              : activity.description || ''
+                          )
+                        }}
+                      />
+                    )}
+                    
+                    {/* Attachment Image Display */}
+                    {activity.attachment_url && (
+                      <a 
+                        href={activity.attachment_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <img 
+                          src={activity.attachment_url} 
+                          alt="Attached image" 
+                          className="max-h-48 rounded-md border cursor-pointer hover:opacity-80 transition-opacity"
+                        />
+                      </a>
+                    )}
                   </div>
                 </CollapsibleContent>
               )}

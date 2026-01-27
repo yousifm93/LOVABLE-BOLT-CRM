@@ -704,6 +704,7 @@ export type Database = {
       }
       call_logs: {
         Row: {
+          attachment_url: string | null
           created_at: string
           duration_seconds: number | null
           id: string
@@ -714,6 +715,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          attachment_url?: string | null
           created_at?: string
           duration_seconds?: number | null
           id?: string
@@ -724,6 +726,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          attachment_url?: string | null
           created_at?: string
           duration_seconds?: number | null
           id?: string
@@ -4197,6 +4200,7 @@ export type Database = {
       }
       notes: {
         Row: {
+          attachment_url: string | null
           author_id: string | null
           body: string
           created_at: string
@@ -4204,6 +4208,7 @@ export type Database = {
           lead_id: string
         }
         Insert: {
+          attachment_url?: string | null
           author_id?: string | null
           body: string
           created_at?: string
@@ -4211,6 +4216,7 @@ export type Database = {
           lead_id: string
         }
         Update: {
+          attachment_url?: string | null
           author_id?: string | null
           body?: string
           created_at?: string
@@ -4960,6 +4966,7 @@ export type Database = {
       }
       sms_logs: {
         Row: {
+          attachment_url: string | null
           body: string
           created_at: string
           direction: Database["public"]["Enums"]["log_direction"]
@@ -4971,6 +4978,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          attachment_url?: string | null
           body: string
           created_at?: string
           direction: Database["public"]["Enums"]["log_direction"]
@@ -4982,6 +4990,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          attachment_url?: string | null
           body?: string
           created_at?: string
           direction?: Database["public"]["Enums"]["log_direction"]

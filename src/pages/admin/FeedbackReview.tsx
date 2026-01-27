@@ -161,12 +161,18 @@ export default function FeedbackReview() {
         setComments(enrichedComments);
         setItemStatuses((statusData || []) as ItemStatus[]);
         
-        // Initialize expanded sections
+        // Initialize expanded sections and collapse states
         const initialExpanded: Record<string, boolean> = {};
+        const initialCompletedOpen: Record<string, boolean> = {};
+        const initialPendingReviewOpen: Record<string, boolean> = {};
         feedbackData?.forEach(f => {
           initialExpanded[f.id] = true;
+          initialCompletedOpen[f.id] = false;  // Complete collapsed by default
+          initialPendingReviewOpen[f.id] = false; // Pending review collapsed by default
         });
         setExpandedSections(initialExpanded);
+        setCompletedSectionsOpen(initialCompletedOpen);
+        setPendingReviewSectionsOpen(initialPendingReviewOpen);
         
         if (usersData && usersData.length > 0) {
           setSelectedUser(usersData[0].id);

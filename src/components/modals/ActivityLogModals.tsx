@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { databaseService, type CallLogInsert, type SmsLogInsert, type EmailLogInsert, type NoteInsert } from '@/services/database';
-import { Mic, Loader2, Phone } from 'lucide-react';
+import { Mic, Loader2, Phone, ImagePlus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Voice recording hook (for verbatim transcription)
@@ -703,10 +703,71 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
   const [loading, setLoading] = useState(false);
   const [noteBody, setNoteBody] = useState('');
   const [mentions, setMentions] = useState<TeamMember[]>([]);
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { isRecording, isTranscribing, handleClick: handleVoiceClick } = useVoiceRecording((text) => {
     setNoteBody(prev => prev ? prev + ' ' + text : text);
   });
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid File',
+        description: 'Please select an image file.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Please select an image under 10MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setUploading(true);
+    try {
+      const filePath = `activity-attachments/${leadId}/${Date.now()}_${file.name}`;
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+      
+      if (error) throw error;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(data.path);
+      
+      setAttachmentUrl(publicUrl);
+      toast({ title: "Image Uploaded", description: "Attachment ready to save with note." });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast({
+        title: 'Upload Failed',
+        description: 'Could not upload the image. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removeAttachment = () => {
+    setAttachmentUrl(null);
+  };
 
   // UUID validation helper
   const isValidUUID = (uuid: string): boolean => {
@@ -770,13 +831,19 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
         return;
       }
 
-      const noteData: NoteInsert = {
-        lead_id: leadId,
-        author_id: crmUser.id,
-        body: noteBody.trim(),
-      };
-
-      const newNote = await databaseService.createNote(noteData);
+      // Use direct supabase insert to include attachment_url
+      const { data: newNote, error: noteError } = await supabase
+        .from('notes')
+        .insert({
+          lead_id: leadId,
+          author_id: crmUser.id,
+          body: noteBody.trim(),
+          attachment_url: attachmentUrl,
+        })
+        .select()
+        .single();
+      
+      if (noteError) throw noteError;
       
       // Send mention notifications if there are mentions
       if (mentions.length > 0 && newNote?.id) {
@@ -791,6 +858,7 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
       onOpenChange(false);
       setNoteBody('');
       setMentions([]);
+      setAttachmentUrl(null);
 
       toast({
         title: 'Success',
@@ -837,7 +905,28 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="note">Note <span className="text-xs text-muted-foreground">(Type @ to mention team members)</span></Label>
-              <VoiceButton isRecording={isRecording} isTranscribing={isTranscribing} onClick={handleVoiceClick} />
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  ref={fileInputRef}
+                  className="hidden"
+                  id="note-attachment"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="w-9 h-9"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  title="Attach image"
+                >
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                </Button>
+                <VoiceButton isRecording={isRecording} isTranscribing={isTranscribing} onClick={handleVoiceClick} />
+              </div>
             </div>
             <div className="max-h-[300px] overflow-y-auto border rounded-md">
               <MentionableRichTextEditor
@@ -847,13 +936,33 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
                 onMentionsChange={setMentions}
               />
             </div>
+            
+            {/* Attachment Preview */}
+            {attachmentUrl && (
+              <div className="relative inline-block">
+                <img 
+                  src={attachmentUrl} 
+                  alt="Attachment preview" 
+                  className="max-h-32 rounded-md border"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 h-6 w-6"
+                  onClick={removeAttachment}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !noteBody.trim()}>
+            <Button type="submit" disabled={loading || !noteBody.trim() || uploading}>
               {loading ? 'Saving...' : 'Add Note'}
             </Button>
           </div>
