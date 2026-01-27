@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertCircle } from "lucide-react";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CreateNextTaskModalProps {
   open: boolean;
@@ -19,6 +20,90 @@ interface CreateNextTaskModalProps {
 
 const DEFAULT_ASSIGNEE_ID = "fa92a4c6-890d-4d69-99a8-c3adc6c904ee";
 
+// Quick task templates - same as CreateTaskModal
+const QUICK_TASK_TEMPLATES = [
+  {
+    id: 'lead_followup',
+    label: 'Lead Follow-up',
+    title: 'Lead Follow-up',
+    description: 'Follow up with the lead regarding their loan application',
+    completion_requirement_type: 'log_any_activity',
+  },
+  {
+    id: 'pending_followup',
+    label: 'Pending App Follow-up',
+    title: 'Pending App Follow-up',
+    description: 'Follow up on pending app conditions that need to be addressed',
+    completion_requirement_type: 'log_any_activity',
+  },
+  {
+    id: 'screen',
+    label: 'Screen',
+    title: 'Screen',
+    description: 'Screen the lead and move to Pre-Qualified if they pass screening criteria.',
+    completion_requirement_type: 'field_value',
+    default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+    priority: 'High',
+  },
+  {
+    id: 'conditions',
+    label: 'Conditions',
+    title: 'Conditions',
+    description: 'Clear borrower conditions',
+    default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+    priority: 'High',
+    completion_requirement_type: 'none',
+  },
+  {
+    id: 'pre_qualify',
+    label: 'Pre-Qualify',
+    title: 'Pre-Qualify',
+    description: 'Pre-qualify the borrower',
+    default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+    priority: 'High',
+    completion_requirement_type: 'none',
+  },
+  {
+    id: 'pre_approve',
+    label: 'Pre-Approve',
+    title: 'Pre-Approve',
+    description: 'Pre-approve the borrower',
+    default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+    priority: 'High',
+    completion_requirement_type: 'none',
+  },
+  {
+    id: 'borrower_call',
+    label: 'Borrower Call',
+    title: 'Borrower Call',
+    description: 'Make a call to the borrower to discuss the loan file',
+    completion_requirement_type: 'log_call_borrower',
+  },
+  {
+    id: 'buyer_agent_call',
+    label: "Buyer's Agent Call",
+    title: "Call Buyer's Agent",
+    description: "Call the buyer's agent to discuss the loan status",
+    completion_requirement_type: 'log_call_buyer_agent',
+  },
+  {
+    id: 'listing_agent_call',
+    label: 'Listing Agent Call',
+    title: 'Call Listing Agent',
+    description: 'Call the listing agent regarding the property',
+    completion_requirement_type: 'log_call_listing_agent',
+  },
+  {
+    id: 'hsci',
+    label: 'HSCI',
+    title: 'HSCI (Home Search Check-in)',
+    description: 'Do a home search check-in on the borrower to see where they are in their loan process.',
+    default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+    priority: 'Medium',
+    completion_requirement_type: 'log_any_activity',
+  },
+];
+
 export function CreateNextTaskModal({
   open,
   onOpenChange,
@@ -27,29 +112,38 @@ export function CreateNextTaskModal({
   onTaskCreated
 }: CreateNextTaskModalProps) {
   const { toast } = useToast();
+  const { crmUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  
+  const getDefaultAssigneeId = () => crmUser?.id || DEFAULT_ASSIGNEE_ID;
+  
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     due_date: new Date().toISOString().split('T')[0],
     priority: "Medium",
     assignee_id: DEFAULT_ASSIGNEE_ID,
+    completion_requirement_type: null as string | null,
   });
 
   useEffect(() => {
     if (open) {
       loadUsers();
       // Reset form when modal opens
+      const defaultAssignee = getDefaultAssigneeId();
       setFormData({
         title: "",
         description: "",
         due_date: new Date().toISOString().split('T')[0],
         priority: "Medium",
-        assignee_id: DEFAULT_ASSIGNEE_ID,
+        assignee_id: defaultAssignee,
+        completion_requirement_type: null,
       });
+      setSelectedTemplate(null);
     }
-  }, [open]);
+  }, [open, crmUser?.id]);
 
   const loadUsers = async () => {
     try {
@@ -58,6 +152,24 @@ export function CreateNextTaskModal({
     } catch (error) {
       console.error("Error loading users:", error);
     }
+  };
+
+  // Apply quick task template
+  const applyTemplate = (templateId: string) => {
+    const template = QUICK_TASK_TEMPLATES.find(t => t.id === templateId);
+    if (!template) return;
+    
+    setSelectedTemplate(templateId);
+    setFormData(prev => ({
+      ...prev,
+      title: template.title,
+      description: template.description,
+      due_date: new Date().toISOString().split('T')[0], // Today
+      // Only use template's assignee if explicitly set, otherwise keep current selection
+      assignee_id: (template as any).default_assignee_id || prev.assignee_id || getDefaultAssigneeId(),
+      priority: (template as any).priority || 'Medium',
+      completion_requirement_type: template.completion_requirement_type,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,6 +194,7 @@ export function CreateNextTaskModal({
         status: "To Do",
         borrower_id: leadId,
         assignee_id: formData.assignee_id || null,
+        completion_requirement_type: formData.completion_requirement_type || null,
       });
 
       toast({
@@ -123,7 +236,7 @@ export function CreateNextTaskModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
@@ -143,13 +256,35 @@ export function CreateNextTaskModal({
             Every lead should have an active task. Please add the next task:
           </p>
 
+          {/* Quick Task Templates */}
+          <div className="space-y-2 mb-4">
+            <Label className="text-sm font-medium">Quick Tasks</Label>
+            <div className="flex flex-wrap gap-2">
+              {QUICK_TASK_TEMPLATES.map((template) => (
+                <Button
+                  key={template.id}
+                  type="button"
+                  variant={selectedTemplate === template.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => applyTemplate(template.id)}
+                  className="text-xs"
+                >
+                  {template.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="title">Task Title *</Label>
               <Input
                 id="title"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, title: e.target.value });
+                  setSelectedTemplate(null);
+                }}
                 placeholder="e.g., Follow up with borrower"
                 autoFocus
               />

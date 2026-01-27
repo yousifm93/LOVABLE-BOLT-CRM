@@ -71,7 +71,7 @@ export function AgentMeetingLogModal({ agent, isOpen, onClose, onMeetingSaved }:
         });
       } else {
         await databaseService.updateBuyerAgent(agent.id, {
-          face_to_face_meeting: new Date(meetingDate).toISOString(),
+          face_to_face_meeting: new Date(meetingDate + 'T12:00:00').toISOString(),
         });
       }
 

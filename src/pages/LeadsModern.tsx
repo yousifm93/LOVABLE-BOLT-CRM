@@ -661,7 +661,21 @@ export function LeadsModern() {
       <CreateLeadModalModern
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
-        onLeadCreated={loadData}
+        onLeadCreated={async (newLeadId?: string) => {
+          // Immediately open the new lead's drawer if we have the ID
+          if (newLeadId) {
+            // Create a minimal lead object to open drawer immediately
+            const minimalLead = {
+              id: newLeadId,
+              first_name: '',
+              last_name: '',
+            } as ModernLead;
+            setSelectedLead(minimalLead);
+            setShowDetailDrawer(true);
+          }
+          // Refresh data in background - will update the drawer when complete
+          await loadData();
+        }}
       />
 
       {selectedLead && showDetailDrawer && (

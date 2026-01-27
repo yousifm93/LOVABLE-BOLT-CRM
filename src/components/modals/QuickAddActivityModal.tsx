@@ -219,9 +219,9 @@ export function QuickAddActivityModal({
           activityDate
         );
 
-        // Update agent's face_to_face_meeting timestamp
+        // Update agent's face_to_face_meeting timestamp - use T12:00:00 to prevent timezone day-shift
         await databaseService.updateBuyerAgent(selectedAgentId, {
-          face_to_face_meeting: new Date(activityDate).toISOString(),
+          face_to_face_meeting: new Date(activityDate.split('T')[0] + 'T12:00:00').toISOString(),
         });
 
         toast({
