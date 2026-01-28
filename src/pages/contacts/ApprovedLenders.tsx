@@ -555,7 +555,8 @@ export default function ApprovedLenders() {
             <span className="truncate">{row.original.account_executive_email || "—"}</span>
           </div>
         ),
-      });
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
     }
 
     // AE Phone
@@ -569,7 +570,8 @@ export default function ApprovedLenders() {
             <span className="truncate">{row.original.account_executive_phone || "—"}</span>
           </div>
         ),
-      });
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
     }
 
     // Broker Portal
@@ -586,7 +588,8 @@ export default function ApprovedLenders() {
             />
           </div>
         ),
-      });
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
     }
 
     // Send Email
@@ -614,14 +617,16 @@ export default function ApprovedLenders() {
         accessorKey: "min_loan_amount",
         header: "Min Loan",
         cell: ({ row }) => <span className="text-sm">{formatCurrency(row.original.min_loan_amount)}</span>,
-      });
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
     }
     if (isColumnVisible("max_loan_amount")) {
       cols.push({
         accessorKey: "max_loan_amount",
         header: "Max Loan",
         cell: ({ row }) => <span className="text-sm">{formatCurrency(row.original.max_loan_amount)}</span>,
-      });
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
     }
 
     // Dates
@@ -630,21 +635,24 @@ export default function ApprovedLenders() {
         accessorKey: "initial_approval_date",
         header: "Initial Approval",
         cell: ({ row }) => <span className="text-sm">{formatDate(row.original.initial_approval_date)}</span>,
-      });
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
     }
     if (isColumnVisible("renewed_on")) {
       cols.push({
         accessorKey: "renewed_on",
         header: "Renewed On",
         cell: ({ row }) => <span className="text-sm">{formatDate(row.original.renewed_on)}</span>,
-      });
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
     }
     if (isColumnVisible("epo_period")) {
       cols.push({
         accessorKey: "epo_period",
         header: "EPO Period",
         cell: ({ row }) => <span className="text-sm">{row.original.epo_period || "—"}</span>,
-      });
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
     }
 
     // Product columns
@@ -698,7 +706,8 @@ export default function ApprovedLenders() {
           accessorKey: key,
           header: colDef?.label || id,
           cell: ({ row }) => <div className="flex justify-center">{renderProductBadge(row.original[key] as string | undefined)}</div>,
-        });
+          sortable: true,
+        } as ColumnDef<Lender & { rowNumber?: number }>);
       }
     });
 
@@ -725,7 +734,8 @@ export default function ApprovedLenders() {
           accessorKey: key,
           header: colDef?.label || id,
           cell: ({ row }) => <span className="text-sm">{formatPercentage(row.original[key] as number | undefined)}</span>,
-        });
+          sortable: true,
+        } as ColumnDef<Lender & { rowNumber?: number }>);
       }
     });
 
@@ -753,7 +763,8 @@ export default function ApprovedLenders() {
             }
             return <span className="text-sm">{value ?? "—"}</span>;
           },
-        });
+          sortable: true,
+        } as ColumnDef<Lender & { rowNumber?: number }>);
       }
     });
 
@@ -767,7 +778,8 @@ export default function ApprovedLenders() {
             {row.original.notes || "—"}
           </span>
         ),
-      });
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
     }
 
     return cols;
