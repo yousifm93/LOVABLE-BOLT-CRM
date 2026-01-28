@@ -1,5 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// Contingency options - must match the ones in CreateTaskModal
+export const CONTINGENCY_OPTIONS = [
+  { id: 'finance_contingency', label: 'Finance Contingency', field: 'fin_cont', type: 'date_passed' },
+  { id: 'appraisal_received', label: 'Appraisal Received', field: 'appraisal_status', value: 'Received' },
+  { id: 'title_clear', label: 'Title Clear', field: 'title_status', value: 'Clear' },
+  { id: 'insurance_received', label: 'Insurance Received', field: 'hoi_status', value: 'Received' },
+  { id: 'ctc_status', label: 'CTC Status', field: 'cd_status', value: 'CTC' },
+  { id: 'contract_uploaded', label: 'Contract Uploaded', field: 'contract_file', type: 'not_null' },
+  { id: 'initial_approval', label: 'Initial Approval', field: 'initial_approval_file', type: 'not_null' },
+];
+
 export interface TaskCompletionValidationResult {
   canComplete: boolean;
   message?: string;
@@ -10,6 +21,7 @@ export interface TaskCompletionValidationResult {
     type: 'buyer_agent' | 'listing_agent' | 'borrower';
     id?: string;
   };
+  unmetContingencies?: string[];
 }
 
 export async function validateTaskCompletion(
@@ -262,6 +274,55 @@ export async function validateTaskCompletion(
         message: `${fieldDisplayNames[fieldName] || fieldName} must be ${displayValues.join(' or ')} before completing this task`,
         missingRequirement: requirementType,
       };
+    }
+  }
+
+  // Check for contingency requirements
+  if (task.contingency_requirements && Array.isArray(task.contingency_requirements) && task.contingency_requirements.length > 0) {
+    const borrowerId = task.borrower_id;
+    if (borrowerId) {
+      const { data: lead, error } = await supabase
+        .from('leads')
+        .select('fin_cont, appraisal_status, title_status, hoi_status, cd_status, contract_file, initial_approval_file')
+        .eq('id', borrowerId)
+        .single();
+
+      if (!error && lead) {
+        const unmetContingencies: string[] = [];
+        
+        for (const contingencyId of task.contingency_requirements) {
+          const option = CONTINGENCY_OPTIONS.find(c => c.id === contingencyId);
+          if (!option) continue;
+          
+          const fieldValue = lead[option.field as keyof typeof lead];
+          
+          if (option.type === 'date_passed') {
+            // Check if date has passed
+            if (!fieldValue || new Date(fieldValue as string) > new Date()) {
+              unmetContingencies.push(option.label);
+            }
+          } else if (option.type === 'not_null') {
+            // Check if field has a value
+            if (!fieldValue) {
+              unmetContingencies.push(option.label);
+            }
+          } else if (option.value) {
+            // Check if field equals expected value
+            if (fieldValue !== option.value) {
+              unmetContingencies.push(option.label);
+            }
+          }
+        }
+        
+        if (unmetContingencies.length > 0) {
+          return {
+            canComplete: false,
+            message: `The following contingencies must be met before completing this task: ${unmetContingencies.join(', ')}`,
+            missingRequirement: 'contingencies',
+            unmetContingencies,
+          };
+        }
+      }
     }
   }
 

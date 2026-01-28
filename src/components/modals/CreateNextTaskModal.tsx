@@ -102,6 +102,26 @@ const QUICK_TASK_TEMPLATES = [
     priority: 'Medium',
     completion_requirement_type: 'log_any_activity',
   },
+  {
+    id: 'disclose',
+    label: 'Disclose',
+    title: 'Disclose',
+    description: 'Send out initial disclosures to the borrower',
+    default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+    priority: 'High',
+    completion_requirement_type: 'none',
+  },
+];
+
+// Task contingency options - conditions that must be met on the lead before task can be completed
+const CONTINGENCY_OPTIONS = [
+  { id: 'finance_contingency', label: 'Finance Contingency', field: 'fin_cont', type: 'date_passed' },
+  { id: 'appraisal_received', label: 'Appraisal Received', field: 'appraisal_status', value: 'Received' },
+  { id: 'title_clear', label: 'Title Clear', field: 'title_status', value: 'Clear' },
+  { id: 'insurance_received', label: 'Insurance Received', field: 'hoi_status', value: 'Received' },
+  { id: 'ctc_status', label: 'CTC Status', field: 'cd_status', value: 'CTC' },
+  { id: 'contract_uploaded', label: 'Contract Uploaded', field: 'contract_file', type: 'not_null' },
+  { id: 'initial_approval', label: 'Initial Approval', field: 'initial_approval_file', type: 'not_null' },
 ];
 
 export function CreateNextTaskModal({
@@ -116,6 +136,7 @@ export function CreateNextTaskModal({
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [selectedContingencies, setSelectedContingencies] = useState<string[]>([]);
   
   const getDefaultAssigneeId = () => crmUser?.id || DEFAULT_ASSIGNEE_ID;
   
@@ -142,6 +163,7 @@ export function CreateNextTaskModal({
         completion_requirement_type: null,
       });
       setSelectedTemplate(null);
+      setSelectedContingencies([]);
     }
   }, [open, crmUser?.id]);
 
@@ -195,6 +217,7 @@ export function CreateNextTaskModal({
         borrower_id: leadId,
         assignee_id: formData.assignee_id || null,
         completion_requirement_type: formData.completion_requirement_type || null,
+        contingency_requirements: selectedContingencies.length > 0 ? selectedContingencies : null,
       });
 
       toast({
@@ -348,6 +371,32 @@ export function CreateNextTaskModal({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Contingencies Section */}
+            <div className="space-y-2 pt-2 border-t">
+              <Label className="text-xs text-muted-foreground">Contingencies (Optional)</Label>
+              <p className="text-xs text-muted-foreground">Task cannot be completed until these conditions are met on the lead</p>
+              <div className="flex flex-wrap gap-2">
+                {CONTINGENCY_OPTIONS.map((option) => (
+                  <Button
+                    key={option.id}
+                    type="button"
+                    variant={selectedContingencies.includes(option.id) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setSelectedContingencies(prev => 
+                        prev.includes(option.id) 
+                          ? prev.filter(id => id !== option.id)
+                          : [...prev, option.id]
+                      );
+                    }}
+                    className="text-xs h-7"
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
             </div>
           </form>
         </div>
