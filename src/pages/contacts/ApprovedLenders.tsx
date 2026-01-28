@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, Filter, Phone, Mail, Building, Users, Upload, Eye, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,9 @@ import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { ButtonFilterBuilder, FilterCondition } from "@/components/ui/button-filter-builder";
+import { countActiveFilters, applyAdvancedFilters } from "@/utils/filterUtils";
+import { format } from "date-fns";
 
 interface Lender {
   id: string;
@@ -35,8 +38,81 @@ interface Lender {
   notes?: string;
   created_at: string;
   updated_at: string;
+  // Dates
+  initial_approval_date?: string;
+  renewed_on?: string;
+  // Products
+  product_bs_loan?: string;
+  product_manufactured_homes?: string;
+  product_fha?: string;
+  product_va?: string;
+  product_coop?: string;
+  product_conv?: string;
+  product_wvoe?: string;
+  product_high_dti?: string;
+  product_condo_hotel?: string;
+  product_dr_loan?: string;
+  product_fn?: string;
+  product_nwc?: string;
+  product_heloc?: string;
+  product_5_8_unit?: string;
+  product_9_plus_unit?: string;
+  product_commercial?: string;
+  product_construction?: string;
+  product_land_loan?: string;
+  product_fthb_dscr?: string;
+  product_jumbo?: string;
+  product_dpa?: string;
+  product_no_income_primary?: string;
+  product_low_fico?: string;
+  product_inv_heloc?: string;
+  product_no_seasoning_cor?: string;
+  product_tbd_uw?: string;
+  product_condo_review_desk?: string;
+  product_condo_mip_issues?: string;
+  product_nonqm_heloc?: string;
+  product_fn_heloc?: string;
+  product_no_credit?: string;
+  product_558?: string;
+  product_itin?: string;
+  product_pl_program?: string;
+  product_1099_program?: string;
+  product_wvoe_family?: string;
+  product_1099_less_1yr?: string;
+  product_1099_no_biz?: string;
+  product_omit_student_loans?: string;
+  product_no_ratio_dscr?: string;
+  // Clauses
+  title_clause?: string;
+  insurance_clause?: string;
+  // Numbers
+  condotel_min_sqft?: number;
+  asset_dep_months?: number;
+  min_fico?: number;
+  min_sqft?: number;
+  heloc_min_fico?: number;
+  heloc_min?: number;
+  max_cash_out_70_ltv?: number;
+  // LTVs
+  heloc_max_ltv?: number;
+  fn_max_ltv?: number;
+  bs_loan_max_ltv?: number;
+  ltv_1099?: number;
+  pl_max_ltv?: number;
+  condo_inv_max_ltv?: number;
+  jumbo_max_ltv?: number;
+  wvoe_max_ltv?: number;
+  dscr_max_ltv?: number;
+  fha_max_ltv?: number;
+  conv_max_ltv?: number;
+  max_ltv?: number;
+  // Other
+  epo_period?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  custom_fields?: any;
 }
 
+// Initial columns - comprehensive list of all lender fields
 const initialColumns = [
   { id: "rowNumber", label: "#", visible: true },
   { id: "lender_name", label: "Lender Name", visible: true },
@@ -46,7 +122,192 @@ const initialColumns = [
   { id: "ae_phone", label: "AE Phone", visible: true },
   { id: "broker_portal_url", label: "Broker Portal", visible: true },
   { id: "send_email", label: "Send Email", visible: true },
+  // Loan Limits & Dates
+  { id: "min_loan_amount", label: "Min Loan", visible: false },
+  { id: "max_loan_amount", label: "Max Loan", visible: false },
+  { id: "initial_approval_date", label: "Initial Approval", visible: false },
+  { id: "renewed_on", label: "Renewed On", visible: false },
+  { id: "epo_period", label: "EPO Period", visible: false },
+  // Products
+  { id: "product_fha", label: "FHA", visible: false },
+  { id: "product_va", label: "VA", visible: false },
+  { id: "product_conv", label: "Conventional", visible: false },
+  { id: "product_jumbo", label: "Jumbo", visible: false },
+  { id: "product_bs_loan", label: "Bank Statement", visible: false },
+  { id: "product_wvoe", label: "WVOE", visible: false },
+  { id: "product_1099_program", label: "1099 Program", visible: false },
+  { id: "product_pl_program", label: "P&L Program", visible: false },
+  { id: "product_itin", label: "ITIN", visible: false },
+  { id: "product_dpa", label: "DPA", visible: false },
+  { id: "product_heloc", label: "HELOC", visible: false },
+  { id: "product_inv_heloc", label: "Inv HELOC", visible: false },
+  { id: "product_fn_heloc", label: "FN HELOC", visible: false },
+  { id: "product_nonqm_heloc", label: "Non-QM HELOC", visible: false },
+  { id: "product_manufactured_homes", label: "Manufactured", visible: false },
+  { id: "product_coop", label: "Co-Op", visible: false },
+  { id: "product_condo_hotel", label: "Condo Hotel", visible: false },
+  { id: "product_high_dti", label: "High DTI", visible: false },
+  { id: "product_low_fico", label: "Low FICO", visible: false },
+  { id: "product_no_credit", label: "No Credit", visible: false },
+  { id: "product_dr_loan", label: "DR Loan", visible: false },
+  { id: "product_fn", label: "Foreign National", visible: false },
+  { id: "product_nwc", label: "NWC", visible: false },
+  { id: "product_5_8_unit", label: "5-8 Unit", visible: false },
+  { id: "product_9_plus_unit", label: "9+ Units", visible: false },
+  { id: "product_commercial", label: "Commercial", visible: false },
+  { id: "product_construction", label: "Construction", visible: false },
+  { id: "product_land_loan", label: "Land Loan", visible: false },
+  { id: "product_fthb_dscr", label: "FTHB DSCR", visible: false },
+  { id: "product_no_income_primary", label: "No Inc Primary", visible: false },
+  { id: "product_no_seasoning_cor", label: "No Season C/O", visible: false },
+  { id: "product_tbd_uw", label: "TBD UW", visible: false },
+  { id: "product_condo_review_desk", label: "Condo Review", visible: false },
+  { id: "product_condo_mip_issues", label: "Condo MIP", visible: false },
+  { id: "product_558", label: "558", visible: false },
+  { id: "product_wvoe_family", label: "WVOE Family", visible: false },
+  { id: "product_1099_less_1yr", label: "1099 <1yr", visible: false },
+  { id: "product_1099_no_biz", label: "1099 No Biz", visible: false },
+  { id: "product_omit_student_loans", label: "Omit Student", visible: false },
+  { id: "product_no_ratio_dscr", label: "No Ratio DSCR", visible: false },
+  // LTVs
+  { id: "max_ltv", label: "Max LTV", visible: false },
+  { id: "conv_max_ltv", label: "Conv Max LTV", visible: false },
+  { id: "fha_max_ltv", label: "FHA Max LTV", visible: false },
+  { id: "jumbo_max_ltv", label: "Jumbo Max LTV", visible: false },
+  { id: "bs_loan_max_ltv", label: "BS Loan Max LTV", visible: false },
+  { id: "wvoe_max_ltv", label: "WVOE Max LTV", visible: false },
+  { id: "dscr_max_ltv", label: "DSCR Max LTV", visible: false },
+  { id: "ltv_1099", label: "1099 Max LTV", visible: false },
+  { id: "pl_max_ltv", label: "P&L Max LTV", visible: false },
+  { id: "fn_max_ltv", label: "FN Max LTV", visible: false },
+  { id: "heloc_max_ltv", label: "HELOC Max LTV", visible: false },
+  { id: "condo_inv_max_ltv", label: "Condo Inv Max LTV", visible: false },
+  // Numbers
+  { id: "min_fico", label: "Min FICO", visible: false },
+  { id: "min_sqft", label: "Min Sqft", visible: false },
+  { id: "condotel_min_sqft", label: "Condotel Min Sqft", visible: false },
+  { id: "asset_dep_months", label: "Asset Dep (Mo)", visible: false },
+  { id: "heloc_min_fico", label: "HELOC Min FICO", visible: false },
+  { id: "heloc_min", label: "HELOC Min", visible: false },
+  { id: "max_cash_out_70_ltv", label: "Max C/O >70% LTV", visible: false },
+  // Other
+  { id: "notes", label: "Notes", visible: false },
 ];
+
+// Filter columns configuration
+const filterColumns = [
+  { value: 'lender_name', label: 'Lender Name', type: 'text' as const },
+  { value: 'lender_type', label: 'Lender Type', type: 'select' as const, options: ['Conventional', 'Non-QM', 'Private', 'HELOC'] },
+  { value: 'status', label: 'Status', type: 'select' as const, options: ['Active', 'Pending', 'Inactive'] },
+  { value: 'account_executive', label: 'Account Executive', type: 'text' as const },
+  { value: 'account_executive_email', label: 'AE Email', type: 'text' as const },
+  // Products - all as select with Y/N/TBD options
+  { value: 'product_fha', label: 'FHA', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_va', label: 'VA', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_conv', label: 'Conventional', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_jumbo', label: 'Jumbo', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_bs_loan', label: 'Bank Statement', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_wvoe', label: 'WVOE', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_1099_program', label: '1099 Program', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_pl_program', label: 'P&L Program', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_itin', label: 'ITIN', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_dpa', label: 'DPA', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_heloc', label: 'HELOC', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_inv_heloc', label: 'Inv HELOC', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_fn_heloc', label: 'FN HELOC', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_nonqm_heloc', label: 'Non-QM HELOC', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_manufactured_homes', label: 'Manufactured', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_coop', label: 'Co-Op', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_condo_hotel', label: 'Condo Hotel', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_high_dti', label: 'High DTI', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_low_fico', label: 'Low FICO', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_no_credit', label: 'No Credit', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_dr_loan', label: 'DR Loan', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_fn', label: 'Foreign National', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_nwc', label: 'NWC', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_5_8_unit', label: '5-8 Unit', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_9_plus_unit', label: '9+ Units', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_commercial', label: 'Commercial', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_construction', label: 'Construction', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_land_loan', label: 'Land Loan', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_fthb_dscr', label: 'FTHB DSCR', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_no_income_primary', label: 'No Inc Primary', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_no_seasoning_cor', label: 'No Season C/O', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_tbd_uw', label: 'TBD UW', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_condo_review_desk', label: 'Condo Review', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_condo_mip_issues', label: 'Condo MIP', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_558', label: '558', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_wvoe_family', label: 'WVOE Family', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_1099_less_1yr', label: '1099 <1yr', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_1099_no_biz', label: '1099 No Biz', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_omit_student_loans', label: 'Omit Student', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  { value: 'product_no_ratio_dscr', label: 'No Ratio DSCR', type: 'select' as const, options: ['Y', 'N', 'TBD'] },
+  // Numbers
+  { value: 'min_loan_amount', label: 'Min Loan Amount', type: 'number' as const },
+  { value: 'max_loan_amount', label: 'Max Loan Amount', type: 'number' as const },
+  { value: 'min_fico', label: 'Min FICO', type: 'number' as const },
+  { value: 'min_sqft', label: 'Min Sqft', type: 'number' as const },
+  { value: 'condotel_min_sqft', label: 'Condotel Min Sqft', type: 'number' as const },
+  { value: 'asset_dep_months', label: 'Asset Dep (Months)', type: 'number' as const },
+  { value: 'heloc_min_fico', label: 'HELOC Min FICO', type: 'number' as const },
+  { value: 'heloc_min', label: 'HELOC Min', type: 'number' as const },
+  { value: 'max_cash_out_70_ltv', label: 'Max C/O >70% LTV', type: 'number' as const },
+  // LTVs
+  { value: 'max_ltv', label: 'Max LTV', type: 'number' as const },
+  { value: 'conv_max_ltv', label: 'Conv Max LTV', type: 'number' as const },
+  { value: 'fha_max_ltv', label: 'FHA Max LTV', type: 'number' as const },
+  { value: 'jumbo_max_ltv', label: 'Jumbo Max LTV', type: 'number' as const },
+  { value: 'bs_loan_max_ltv', label: 'BS Loan Max LTV', type: 'number' as const },
+  { value: 'wvoe_max_ltv', label: 'WVOE Max LTV', type: 'number' as const },
+  { value: 'dscr_max_ltv', label: 'DSCR Max LTV', type: 'number' as const },
+  { value: 'ltv_1099', label: '1099 Max LTV', type: 'number' as const },
+  { value: 'pl_max_ltv', label: 'P&L Max LTV', type: 'number' as const },
+  { value: 'fn_max_ltv', label: 'FN Max LTV', type: 'number' as const },
+  { value: 'heloc_max_ltv', label: 'HELOC Max LTV', type: 'number' as const },
+  { value: 'condo_inv_max_ltv', label: 'Condo Inv Max LTV', type: 'number' as const },
+  // Dates
+  { value: 'initial_approval_date', label: 'Initial Approval', type: 'date' as const },
+  { value: 'renewed_on', label: 'Renewed On', type: 'date' as const },
+  // Text
+  { value: 'epo_period', label: 'EPO Period', type: 'text' as const },
+  { value: 'notes', label: 'Notes', type: 'text' as const },
+];
+
+// Product badge renderer
+const renderProductBadge = (value: string | undefined) => {
+  if (!value) return <span className="text-muted-foreground text-xs">—</span>;
+  const upperValue = value.toUpperCase();
+  if (upperValue === 'Y') {
+    return <Badge variant="default" className="bg-green-500/20 text-green-700 dark:text-green-400 text-xs">Y</Badge>;
+  } else if (upperValue === 'N') {
+    return <Badge variant="secondary" className="bg-red-500/20 text-red-700 dark:text-red-400 text-xs">N</Badge>;
+  } else if (upperValue === 'TBD') {
+    return <Badge variant="outline" className="text-xs">TBD</Badge>;
+  }
+  return <span className="text-xs">{value}</span>;
+};
+
+// Format currency
+const formatCurrency = (value: number | undefined) => {
+  if (!value) return "—";
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+};
+
+// Format percentage
+const formatPercentage = (value: number | undefined) => {
+  if (!value && value !== 0) return "—";
+  return `${value}%`;
+};
+
+// Format date
+const formatDate = (value: string | undefined) => {
+  if (!value) return "—";
+  try {
+    return format(new Date(value), 'MM/dd/yyyy');
+  } catch {
+    return value;
+  }
+};
 
 export default function ApprovedLenders() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -66,6 +327,11 @@ export default function ApprovedLenders() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [approvedExpanded, setApprovedExpanded] = useState(true);
   const [notApprovedExpanded, setNotApprovedExpanded] = useState(true);
+  
+  // Filter state
+  const [filters, setFilters] = useState<FilterCondition[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
   const { toast } = useToast();
 
   const {
@@ -95,6 +361,11 @@ export default function ApprovedLenders() {
       setIsLoading(false);
     }
   };
+
+  // Apply filters to lender data
+  const filteredLenders = useMemo(() => {
+    return applyAdvancedFilters(lenders, filters);
+  }, [lenders, filters]);
 
   const handleImportLenders = async () => {
     setIsImporting(true);
@@ -200,9 +471,9 @@ export default function ApprovedLenders() {
     setShowCreateModal(true);
   };
 
-  // Split lenders into approved and not approved
-  const approvedLenders = lenders.filter(l => l.status === 'Active');
-  const notApprovedLenders = lenders.filter(l => l.status !== 'Active');
+  // Split filtered lenders into approved and not approved
+  const approvedLenders = filteredLenders.filter(l => l.status === 'Active');
+  const notApprovedLenders = filteredLenders.filter(l => l.status !== 'Active');
 
   const addRowNumbers = (lenderList: Lender[]) => 
     lenderList.map((lender, index) => ({
@@ -215,94 +486,294 @@ export default function ApprovedLenders() {
     return col ? col.visible : true;
   };
 
-  const columns: ColumnDef<Lender & { rowNumber?: number }>[] = [
-    ...(isColumnVisible("rowNumber") ? [{
-      accessorKey: "rowNumber",
-      header: "#",
-      cell: ({ row }: any) => (
-        <span className="text-muted-foreground text-sm">{row.original.rowNumber}</span>
-      ),
-    }] : []),
-    ...(isColumnVisible("lender_name") ? [{
-      accessorKey: "lender_name",
-      header: "Lender Name",
-      cell: ({ row }: any) => (
-        <div className="flex items-center justify-start text-left">
-          <Building className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
-          <span className="font-medium">{toLenderTitleCase(row.original.lender_name)}</span>
-        </div>
-      ),
-      sortable: true,
-    }] : []),
-    ...(isColumnVisible("lender_type") ? [{
-      accessorKey: "lender_type",
-      header: "Lender Type",
-      cell: ({ row }: any) => (
-        <div className="flex justify-center">
-          <span className="text-xs text-muted-foreground">{row.original.lender_type || "—"}</span>
-        </div>
-      ),
-      sortable: true,
-    }] : []),
-    ...(isColumnVisible("account_executive") ? [{
-      accessorKey: "account_executive",
-      header: "Account Executive",
-      cell: ({ row }: any) => (
-        <div className="text-center">
-          <span className="text-sm">{row.original.account_executive || "—"}</span>
-        </div>
-      ),
-      sortable: true,
-    }] : []),
-    ...(isColumnVisible("ae_email") ? [{
-      accessorKey: "account_executive_email",
-      header: "AE Email",
-      cell: ({ row }: any) => (
-        <div className="flex items-center text-sm">
-          <Mail className="h-3 w-3 mr-1 text-muted-foreground flex-shrink-0" />
-          <span className="truncate">{row.original.account_executive_email || "—"}</span>
-        </div>
-      ),
-    }] : []),
-    ...(isColumnVisible("ae_phone") ? [{
-      accessorKey: "account_executive_phone",
-      header: "AE Phone",
-      cell: ({ row }: any) => (
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
-          <span className="truncate">{row.original.account_executive_phone || "—"}</span>
-        </div>
-      ),
-    }] : []),
-    ...(isColumnVisible("broker_portal_url") ? [{
-      accessorKey: "broker_portal_url",
-      header: "Broker Portal",
-      cell: ({ row }: any) => (
-        <div className="flex items-center gap-1">
-          <InlineEditLink
-            value={row.original.broker_portal_url}
-            onValueChange={(value) => handleUpdateLender(row.original.id, { broker_portal_url: value })}
-            placeholder="Portal URL"
-          />
-        </div>
-      ),
-    }] : []),
-    ...(isColumnVisible("send_email") ? [{
-      accessorKey: "send_email",
-      header: "Send Email",
-      cell: ({ row }: any) => (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={(e) => handleSendEmail(row.original, e)}
-          disabled={!row.original.account_executive_email}
-        >
-          <Mail className="h-3 w-3 mr-1" />
-          Email
-        </Button>
-      ),
-    }] : []),
-  ];
+  // Build dynamic columns based on visibility
+  const columns: ColumnDef<Lender & { rowNumber?: number }>[] = useMemo(() => {
+    const cols: ColumnDef<Lender & { rowNumber?: number }>[] = [];
+
+    // Row number
+    if (isColumnVisible("rowNumber")) {
+      cols.push({
+        accessorKey: "rowNumber",
+        header: "#",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground text-sm">{row.original.rowNumber}</span>
+        ),
+      });
+    }
+
+    // Lender name
+    if (isColumnVisible("lender_name")) {
+      cols.push({
+        accessorKey: "lender_name",
+        header: "Lender Name",
+        cell: ({ row }) => (
+          <div className="flex items-center justify-start text-left">
+            <Building className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+            <span className="font-medium">{toLenderTitleCase(row.original.lender_name)}</span>
+          </div>
+        ),
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
+    }
+
+    // Lender type
+    if (isColumnVisible("lender_type")) {
+      cols.push({
+        accessorKey: "lender_type",
+        header: "Lender Type",
+        cell: ({ row }) => (
+          <div className="flex justify-center">
+            <span className="text-xs text-muted-foreground">{row.original.lender_type || "—"}</span>
+          </div>
+        ),
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
+    }
+
+    // Account executive
+    if (isColumnVisible("account_executive")) {
+      cols.push({
+        accessorKey: "account_executive",
+        header: "Account Executive",
+        cell: ({ row }) => (
+          <div className="text-center">
+            <span className="text-sm">{row.original.account_executive || "—"}</span>
+          </div>
+        ),
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
+    }
+
+    // AE Email
+    if (isColumnVisible("ae_email")) {
+      cols.push({
+        accessorKey: "account_executive_email",
+        header: "AE Email",
+        cell: ({ row }) => (
+          <div className="flex items-center text-sm">
+            <Mail className="h-3 w-3 mr-1 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{row.original.account_executive_email || "—"}</span>
+          </div>
+        ),
+      });
+    }
+
+    // AE Phone
+    if (isColumnVisible("ae_phone")) {
+      cols.push({
+        accessorKey: "account_executive_phone",
+        header: "AE Phone",
+        cell: ({ row }) => (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
+            <span className="truncate">{row.original.account_executive_phone || "—"}</span>
+          </div>
+        ),
+      });
+    }
+
+    // Broker Portal
+    if (isColumnVisible("broker_portal_url")) {
+      cols.push({
+        accessorKey: "broker_portal_url",
+        header: "Broker Portal",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-1">
+            <InlineEditLink
+              value={row.original.broker_portal_url}
+              onValueChange={(value) => handleUpdateLender(row.original.id, { broker_portal_url: value })}
+              placeholder="Portal URL"
+            />
+          </div>
+        ),
+      });
+    }
+
+    // Send Email
+    if (isColumnVisible("send_email")) {
+      cols.push({
+        accessorKey: "send_email",
+        header: "Send Email",
+        cell: ({ row }) => (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => handleSendEmail(row.original, e)}
+            disabled={!row.original.account_executive_email}
+          >
+            <Mail className="h-3 w-3 mr-1" />
+            Email
+          </Button>
+        ),
+      });
+    }
+
+    // Loan limits
+    if (isColumnVisible("min_loan_amount")) {
+      cols.push({
+        accessorKey: "min_loan_amount",
+        header: "Min Loan",
+        cell: ({ row }) => <span className="text-sm">{formatCurrency(row.original.min_loan_amount)}</span>,
+      });
+    }
+    if (isColumnVisible("max_loan_amount")) {
+      cols.push({
+        accessorKey: "max_loan_amount",
+        header: "Max Loan",
+        cell: ({ row }) => <span className="text-sm">{formatCurrency(row.original.max_loan_amount)}</span>,
+      });
+    }
+
+    // Dates
+    if (isColumnVisible("initial_approval_date")) {
+      cols.push({
+        accessorKey: "initial_approval_date",
+        header: "Initial Approval",
+        cell: ({ row }) => <span className="text-sm">{formatDate(row.original.initial_approval_date)}</span>,
+      });
+    }
+    if (isColumnVisible("renewed_on")) {
+      cols.push({
+        accessorKey: "renewed_on",
+        header: "Renewed On",
+        cell: ({ row }) => <span className="text-sm">{formatDate(row.original.renewed_on)}</span>,
+      });
+    }
+    if (isColumnVisible("epo_period")) {
+      cols.push({
+        accessorKey: "epo_period",
+        header: "EPO Period",
+        cell: ({ row }) => <span className="text-sm">{row.original.epo_period || "—"}</span>,
+      });
+    }
+
+    // Product columns
+    const productColumnDefs: { id: string; key: keyof Lender }[] = [
+      { id: "product_fha", key: "product_fha" },
+      { id: "product_va", key: "product_va" },
+      { id: "product_conv", key: "product_conv" },
+      { id: "product_jumbo", key: "product_jumbo" },
+      { id: "product_bs_loan", key: "product_bs_loan" },
+      { id: "product_wvoe", key: "product_wvoe" },
+      { id: "product_1099_program", key: "product_1099_program" },
+      { id: "product_pl_program", key: "product_pl_program" },
+      { id: "product_itin", key: "product_itin" },
+      { id: "product_dpa", key: "product_dpa" },
+      { id: "product_heloc", key: "product_heloc" },
+      { id: "product_inv_heloc", key: "product_inv_heloc" },
+      { id: "product_fn_heloc", key: "product_fn_heloc" },
+      { id: "product_nonqm_heloc", key: "product_nonqm_heloc" },
+      { id: "product_manufactured_homes", key: "product_manufactured_homes" },
+      { id: "product_coop", key: "product_coop" },
+      { id: "product_condo_hotel", key: "product_condo_hotel" },
+      { id: "product_high_dti", key: "product_high_dti" },
+      { id: "product_low_fico", key: "product_low_fico" },
+      { id: "product_no_credit", key: "product_no_credit" },
+      { id: "product_dr_loan", key: "product_dr_loan" },
+      { id: "product_fn", key: "product_fn" },
+      { id: "product_nwc", key: "product_nwc" },
+      { id: "product_5_8_unit", key: "product_5_8_unit" },
+      { id: "product_9_plus_unit", key: "product_9_plus_unit" },
+      { id: "product_commercial", key: "product_commercial" },
+      { id: "product_construction", key: "product_construction" },
+      { id: "product_land_loan", key: "product_land_loan" },
+      { id: "product_fthb_dscr", key: "product_fthb_dscr" },
+      { id: "product_no_income_primary", key: "product_no_income_primary" },
+      { id: "product_no_seasoning_cor", key: "product_no_seasoning_cor" },
+      { id: "product_tbd_uw", key: "product_tbd_uw" },
+      { id: "product_condo_review_desk", key: "product_condo_review_desk" },
+      { id: "product_condo_mip_issues", key: "product_condo_mip_issues" },
+      { id: "product_558", key: "product_558" },
+      { id: "product_wvoe_family", key: "product_wvoe_family" },
+      { id: "product_1099_less_1yr", key: "product_1099_less_1yr" },
+      { id: "product_1099_no_biz", key: "product_1099_no_biz" },
+      { id: "product_omit_student_loans", key: "product_omit_student_loans" },
+      { id: "product_no_ratio_dscr", key: "product_no_ratio_dscr" },
+    ];
+
+    productColumnDefs.forEach(({ id, key }) => {
+      if (isColumnVisible(id)) {
+        const colDef = initialColumns.find(c => c.id === id);
+        cols.push({
+          accessorKey: key,
+          header: colDef?.label || id,
+          cell: ({ row }) => <div className="flex justify-center">{renderProductBadge(row.original[key] as string | undefined)}</div>,
+        });
+      }
+    });
+
+    // LTV columns
+    const ltvColumnDefs: { id: string; key: keyof Lender }[] = [
+      { id: "max_ltv", key: "max_ltv" },
+      { id: "conv_max_ltv", key: "conv_max_ltv" },
+      { id: "fha_max_ltv", key: "fha_max_ltv" },
+      { id: "jumbo_max_ltv", key: "jumbo_max_ltv" },
+      { id: "bs_loan_max_ltv", key: "bs_loan_max_ltv" },
+      { id: "wvoe_max_ltv", key: "wvoe_max_ltv" },
+      { id: "dscr_max_ltv", key: "dscr_max_ltv" },
+      { id: "ltv_1099", key: "ltv_1099" },
+      { id: "pl_max_ltv", key: "pl_max_ltv" },
+      { id: "fn_max_ltv", key: "fn_max_ltv" },
+      { id: "heloc_max_ltv", key: "heloc_max_ltv" },
+      { id: "condo_inv_max_ltv", key: "condo_inv_max_ltv" },
+    ];
+
+    ltvColumnDefs.forEach(({ id, key }) => {
+      if (isColumnVisible(id)) {
+        const colDef = initialColumns.find(c => c.id === id);
+        cols.push({
+          accessorKey: key,
+          header: colDef?.label || id,
+          cell: ({ row }) => <span className="text-sm">{formatPercentage(row.original[key] as number | undefined)}</span>,
+        });
+      }
+    });
+
+    // Number columns
+    const numberColumnDefs: { id: string; key: keyof Lender; format?: 'currency' | 'number' }[] = [
+      { id: "min_fico", key: "min_fico" },
+      { id: "min_sqft", key: "min_sqft" },
+      { id: "condotel_min_sqft", key: "condotel_min_sqft" },
+      { id: "asset_dep_months", key: "asset_dep_months" },
+      { id: "heloc_min_fico", key: "heloc_min_fico" },
+      { id: "heloc_min", key: "heloc_min", format: 'currency' },
+      { id: "max_cash_out_70_ltv", key: "max_cash_out_70_ltv", format: 'currency' },
+    ];
+
+    numberColumnDefs.forEach(({ id, key, format }) => {
+      if (isColumnVisible(id)) {
+        const colDef = initialColumns.find(c => c.id === id);
+        cols.push({
+          accessorKey: key,
+          header: colDef?.label || id,
+          cell: ({ row }) => {
+            const value = row.original[key] as number | undefined;
+            if (format === 'currency') {
+              return <span className="text-sm">{formatCurrency(value)}</span>;
+            }
+            return <span className="text-sm">{value ?? "—"}</span>;
+          },
+        });
+      }
+    });
+
+    // Notes
+    if (isColumnVisible("notes")) {
+      cols.push({
+        accessorKey: "notes",
+        header: "Notes",
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground truncate max-w-[200px]" title={row.original.notes || ""}>
+            {row.original.notes || "—"}
+          </span>
+        ),
+      });
+    }
+
+    return cols;
+  }, [columnVisibility]);
+
+  const activeFilterCount = countActiveFilters(filters);
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
@@ -324,9 +795,18 @@ export default function ApprovedLenders() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline">
+            <Button 
+              variant={isFilterOpen ? "default" : "outline"}
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="relative"
+            >
               <Filter className="h-4 w-4 mr-2" />
               Filter
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {activeFilterCount}
+                </Badge>
+              )}
             </Button>
             <ColumnVisibilityButton
               columns={columnVisibility}
@@ -360,6 +840,17 @@ export default function ApprovedLenders() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Filter Panel */}
+          {isFilterOpen && (
+            <div className="border rounded-lg p-4 bg-muted/30">
+              <ButtonFilterBuilder
+                filters={filters}
+                onFiltersChange={setFilters}
+                columns={filterColumns}
+              />
+            </div>
+          )}
+
           {/* Approved Lenders Section */}
           <Collapsible open={approvedExpanded} onOpenChange={setApprovedExpanded}>
             <CollapsibleTrigger asChild>
@@ -490,15 +981,24 @@ export default function ApprovedLenders() {
           setIsBulkEmailModalOpen(false);
           setSelectedIds(new Set());
         }}
-        lenders={lenders.filter(l => selectedIds.has(l.id))}
+        lenders={lenders.filter(l => selectedIds.has(l.id)).map(l => ({
+          id: l.id,
+          lender_name: l.lender_name,
+          account_executive_email: l.account_executive_email
+        }))}
       />
 
       <DeleteConfirmationDialog
         open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        title="Delete Lender?"
-        description={`Are you sure you want to delete "${lenderToDelete?.lender_name}"? This action cannot be undone.`}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsDeleteDialogOpen(false);
+            setLenderToDelete(null);
+          }
+        }}
         onConfirm={handleDeleteLender}
+        title="Delete Lender"
+        description={`Are you sure you want to delete "${lenderToDelete?.lender_name}"? This action cannot be undone.`}
         isLoading={isDeleting}
       />
     </div>
