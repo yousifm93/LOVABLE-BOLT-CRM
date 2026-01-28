@@ -1,138 +1,174 @@
 
 
-# Plan: Add Unread Email Indicators and Account Unread Counts
+# Plan: Activate Email Feature for Salma and Herman
 
 ## Overview
-Enhance the email client to match modern email UI patterns:
-1. Add a blue dot indicator next to unread emails in the list
-2. Display unread email counts next to each inbox account (Yousif Inbox, Scenarios Inbox) in the sidebar
+Enable full email access for `salma@mortgagebolt.org` and `herman@mortgagebolt.org`, including:
+1. Unlock their Email navigation permission so they can access the Email tab
+2. Add their inboxes to the Email page sidebar (like Yousif and Scenarios)
+3. Configure IMAP credentials so they can view their mailboxes
 
 ---
 
-## Changes
+## Current State
 
-### File: `src/pages/Email.tsx`
+| User | Email Permission | Home Inbox | Can Access Email Tab |
+|------|------------------|------------|---------------------|
+| Yousif | `visible` | `visible` | ✅ Yes |
+| Herman | `locked` | `locked` | ❌ No |
+| Salma | `locked` | `locked` | ❌ No |
 
-#### A) Add Unread Count State Per Account
+---
 
-Add state to track unread counts for each account:
+## Changes Required
+
+### 1. Database: Update Permissions
+
+Update the `user_permissions` table to unlock email access for both users:
+
+```sql
+-- Salma (user_id: 159376ae-30e9-4997-b61f-76ab8d7f224b)
+UPDATE user_permissions 
+SET email = 'visible', home_inbox = 'visible'
+WHERE user_id = '159376ae-30e9-4997-b61f-76ab8d7f224b';
+
+-- Herman (user_id: fa92a4c6-890d-4d69-99a8-c3adc6c904ee)
+UPDATE user_permissions 
+SET email = 'visible', home_inbox = 'visible'
+WHERE user_id = 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee';
+```
+
+### 2. Secrets: Add IONOS Passwords
+
+Add two new secrets for their IONOS email passwords:
+- `SALMA_EMAIL_PASSWORD` - for salma@mortgagebolt.org
+- `HERMAN_EMAIL_PASSWORD` - for herman@mortgagebolt.org
+
+**You will need to provide the IONOS passwords for both accounts.**
+
+### 3. Edge Function: Update `fetch-emails-imap/index.ts`
+
+Add Salma and Herman to the ACCOUNTS configuration:
+
+```typescript
+const ACCOUNTS: Record<string, { user: string; passwordEnvVar: string }> = {
+  yousif: {
+    user: "yousif@mortgagebolt.org",
+    passwordEnvVar: "IONOS_EMAIL_PASSWORD",
+  },
+  scenarios: {
+    user: "scenarios@mortgagebolt.org",
+    passwordEnvVar: "SCENARIOS_EMAIL_PASSWORD",
+  },
+  salma: {
+    user: "salma@mortgagebolt.org",
+    passwordEnvVar: "SALMA_EMAIL_PASSWORD",
+  },
+  herman: {
+    user: "herman@mortgagebolt.org",
+    passwordEnvVar: "HERMAN_EMAIL_PASSWORD",
+  },
+};
+```
+
+Update the TypeScript type to include the new accounts:
+```typescript
+interface FetchEmailsRequest {
+  account?: 'yousif' | 'scenarios' | 'salma' | 'herman';
+  // ... rest unchanged
+}
+```
+
+### 4. Frontend: Update `src/pages/Email.tsx`
+
+#### A) Update Account Type
+
+```typescript
+const [selectedAccount, setSelectedAccount] = useState<'yousif' | 'scenarios' | 'salma' | 'herman'>('yousif');
+```
+
+#### B) Add to Unread Counts State
 
 ```typescript
 const [accountUnreadCounts, setAccountUnreadCounts] = useState<Record<string, number>>({
   yousif: 0,
-  scenarios: 0
+  scenarios: 0,
+  salma: 0,
+  herman: 0
 });
 ```
 
-#### B) Update `fetchEmails` to Track Unread Counts
+#### C) Add Inbox Buttons to Sidebar
 
-Modify the email fetching logic to update `accountUnreadCounts` when emails are loaded:
-
-```typescript
-// After fetching emails, update unread count for the current account
-const unreadCount = fetchedEmails.filter((e: EmailMessage) => e.unread).length;
-setAccountUnreadCounts(prev => ({
-  ...prev,
-  [account]: unreadCount
-}));
-```
-
-#### C) Add Unread Dot to Email List Items
-
-In the email list rendering section (around line 1485), add a blue dot indicator for unread emails:
+In the ACCOUNTS section, add buttons for Salma and Herman:
 
 ```tsx
-<div className={cn("flex items-center gap-2 mb-1 w-full", showMultiSelect ? "pl-6" : "pl-4")}>
-  {/* NEW: Unread indicator dot */}
-  {email.unread && (
-    <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-  )}
-  <span className={cn(
-    "text-sm truncate min-w-0 flex-1",
-    email.unread ? "font-semibold" : "font-medium"
-  )}>
-    {email.from}
-  </span>
-  {/* ... rest of the row */}
-</div>
-```
-
-The subject line and snippet already have conditional font styling based on `email.unread`.
-
-#### D) Display Unread Counts Next to Account Buttons
-
-Update the ACCOUNTS section in the sidebar (lines 1349-1380) to show unread counts:
-
-```tsx
-{/* Yousif Inbox */}
+{/* Salma Inbox */}
 <button
   onClick={() => {
-    setSelectedAccount('yousif');
+    setSelectedAccount('salma');
     setSelectedCategory(null);
     setSelectedFolder('Inbox');
   }}
   className={cn(
     "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
-    selectedAccount === 'yousif' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+    selectedAccount === 'salma' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
   )}
 >
   <div className="flex items-center gap-2">
     <Mail className="h-4 w-4" />
-    <span className="truncate">Yousif Inbox</span>
+    <span className="truncate">Salma Inbox</span>
   </div>
-  {accountUnreadCounts.yousif > 0 && (
+  {accountUnreadCounts.salma > 0 && (
     <span className={cn(
       "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
-      selectedAccount === 'yousif' 
+      selectedAccount === 'salma' 
         ? "bg-primary-foreground/20 text-primary-foreground" 
         : "bg-blue-500 text-white"
     )}>
-      {accountUnreadCounts.yousif}
+      {accountUnreadCounts.salma}
     </span>
   )}
 </button>
 
-{/* Scenarios Inbox - same pattern */}
-<button ... >
-  ...
-  {accountUnreadCounts.scenarios > 0 && (
+{/* Herman Inbox */}
+<button
+  onClick={() => {
+    setSelectedAccount('herman');
+    setSelectedCategory(null);
+    setSelectedFolder('Inbox');
+  }}
+  className={cn(
+    "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+    selectedAccount === 'herman' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+  )}
+>
+  <div className="flex items-center gap-2">
+    <Mail className="h-4 w-4" />
+    <span className="truncate">Herman Inbox</span>
+  </div>
+  {accountUnreadCounts.herman > 0 && (
     <span className={cn(
       "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
-      selectedAccount === 'scenarios' 
+      selectedAccount === 'herman' 
         ? "bg-primary-foreground/20 text-primary-foreground" 
         : "bg-blue-500 text-white"
     )}>
-      {accountUnreadCounts.scenarios}
+      {accountUnreadCounts.herman}
     </span>
   )}
 </button>
 ```
 
-#### E) Optional: Fetch Unread Counts for Both Accounts on Initial Load
+#### D) Update Initial Unread Count Fetch
 
-To show accurate unread counts even for the non-selected account, add an initial fetch for both accounts' unread counts when the component mounts:
+Update the useEffect that fetches unread counts to include all 4 accounts:
 
 ```typescript
-// Fetch unread count for both accounts on mount
 useEffect(() => {
   const fetchUnreadCounts = async () => {
-    for (const account of ['yousif', 'scenarios'] as const) {
-      try {
-        const { data } = await supabase.functions.invoke("fetch-emails-imap", {
-          body: {
-            account,
-            folder: 'Inbox',
-            limit: 50,
-            offset: 0
-          }
-        });
-        if (data?.success && data.emails) {
-          const unreadCount = data.emails.filter((e: EmailMessage) => e.unread).length;
-          setAccountUnreadCounts(prev => ({ ...prev, [account]: unreadCount }));
-        }
-      } catch (error) {
-        console.error(`Error fetching unread count for ${account}:`, error);
-      }
+    for (const account of ['yousif', 'scenarios', 'salma', 'herman'] as const) {
+      // ... fetch logic
     }
   };
   fetchUnreadCounts();
@@ -141,44 +177,37 @@ useEffect(() => {
 
 ---
 
-## Visual Result
-
-**Email List Row (Unread):**
-```
-● Yousif                                          2:32 PM
-  Re: Loan Scenario Inquiry - Advancial
-```
-
-**Email List Row (Read):**
-```
-  Yousif                                          2:31 PM
-  Re: Loan Scenario Inquiry - Acra  
-```
-
-**Sidebar Accounts Section:**
-```
-ACCOUNTS
-✉ Yousif Inbox      (2)  ← blue badge showing 2 unread
-✉ Scenarios Inbox   (1)  ← blue badge showing 1 unread
-```
-
----
-
-## Technical Summary
-
-| Change | Location |
-|--------|----------|
-| Add `accountUnreadCounts` state | Line ~224 |
-| Update `fetchEmails` to track unread counts | Line ~600 |
-| Add blue dot for unread emails | Line ~1485 |
-| Show unread counts on account buttons | Lines 1349-1380 |
-| Fetch initial counts for both accounts | New useEffect |
-
----
-
-## Files Modified
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/Email.tsx` | Add unread dot indicator, add account unread counts state, show counts in sidebar |
+| Database | UPDATE `user_permissions` for Salma and Herman |
+| Secrets | Add `SALMA_EMAIL_PASSWORD` and `HERMAN_EMAIL_PASSWORD` |
+| `supabase/functions/fetch-emails-imap/index.ts` | Add salma and herman to ACCOUNTS config |
+| `src/pages/Email.tsx` | Add inbox buttons for Salma and Herman |
+
+---
+
+## What You Need to Provide
+
+Before I can implement this, please provide:
+
+1. **IONOS password for salma@mortgagebolt.org**
+2. **IONOS password for herman@mortgagebolt.org**
+
+These will be stored securely as Supabase secrets (`SALMA_EMAIL_PASSWORD` and `HERMAN_EMAIL_PASSWORD`).
+
+---
+
+## Result
+
+After implementation:
+- Salma and Herman can access the Email tab in the sidebar (unlocked)
+- The Email page will show 4 inboxes in the ACCOUNTS section:
+  - Yousif Inbox
+  - Scenarios Inbox  
+  - Salma Inbox
+  - Herman Inbox
+- Each inbox shows unread count badges
+- Users can switch between any inbox to view/manage emails
 
