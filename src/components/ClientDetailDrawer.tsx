@@ -3339,6 +3339,13 @@ export function ClientDetailDrawer({
                           }
                         }
 
+                        // Handle Active stage defaults
+                        const isActiveStage = normalizedLabel.toLowerCase() === 'active' || stageId === '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
+                        if (isActiveStage) {
+                          stageUpdateData.pipeline_section = 'Incoming';
+                          stageUpdateData.loan_status = 'NEW';
+                        }
+
                         await databaseService.updateLead(leadId!, stageUpdateData);
                         
                         toast({
@@ -3400,6 +3407,13 @@ export function ClientDetailDrawer({
                               updateData[dateField] = now;
                             }
                           }
+                        }
+
+                        // Handle Active stage defaults
+                        const isActiveStageBypass = normalizedLabel.toLowerCase() === 'active' || stageId === '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
+                        if (isActiveStageBypass) {
+                          updateData.pipeline_section = 'Incoming';
+                          updateData.loan_status = 'NEW';
                         }
 
                         await databaseService.updateLead(leadId!, updateData);
