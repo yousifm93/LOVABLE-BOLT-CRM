@@ -1,99 +1,88 @@
 
-
-# Plan: Fix Email Account Race Condition
+# Plan: Fix Pre-Approval Letter Address Mapping
 
 ## Problem
 
-When Salma loads the Email page, Yousif's emails briefly appear before being replaced with Salma's emails. This happens because:
+When generating a pre-approval letter, the address shows "No Address Yet" even though the lead has a subject property address saved (e.g., "10531 36th Street North" for Elias Hachem).
 
-1. `selectedAccount` state is initialized to `'yousif'` (line 223)
-2. `currentUserConfig` is computed synchronously from `crmUser?.id` when available
-3. The fetch effect (lines 803-811) runs and sees `crmUser` is available, but `selectedAccount` is still `'yousif'`
-4. The account-setting effect (lines 814-818) runs next, updating `selectedAccount` to `'salma'`
-5. This triggers a **second** fetch with the correct account
+**Root Cause:** Field name mismatch between the data transformation and the modal component.
 
-The issue is that both effects run in the same render cycle when `crmUser` becomes available, but the fetch effect reads the stale `selectedAccount` value.
+| Component | Expected Field | Actual Field in Data |
+|-----------|---------------|---------------------|
+| `PreApprovalLetterModal.tsx` line 55 | `client.subjectAddress1` (camelCase) | `client.subject_address_1` (snake_case) |
+| `PreApprovalLetterModal.tsx` line 58 | `client.subjectCity` (camelCase) | `client.subject_city` (snake_case) |
+| `PreApprovalLetterModal.tsx` line 59 | `client.subjectState` (camelCase) | `client.subject_state` (snake_case) |
+| `PreApprovalLetterModal.tsx` line 60 | `client.subjectZip` (camelCase) | `client.subject_zip` (snake_case) |
+
+The `transformLeadToClient()` function in `clientTransform.ts` correctly populates the snake_case fields (lines 314-318), but the modal is looking for the camelCase versions which don't exist.
 
 ---
 
 ## Solution
 
-Add a guard in the email fetch effect to ensure `selectedAccount` matches the user's expected primary account before fetching. This prevents fetching with an incorrect account.
+Update `PreApprovalLetterModal.tsx` to check for both field naming conventions, preferring the snake_case fields that are actually populated.
 
-### File: `src/pages/Email.tsx`
+### File: `src/components/modals/PreApprovalLetterModal.tsx`
 
-#### Change 1: Add Account Verification Guard to Fetch Effect
+#### Change: Lines 53-62
 
-Modify lines 803-811 to verify `selectedAccount` matches the expected account before fetching:
-
+**Current Code:**
 ```typescript
-// BEFORE (current code):
-useEffect(() => {
-  // Wait for crmUser to load before fetching to ensure correct account
-  if (!crmUser) return;
-  
-  if (!selectedCategory) {
-    fetchEmails(selectedFolder, 0, false, selectedAccount);
+if (isOpen && client) {
+  let propertyAddress = "No Address Yet";
+  if (client.subjectAddress1) {
+    const parts = [
+      client.subjectAddress1,
+      client.subjectCity,
+      client.subjectState,
+      client.subjectZip
+    ].filter(Boolean);
+    propertyAddress = parts.join(", ");
   }
-}, [selectedFolder, selectedCategory, selectedAccount, crmUser]);
-
-// AFTER (with account verification):
-useEffect(() => {
-  // Wait for crmUser to load before fetching to ensure correct account
-  if (!crmUser) return;
-  
-  // Don't fetch until selectedAccount matches user's expected primary account
-  // This prevents the race condition where selectedAccount is still 'yousif' 
-  // before the account-setting effect has run
-  const expectedPrimary = currentUserConfig?.primary;
-  if (expectedPrimary && selectedAccount !== expectedPrimary && selectedAccount !== 'scenarios') {
-    return; // Wait for account-setting effect to update selectedAccount
-  }
-  
-  if (!selectedCategory) {
-    fetchEmails(selectedFolder, 0, false, selectedAccount);
-  }
-}, [selectedFolder, selectedCategory, selectedAccount, crmUser, currentUserConfig?.primary]);
 ```
 
-This logic:
-- If user config exists (Salma has `primary: 'salma'`)
-- And `selectedAccount` is not the expected primary (still `'yousif'`)
-- And `selectedAccount` is not `'scenarios'` (which is always allowed)
-- Then skip the fetch and wait for the account-setting effect to run
+**Updated Code:**
+```typescript
+if (isOpen && client) {
+  let propertyAddress = "No Address Yet";
+  // Check for snake_case fields (from transformLeadToClient) or camelCase fields
+  const address1 = (client as any).subject_address_1 || client.subjectAddress1;
+  const city = (client as any).subject_city || client.subjectCity;
+  const state = (client as any).subject_state || client.subjectState;
+  const zip = (client as any).subject_zip || client.subjectZip;
+  
+  if (address1) {
+    const parts = [
+      address1,
+      city,
+      state,
+      zip
+    ].filter(Boolean);
+    propertyAddress = parts.join(", ");
+  }
+```
 
 ---
 
-## Summary of Changes
+## Summary
 
-| File | Location | Change |
-|------|----------|--------|
-| `src/pages/Email.tsx` | Lines 803-811 | Add guard to prevent fetch when `selectedAccount` doesn't match user's primary |
-
----
-
-## Why This Works
-
-1. When Salma logs in:
-   - `crmUser` becomes available with Salma's ID
-   - `currentUserConfig` computes to `{ primary: 'salma', label: 'Salma Inbox' }`
-   - The fetch effect runs but sees `selectedAccount='yousif'` !== `expectedPrimary='salma'`
-   - The guard prevents the fetch
-   - The account-setting effect runs and sets `selectedAccount='salma'`
-   - The fetch effect runs again with `selectedAccount='salma'` === `expectedPrimary='salma'`
-   - Now the fetch proceeds with the correct account
-
-2. When switching to Scenarios Inbox:
-   - User clicks Scenarios Inbox
-   - `selectedAccount` changes to `'scenarios'`
-   - The guard allows this because `selectedAccount === 'scenarios'` is always permitted
+| File | Change |
+|------|--------|
+| `src/components/modals/PreApprovalLetterModal.tsx` | Update address field references to check both snake_case and camelCase field names |
 
 ---
 
 ## Expected Result
 
-- Salma sees only her emails on initial load (no flash of Yousif's emails)
-- Herman sees only his emails on initial load
-- Yousif sees only his emails on initial load
-- Switching between accounts (e.g., Salma Inbox ↔ Scenarios Inbox) continues to work normally
+- Pre-approval letter for Elias Hachem will correctly display "10531 36th Street North, [City], [State] [Zip]"
+- Works for all leads with subject property addresses populated
+- Backward-compatible with any data that uses camelCase naming
 
+---
+
+## Technical Notes
+
+- The `CRMClient` type defines fields in camelCase (`subjectAddress1`, etc.)
+- The `transformLeadToClient()` function maps database fields to snake_case (`subject_address_1`, etc.)
+- Using `(client as any)` to access the snake_case fields avoids TypeScript errors without requiring a type update
+- Long-term, the transform function could be updated to also include camelCase mappings for consistency
