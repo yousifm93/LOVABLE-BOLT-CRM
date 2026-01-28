@@ -7,6 +7,255 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// =============================================================================
+// PRODUCT SYNONYM MAP - Normalize different product name phrasings
+// =============================================================================
+const PRODUCT_SYNONYM_MAP: Record<string, string> = {
+  // Foreign National variations
+  'foreign national program': 'product_foreign_national',
+  'foreign national product': 'product_foreign_national',
+  'foreign national financing': 'product_foreign_national',
+  'foreign national loans': 'product_foreign_national',
+  'foreign nationals': 'product_foreign_national',
+  'foreign national offering': 'product_foreign_national',
+  'foreign national': 'product_foreign_national',
+  
+  // Bank Statement variations
+  'bank statement program': 'product_bank_statement',
+  'bank statement product': 'product_bank_statement',
+  'bank statement loans': 'product_bank_statement',
+  'bank statement': 'product_bank_statement',
+  '12-month bank statement': 'product_bank_statement',
+  '12 month bank statement': 'product_bank_statement',
+  '24-month bank statement': 'product_bank_statement',
+  '24 month bank statement': 'product_bank_statement',
+  
+  // DSCR variations
+  'dscr program': 'product_dscr',
+  'dscr product': 'product_dscr',
+  'dscr financing': 'product_dscr',
+  'dscr loans': 'product_dscr',
+  'dscr': 'product_dscr',
+  'debt service coverage': 'product_dscr',
+  'debt service coverage ratio': 'product_dscr',
+  
+  // Jumbo variations
+  'jumbo program': 'product_jumbo',
+  'jumbo product': 'product_jumbo',
+  'jumbo loans': 'product_jumbo',
+  'jumbo': 'product_jumbo',
+  'super jumbo': 'product_jumbo',
+  
+  // Non-QM variations
+  'non-qm': 'product_non_qm',
+  'non qm': 'product_non_qm',
+  'nonqm': 'product_non_qm',
+  'non-qm program': 'product_non_qm',
+  
+  // Bridge variations
+  'bridge program': 'product_bridge',
+  'bridge product': 'product_bridge',
+  'bridge loans': 'product_bridge',
+  'bridge financing': 'product_bridge',
+  'bridge': 'product_bridge',
+  
+  // Fix & Flip variations
+  'fix and flip': 'product_fix_flip',
+  'fix & flip': 'product_fix_flip',
+  'fix/flip': 'product_fix_flip',
+  'fix n flip': 'product_fix_flip',
+  
+  // ITIN variations
+  'itin program': 'product_itin',
+  'itin loans': 'product_itin',
+  'itin': 'product_itin',
+  
+  // P&L variations
+  'p&l program': 'product_p_l',
+  'p&l': 'product_p_l',
+  'profit and loss': 'product_p_l',
+  'profit & loss': 'product_p_l',
+  
+  // Asset Depletion variations
+  'asset depletion': 'product_asset_depletion',
+  'asset depletion program': 'product_asset_depletion',
+  'asset utilization': 'product_asset_depletion',
+  
+  // 1099 variations
+  '1099 program': 'product_1099',
+  '1099 income': 'product_1099',
+  '1099': 'product_1099',
+  
+  // Construction variations
+  'construction loan': 'product_construction',
+  'construction program': 'product_construction',
+  'ground-up construction': 'product_construction',
+  'ground up construction': 'product_construction',
+  
+  // Non-Warrantable Condo variations
+  'non-warrantable condo': 'product_non_warrantable_condo',
+  'non warrantable condo': 'product_non_warrantable_condo',
+  'condotel': 'product_non_warrantable_condo',
+};
+
+// =============================================================================
+// KNOWN LENDER DOMAIN MAPPINGS
+// =============================================================================
+const LENDER_DOMAIN_MAPPINGS: Record<string, string> = {
+  'lsmortgage.com': 'LoanStream Mortgage',
+  'jmaclending.com': 'JMAC Lending',
+  'accmortgage.com': 'ACC Mortgage',
+  'fundloans.com': 'Fund Loans',
+  'acralending.com': 'Acra Lending',
+  'angeloakmortgage.com': 'Angel Oak Mortgage',
+  'carringtonwholesale.com': 'Carrington Wholesale',
+  'newwavemortgage.com': 'New Wave Mortgage',
+  'newwave.com': 'New Wave Mortgage',
+  'townemortgage.com': 'Towne Mortgage Company',
+  'deephavenmortgage.com': 'Deephaven Mortgage',
+  'citadelservicing.com': 'Citadel Servicing',
+  'athasbank.com': 'Athas Capital',
+  'kiavi.com': 'Kiavi',
+  'lima.one': 'Lima One Capital',
+  'unvpl.com': 'United Wholesale Mortgage',
+  'uwm.com': 'United Wholesale Mortgage',
+  'pennymac.com': 'PennyMac',
+  'flagstar.com': 'Flagstar Bank',
+  'homepoint.com': 'Homepoint',
+  'newrez.com': 'NewRez',
+  'prmg.net': 'PRMG',
+  'prmglending.com': 'PRMG',
+  'primereliance.com': 'Prime Reliance',
+};
+
+// =============================================================================
+// MIN/MAX FIELD CLASSIFICATIONS
+// =============================================================================
+const MIN_FIELDS = ['min_fico', 'min_loan_amount'];
+const MAX_FIELDS = ['max_loan_amount', 'max_ltv', 'dscr_max_ltv', 'bs_loan_max_ltv'];
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Parse numeric value from formatted strings like "$1,500,000" or "620"
+ */
+function parseNumericValue(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const cleaned = String(value).replace(/[$,%]/g, '').replace(/,/g, '');
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? null : num;
+}
+
+/**
+ * Check if min field should be updated (only if new value is LOWER)
+ */
+function shouldUpdateMinField(newValue: string, currentValue: string | null): boolean {
+  if (!currentValue) return true; // Always update if currently null
+  
+  const newNum = parseNumericValue(newValue);
+  const currentNum = parseNumericValue(currentValue);
+  
+  if (newNum === null || currentNum === null) return true; // Can't compare numerically
+  
+  // Min fields: only update if new value is LOWER (less restrictive)
+  return newNum < currentNum;
+}
+
+/**
+ * Check if max field should be updated (only if new value is HIGHER)
+ */
+function shouldUpdateMaxField(newValue: string, currentValue: string | null): boolean {
+  if (!currentValue) return true; // Always update if currently null
+  
+  const newNum = parseNumericValue(newValue);
+  const currentNum = parseNumericValue(currentValue);
+  
+  if (newNum === null || currentNum === null) return true; // Can't compare numerically
+  
+  // Max fields: only update if new value is HIGHER (more generous)
+  return newNum > currentNum;
+}
+
+/**
+ * Detect lender name from email metadata when AI fails
+ */
+function detectLenderFromEmail(subject: string, fromEmail: string, body: string): string | null {
+  // Try 1: Extract from sender email domain using known mappings
+  if (fromEmail) {
+    const domain = fromEmail.split('@')[1]?.toLowerCase();
+    if (domain && LENDER_DOMAIN_MAPPINGS[domain]) {
+      return LENDER_DOMAIN_MAPPINGS[domain];
+    }
+    
+    // Try extracting from domain name (e.g., "townemortgage.com" → "Towne Mortgage")
+    if (domain) {
+      const domainName = domain.split('.')[0];
+      if (domainName && domainName.length > 3) {
+        // Insert spaces before common suffixes
+        const formatted = domainName
+          .replace(/(mortgage|lending|bank|capital|financial|wholesale|home|loans)/gi, ' $1')
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .split(' ')
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(' ');
+        
+        if (formatted.length > 3) {
+          return formatted;
+        }
+      }
+    }
+  }
+  
+  // Try 2: Extract from subject line patterns
+  const subjectPatterns = [
+    /^(?:Fwd?:\s*)?(?:Re:\s*)?([\w\s]+?)\s+(?:Program|Product|Rate|Pricing|Update|Highlights)/i,
+    /from\s+([\w\s]+)\s*$/i,
+    /^(?:Fwd?:\s*)?(?:Re:\s*)?([\w\s]+?)\s+-\s+/i,
+  ];
+  
+  for (const pattern of subjectPatterns) {
+    const match = subject.match(pattern);
+    if (match?.[1] && match[1].length > 3 && match[1].length < 50) {
+      const cleaned = match[1].trim();
+      // Avoid generic words
+      if (!['new', 'hot', 'great', 'special', 'today'].includes(cleaned.toLowerCase())) {
+        return cleaned;
+      }
+    }
+  }
+  
+  // Try 3: Look for company name patterns in body (first 500 chars)
+  const bodyStart = body.substring(0, 500);
+  const companyPatterns = [
+    /(?:from|by|at)\s+([\w\s]+(?:Mortgage|Lending|Bank|Capital|Financial))/i,
+  ];
+  
+  for (const pattern of companyPatterns) {
+    const match = bodyStart.match(pattern);
+    if (match?.[1]) {
+      return match[1].trim();
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Normalize product name from email text to database field name
+ */
+function normalizeProductName(rawName: string): string | null {
+  const lower = rawName.toLowerCase().trim();
+  return PRODUCT_SYNONYM_MAP[lower] || null;
+}
+
+// =============================================================================
+// INTERFACES
+// =============================================================================
+
 interface LenderMarketingData {
   lender_name: string | null;
   max_loan_amount: string | null;
@@ -61,6 +310,57 @@ interface LenderFieldSuggestion {
   confidence: number;
 }
 
+// =============================================================================
+// ENHANCED AI SYSTEM PROMPT
+// =============================================================================
+const SYSTEM_PROMPT = `You are an expert at extracting structured data from wholesale mortgage lender marketing emails.
+
+CRITICAL RULE - LENDER IDENTIFICATION:
+- The lender_name field is MANDATORY. "Unknown Lender" is NEVER acceptable.
+- Detect lender name from these sources (in priority order):
+  1. From/sender display name and email address (e.g., "info@jmaclending.com" → "JMAC Lending")
+  2. Email subject line (e.g., "Towne Mortgage Company Highlights" → "Towne Mortgage Company")
+  3. Company name in email signature
+  4. Headers, logos, or first lines of email body
+  5. Email domain (e.g., @fundloans.com → "Fund Loans")
+- Normalize minimally: trim whitespace, remove obvious noise
+- DO NOT remove distinctive words like "Company", "Mortgage", "Bank", "Lending"
+- If truly no lender identifier exists after checking ALL sources, THEN use "Unknown Lender"
+
+PRODUCT DETECTION:
+- Identify ALL product types mentioned before extracting values
+- Normalize product names to canonical forms:
+  - "Foreign National Program/Product/Financing/Loans" → Y for product_foreign_national
+  - "Bank Statement Program/Product/Loans" → Y for product_bank_statement
+  - "DSCR Program/Product/Financing" → Y for product_dscr
+- For each product, set to "Y" ONLY if email explicitly states lender OFFERS it
+- Set to "N" if email explicitly states NOT offered
+- Leave null if not mentioned
+
+DATA EXTRACTION:
+- Scan the ENTIRE email - do not stop after finding a few fields
+- For EACH distinct product section (FHA, VA, DSCR, Jumbo, Bank Statement, etc.), extract:
+  - Min/Max FICO (as integers, e.g., "620")
+  - Min/Max Loan Amount (as "$X,XXX,XXX" format)
+  - Max LTV/CLTV (as "XX%" format)
+  - DSCR-specific LTV (dscr_ltv)
+  - Bank Statement-specific LTV (bank_statement_ltv)
+  - Occupancy/property type constraints
+  - Documentation requirements
+- Multiple products in one email should all be extracted
+
+Account Executive fields (extract from email signature, sender info, or explicit mentions):
+- account_executive_first_name: First name of the account executive/sender
+- account_executive_last_name: Last name of the account executive/sender
+- account_executive_email: Email address of the account executive (from signature or "From" header)
+- account_executive_phone: Phone number of the account executive (from signature)
+
+IMPORTANT: Only extract explicitly stated values. Never infer or guess values.
+Include key source phrases in the "notes" field for audit trail.`;
+
+// =============================================================================
+// MAIN HANDLER
+// =============================================================================
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -81,6 +381,8 @@ serve(async (req) => {
     const emailContent = `Subject: ${subject}\n\nFrom: ${fromEmail}\n\nBody:\n${body || htmlBody || ''}`;
 
     console.log('[parse-lender-marketing-data] Analyzing email for lender data...');
+    console.log('[parse-lender-marketing-data] Subject:', subject);
+    console.log('[parse-lender-marketing-data] From:', fromEmail);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -93,45 +395,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert at extracting structured data from wholesale mortgage lender marketing emails.
-
-Your task is to extract specific lender information from the email content. Extract ALL data points you can find.
-
-Data points to extract:
-- lender_name: The name of the lender/company sending the email (e.g., "JMac Lending", "ACC Mortgage", "Carrington")
-- max_loan_amount: Maximum loan amount (format as "$X,XXX,XXX" or null)
-- min_loan_amount: Minimum loan amount (format as "$XXX,XXX" or null)
-- max_ltv: Maximum LTV percentage (format as "XX%" or null)
-- min_fico: Minimum credit score (format as number like "620" or null)
-- products: Array of loan products mentioned (e.g., ["DSCR", "Bank Statement", "P&L", "Non-QM", "Non-Warrantable Condo", "1099", "ITIN", "Asset Depletion", "Foreign National", "Full Doc", "Asset Utilization", "Jumbo", "Bridge", "Fix & Flip"])
-- dscr_ltv: DSCR-specific max LTV (format as "XX%" or null)
-- bank_statement_ltv: Bank statement program max LTV (format as "XX%" or null)
-- non_qm_ltv: Non-QM program max LTV (format as "XX%" or null)
-- interest_only: Whether interest-only is available (true/false/null)
-- prepay_penalty: Prepayment penalty info (e.g., "3 year", "None", or null)
-- special_features: Array of notable features (e.g., ["No MI", "24-hour turn times", "Investor cash-out allowed"])
-- restrictions: Array of restrictions or limitations mentioned
-- property_types: Array of property types allowed (e.g., ["Warehouse", "Office Space", "Retail", "Mixed Use", "Industrial"])
-- notes: Any other important details not captured above
-
-Account Executive fields (extract from email signature, sender info, or explicit mentions):
-- account_executive_first_name: First name of the account executive/sender
-- account_executive_last_name: Last name of the account executive/sender
-- account_executive_email: Email address of the account executive (from signature or "From" header)
-- account_executive_phone: Phone number of the account executive (from signature)
-
-Product fields (Y for Yes, N for No, TBD if unclear, null if not mentioned):
-- product_conventional, product_fha, product_va, product_usda, product_dscr, product_bank_statement
-- product_p_l, product_1099, product_asset_depletion, product_foreign_national, product_itin
-- product_non_warrantable_condo, product_jumbo, product_heloc, product_reverse, product_construction
-- product_lot_land, product_fix_flip, product_bridge, product_commercial, product_doctor_loan
-- product_interest_only
-
-IMPORTANT: 
-- Only extract data that is explicitly stated in the email. Do not infer or make up values.
-- The lender_name should be the company sending the email, not a generic description.
-- For product fields, set to "Y" if the email explicitly mentions offering that product.
-- Look for account executive info in email signatures, sender name, "From:" headers, and explicit "Account Executive:" lines.`
+            content: SYSTEM_PROMPT
           },
           {
             role: 'user',
@@ -147,7 +411,7 @@ IMPORTANT:
               parameters: {
                 type: 'object',
                 properties: {
-                  lender_name: { type: 'string', nullable: true },
+                  lender_name: { type: 'string', nullable: true, description: 'REQUIRED: Company name sending this email. Never use "Unknown Lender" if any identifier exists.' },
                   max_loan_amount: { type: 'string', nullable: true },
                   min_loan_amount: { type: 'string', nullable: true },
                   max_ltv: { type: 'string', nullable: true },
@@ -161,7 +425,7 @@ IMPORTANT:
                   special_features: { type: 'array', items: { type: 'string' } },
                   restrictions: { type: 'array', items: { type: 'string' } },
                   property_types: { type: 'array', items: { type: 'string' } },
-                  notes: { type: 'string', nullable: true },
+                  notes: { type: 'string', nullable: true, description: 'Include key source phrases from email for audit trail' },
                   product_conventional: { type: 'string', nullable: true },
                   product_fha: { type: 'string', nullable: true },
                   product_va: { type: 'string', nullable: true },
@@ -184,10 +448,10 @@ IMPORTANT:
                   product_commercial: { type: 'string', nullable: true },
                   product_doctor_loan: { type: 'string', nullable: true },
                   product_interest_only: { type: 'string', nullable: true },
-                  account_executive_first_name: { type: 'string', nullable: true, description: 'First name of account executive from signature/sender' },
-                  account_executive_last_name: { type: 'string', nullable: true, description: 'Last name of account executive from signature/sender' },
-                  account_executive_email: { type: 'string', nullable: true, description: 'Email of account executive from signature' },
-                  account_executive_phone: { type: 'string', nullable: true, description: 'Phone of account executive from signature' },
+                  account_executive_first_name: { type: 'string', nullable: true },
+                  account_executive_last_name: { type: 'string', nullable: true },
+                  account_executive_email: { type: 'string', nullable: true },
+                  account_executive_phone: { type: 'string', nullable: true },
                   ai_summary: { type: 'string', description: 'Brief 1-2 sentence summary of what this email is about' }
                 },
                 required: ['products', 'special_features', 'restrictions'],
@@ -222,7 +486,21 @@ IMPORTANT:
     }
 
     const extractedData: LenderMarketingData & { ai_summary?: string } = JSON.parse(toolCall.function.arguments);
-    console.log('[parse-lender-marketing-data] Extracted data:', extractedData);
+    console.log('[parse-lender-marketing-data] Extracted lender_name from AI:', extractedData.lender_name);
+
+    // ==========================================================================
+    // ENHANCED LENDER DETECTION FALLBACK
+    // ==========================================================================
+    if (!extractedData.lender_name || extractedData.lender_name === 'Unknown Lender' || extractedData.lender_name.toLowerCase().includes('unknown')) {
+      console.log('[parse-lender-marketing-data] AI returned unknown lender, running fallback detection...');
+      const detectedLender = detectLenderFromEmail(subject || '', fromEmail || '', body || htmlBody || '');
+      if (detectedLender) {
+        extractedData.lender_name = detectedLender;
+        console.log('[parse-lender-marketing-data] Detected lender from metadata:', detectedLender);
+      }
+    }
+
+    console.log('[parse-lender-marketing-data] Final lender_name:', extractedData.lender_name);
 
     // Update the email_logs record
     if (emailLogId) {
@@ -322,6 +600,9 @@ IMPORTANT:
           { extracted: 'max_loan_amount', db: 'max_loan_amount', display: 'Max Loan Amount' },
           { extracted: 'min_loan_amount', db: 'min_loan_amount', display: 'Min Loan Amount' },
           { extracted: 'min_fico', db: 'min_fico', display: 'Min FICO' },
+          { extracted: 'max_ltv', db: 'max_ltv', display: 'Max LTV' },
+          { extracted: 'dscr_ltv', db: 'dscr_max_ltv', display: 'DSCR Max LTV' },
+          { extracted: 'bank_statement_ltv', db: 'bs_loan_max_ltv', display: 'Bank Statement Max LTV' },
           { extracted: 'product_dscr', db: 'product_dscr', display: 'DSCR Product' },
           { extracted: 'product_bank_statement', db: 'product_bank_statement', display: 'Bank Statement Product' },
           { extracted: 'product_p_l', db: 'product_p_l', display: 'P&L Product' },
@@ -336,6 +617,9 @@ IMPORTANT:
           { extracted: 'product_commercial', db: 'product_commercial', display: 'Commercial Product' },
           { extracted: 'product_interest_only', db: 'product_interest_only', display: 'Interest Only Product' },
           { extracted: 'product_non_warrantable_condo', db: 'product_non_warrantable_condo', display: 'Non-Warrantable Condo Product' },
+          { extracted: 'product_conventional', db: 'product_conventional', display: 'Conventional Product' },
+          { extracted: 'product_fha', db: 'product_fha', display: 'FHA Product' },
+          { extracted: 'product_va', db: 'product_va', display: 'VA Product' },
         ];
 
         for (const mapping of fieldMappings) {
@@ -349,16 +633,47 @@ IMPORTANT:
           const extractedStr = String(extractedValue);
           const currentStr = currentValue ? String(currentValue) : null;
 
-          // Create suggestion if different or currently null
-          if (extractedStr !== currentStr) {
-            suggestions.push({
-              field_name: mapping.db,
-              suggested_value: extractedStr,
-              current_value: currentStr,
-              reason: `Email mentions ${mapping.display}: ${extractedStr}`,
-              confidence: 0.85,
-            });
+          // =======================================================================
+          // CRITICAL: Skip duplicates - CRM already has the same value
+          // =======================================================================
+          if (extractedStr === currentStr) {
+            console.log(`[parse-lender-marketing-data] Skipping ${mapping.db}: CRM already has value "${currentStr}"`);
+            continue;
           }
+
+          // =======================================================================
+          // For product fields (Y/N): skip if already "Y" and new value is also "Y"
+          // =======================================================================
+          if (mapping.db.startsWith('product_') && currentStr === 'Y' && extractedStr === 'Y') {
+            console.log(`[parse-lender-marketing-data] Skipping ${mapping.db}: Already marked as Yes in CRM`);
+            continue;
+          }
+
+          // =======================================================================
+          // MIN/MAX VALIDATION: Avoid backwards updates
+          // =======================================================================
+          if (MIN_FIELDS.includes(mapping.db)) {
+            if (!shouldUpdateMinField(extractedStr, currentStr)) {
+              console.log(`[parse-lender-marketing-data] Skipping ${mapping.db}: New value ${extractedStr} is higher than current ${currentStr} (more restrictive)`);
+              continue;
+            }
+          }
+
+          if (MAX_FIELDS.includes(mapping.db)) {
+            if (!shouldUpdateMaxField(extractedStr, currentStr)) {
+              console.log(`[parse-lender-marketing-data] Skipping ${mapping.db}: New value ${extractedStr} is lower than current ${currentStr} (more restrictive)`);
+              continue;
+            }
+          }
+
+          // Create suggestion if different or currently null
+          suggestions.push({
+            field_name: mapping.db,
+            suggested_value: extractedStr,
+            current_value: currentStr,
+            reason: `Email mentions ${mapping.display}: ${extractedStr}`,
+            confidence: 0.85,
+          });
         }
       } else {
         console.log('[parse-lender-marketing-data] No matching lender found, suggesting new lender');
@@ -372,7 +687,6 @@ IMPORTANT:
         });
 
         // Create individual field suggestions for each extracted data point (for new lenders)
-        // These will be auto-populated when user approves the "new_lender" suggestion
         if (extractedData.max_ltv) {
           suggestions.push({
             field_name: 'max_ltv',
@@ -427,7 +741,8 @@ IMPORTANT:
             confidence: 0.85,
           });
         }
-        // Product flags as suggestions
+        
+        // Product flags as suggestions for new lenders
         const productMappings = [
           { extracted: 'product_dscr', display: 'DSCR Product' },
           { extracted: 'product_bank_statement', display: 'Bank Statement Product' },
@@ -440,7 +755,12 @@ IMPORTANT:
           { extracted: 'product_jumbo', display: 'Jumbo Product' },
           { extracted: 'product_bridge', display: 'Bridge Product' },
           { extracted: 'product_fix_flip', display: 'Fix & Flip Product' },
+          { extracted: 'product_construction', display: 'Construction Product' },
+          { extracted: 'product_conventional', display: 'Conventional Product' },
+          { extracted: 'product_fha', display: 'FHA Product' },
+          { extracted: 'product_va', display: 'VA Product' },
         ];
+        
         for (const pm of productMappings) {
           const val = extractedData[pm.extracted as keyof LenderMarketingData];
           if (val === 'Y') {
@@ -455,8 +775,15 @@ IMPORTANT:
         }
       }
 
-      // Insert suggestions into database
+      // Insert suggestions into database with enhanced metadata
       if (suggestions.length > 0 && emailLogId) {
+        const sourceMetadata = {
+          email_subject: subject || null,
+          email_from: fromEmail || null,
+          email_timestamp: new Date().toISOString(),
+          source_phrases: extractedData.notes || null,
+        };
+        
         const suggestionRecords = suggestions.map(s => ({
           email_log_id: emailLogId,
           lender_id: matchedLender?.id || null,
@@ -466,7 +793,7 @@ IMPORTANT:
           current_value: s.current_value,
           suggested_value: s.suggested_value,
           confidence: s.confidence,
-          reason: s.reason,
+          reason: `${s.reason} | Source: ${subject || 'Unknown subject'}`,
           status: 'pending',
         }));
 
@@ -477,7 +804,7 @@ IMPORTANT:
         if (insertError) {
           console.error('[parse-lender-marketing-data] Error inserting suggestions:', insertError);
         } else {
-          console.log('[parse-lender-marketing-data] Inserted', suggestions.length, 'suggestions');
+          console.log('[parse-lender-marketing-data] Inserted', suggestions.length, 'suggestions for lender:', extractedData.lender_name);
         }
       }
     }
