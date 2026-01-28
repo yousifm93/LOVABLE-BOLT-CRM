@@ -1,151 +1,184 @@
 
 
-# Plan: Enable Column Sorting in Lender Directory + Add Scenarios Inbox
+# Plan: Add Unread Email Indicators and Account Unread Counts
 
 ## Overview
-Two requests:
-1. **Enable column sorting** in the Lender Directory by clicking column headers
-2. **Add a "Scenarios Inbox"** section to the Email page to view emails from scenarios@mortgagebolt.org
+Enhance the email client to match modern email UI patterns:
+1. Add a blue dot indicator next to unread emails in the list
+2. Display unread email counts next to each inbox account (Yousif Inbox, Scenarios Inbox) in the sidebar
 
 ---
 
-## Part 1: Enable Column Sorting in Lender Directory
+## Changes
 
-### Current State
-- The DataTable component already supports sorting via the `sortable: true` property on column definitions
-- When a column is marked `sortable: true`, clicking the header toggles ascending/descending sort
-- Only a few columns (`lender_name`, `lender_type`, `account_executive`) currently have `sortable: true`
-- All other columns (products, LTVs, numbers, dates) are missing this property
+### File: `src/pages/Email.tsx`
 
-### Solution
-**File: `src/pages/contacts/ApprovedLenders.tsx`**
+#### A) Add Unread Count State Per Account
 
-Add `sortable: true` to all column definitions in the `columns` useMemo block:
+Add state to track unread counts for each account:
 
-1. **Text columns** (already have it): lender_name, lender_type, account_executive
-2. **Loan limit columns**: min_loan_amount, max_loan_amount
-3. **Date columns**: initial_approval_date, renewed_on
-4. **Product columns** (Y/N/TBD): All ~35 product fields
-5. **LTV columns**: All ~12 LTV percentage fields
-6. **Number columns**: min_fico, min_sqft, condotel_min_sqft, asset_dep_months, etc.
-7. **Other**: epo_period, notes
-
-The DataTable handles sorting logic automatically - numeric, date, and string comparison are all built-in. Once `sortable: true` is added, users can click any column header to sort by that column.
-
----
-
-## Part 2: Add Scenarios Inbox to Email Page
-
-### Current State
-- The Email page currently connects to `yousif@mortgagebolt.org` via IMAP (IONOS)
-- The `scenarios@mortgagebolt.org` email is used for outgoing lender emails
-- The edge function `fetch-emails-imap/index.ts` is hardcoded to `yousif@mortgagebolt.org`
-- There's an `IONOS_EMAIL_PASSWORD` secret configured
-
-### Requirements for Scenarios Inbox
-To view emails from scenarios@mortgagebolt.org, we need:
-
-1. **A separate password** for the scenarios@mortgagebolt.org IONOS mailbox
-   - This will need to be stored as a new secret (e.g., `SCENARIOS_EMAIL_PASSWORD`)
-   
-2. **An updated edge function** that can accept which account to fetch from
-   - Add an `account` parameter to `fetch-emails-imap`
-   - Use different credentials based on the account parameter
-
-3. **UI changes** to the Email page sidebar
-   - Add a new section below Categories called "ACCOUNTS" or similar
-   - Include a "Scenarios Inbox" item that switches to fetching from scenarios@mortgagebolt.org
-
-### Technical Implementation
-
-**A) Add new secret**
-- Need user to provide the password for scenarios@mortgagebolt.org IONOS account
-- Store as `SCENARIOS_EMAIL_PASSWORD` in Supabase secrets
-
-**B) Update Edge Function: `supabase/functions/fetch-emails-imap/index.ts`**
 ```typescript
-// Add account parameter
-interface FetchEmailsRequest {
-  account?: 'yousif' | 'scenarios';  // NEW
-  folder?: string;
-  // ... existing params
-}
-
-// Map account to credentials
-const ACCOUNTS = {
-  yousif: {
-    user: 'yousif@mortgagebolt.org',
-    password: Deno.env.get('IONOS_EMAIL_PASSWORD'),
-  },
-  scenarios: {
-    user: 'scenarios@mortgagebolt.org',
-    password: Deno.env.get('SCENARIOS_EMAIL_PASSWORD'),
-  },
-};
+const [accountUnreadCounts, setAccountUnreadCounts] = useState<Record<string, number>>({
+  yousif: 0,
+  scenarios: 0
+});
 ```
 
-**C) Update Email.tsx**
-1. Add `selectedAccount` state (`'yousif' | 'scenarios'`)
-2. Pass `account` parameter to edge function calls
-3. Add "ACCOUNTS" section to sidebar with:
-   - Main Inbox (yousif@mortgagebolt.org) - current default
-   - Scenarios Inbox (scenarios@mortgagebolt.org)
-4. Style like existing folder buttons
+#### B) Update `fetchEmails` to Track Unread Counts
 
-### UI Mockup
-```text
-┌─────────────────────────┐
-│ Inbox                   │
-│ Starred                 │
-│ Sent                    │
-│ Archive                 │
-│ Trash                   │
-├─────────────────────────┤
-│ CATEGORIES         [+]  │
-│ ◎ Needs Attention    3  │
-│ ✓ File               2  │
-│ ✓ Lender Mktg           │
-│ ✓ Reviewed - N/A    18  │
-├─────────────────────────┤
-│ ACCOUNTS                │
-│ ✉ Yousif Inbox          │  ← current
-│ ✉ Scenarios Inbox       │  ← new
-└─────────────────────────┘
+Modify the email fetching logic to update `accountUnreadCounts` when emails are loaded:
+
+```typescript
+// After fetching emails, update unread count for the current account
+const unreadCount = fetchedEmails.filter((e: EmailMessage) => e.unread).length;
+setAccountUnreadCounts(prev => ({
+  ...prev,
+  [account]: unreadCount
+}));
+```
+
+#### C) Add Unread Dot to Email List Items
+
+In the email list rendering section (around line 1485), add a blue dot indicator for unread emails:
+
+```tsx
+<div className={cn("flex items-center gap-2 mb-1 w-full", showMultiSelect ? "pl-6" : "pl-4")}>
+  {/* NEW: Unread indicator dot */}
+  {email.unread && (
+    <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+  )}
+  <span className={cn(
+    "text-sm truncate min-w-0 flex-1",
+    email.unread ? "font-semibold" : "font-medium"
+  )}>
+    {email.from}
+  </span>
+  {/* ... rest of the row */}
+</div>
+```
+
+The subject line and snippet already have conditional font styling based on `email.unread`.
+
+#### D) Display Unread Counts Next to Account Buttons
+
+Update the ACCOUNTS section in the sidebar (lines 1349-1380) to show unread counts:
+
+```tsx
+{/* Yousif Inbox */}
+<button
+  onClick={() => {
+    setSelectedAccount('yousif');
+    setSelectedCategory(null);
+    setSelectedFolder('Inbox');
+  }}
+  className={cn(
+    "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+    selectedAccount === 'yousif' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+  )}
+>
+  <div className="flex items-center gap-2">
+    <Mail className="h-4 w-4" />
+    <span className="truncate">Yousif Inbox</span>
+  </div>
+  {accountUnreadCounts.yousif > 0 && (
+    <span className={cn(
+      "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+      selectedAccount === 'yousif' 
+        ? "bg-primary-foreground/20 text-primary-foreground" 
+        : "bg-blue-500 text-white"
+    )}>
+      {accountUnreadCounts.yousif}
+    </span>
+  )}
+</button>
+
+{/* Scenarios Inbox - same pattern */}
+<button ... >
+  ...
+  {accountUnreadCounts.scenarios > 0 && (
+    <span className={cn(
+      "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+      selectedAccount === 'scenarios' 
+        ? "bg-primary-foreground/20 text-primary-foreground" 
+        : "bg-blue-500 text-white"
+    )}>
+      {accountUnreadCounts.scenarios}
+    </span>
+  )}
+</button>
+```
+
+#### E) Optional: Fetch Unread Counts for Both Accounts on Initial Load
+
+To show accurate unread counts even for the non-selected account, add an initial fetch for both accounts' unread counts when the component mounts:
+
+```typescript
+// Fetch unread count for both accounts on mount
+useEffect(() => {
+  const fetchUnreadCounts = async () => {
+    for (const account of ['yousif', 'scenarios'] as const) {
+      try {
+        const { data } = await supabase.functions.invoke("fetch-emails-imap", {
+          body: {
+            account,
+            folder: 'Inbox',
+            limit: 50,
+            offset: 0
+          }
+        });
+        if (data?.success && data.emails) {
+          const unreadCount = data.emails.filter((e: EmailMessage) => e.unread).length;
+          setAccountUnreadCounts(prev => ({ ...prev, [account]: unreadCount }));
+        }
+      } catch (error) {
+        console.error(`Error fetching unread count for ${account}:`, error);
+      }
+    }
+  };
+  fetchUnreadCounts();
+}, []);
 ```
 
 ---
 
-## Files to Modify
+## Visual Result
+
+**Email List Row (Unread):**
+```
+● Yousif                                          2:32 PM
+  Re: Loan Scenario Inquiry - Advancial
+```
+
+**Email List Row (Read):**
+```
+  Yousif                                          2:31 PM
+  Re: Loan Scenario Inquiry - Acra  
+```
+
+**Sidebar Accounts Section:**
+```
+ACCOUNTS
+✉ Yousif Inbox      (2)  ← blue badge showing 2 unread
+✉ Scenarios Inbox   (1)  ← blue badge showing 1 unread
+```
+
+---
+
+## Technical Summary
+
+| Change | Location |
+|--------|----------|
+| Add `accountUnreadCounts` state | Line ~224 |
+| Update `fetchEmails` to track unread counts | Line ~600 |
+| Add blue dot for unread emails | Line ~1485 |
+| Show unread counts on account buttons | Lines 1349-1380 |
+| Fetch initial counts for both accounts | New useEffect |
+
+---
+
+## Files Modified
 
 | File | Changes |
 |------|---------|
-| `src/pages/contacts/ApprovedLenders.tsx` | Add `sortable: true` to all column definitions |
-| `supabase/functions/fetch-emails-imap/index.ts` | Add `account` parameter, support multiple mailboxes |
-| `src/pages/Email.tsx` | Add account selector in sidebar, pass account to edge function |
-
----
-
-## What You Need to Provide
-
-For the Scenarios Inbox to work, I need:
-
-1. **The IONOS password for scenarios@mortgagebolt.org**
-   - This should be added as a secret called `SCENARIOS_EMAIL_PASSWORD`
-   - Is this the same password as yousif@mortgagebolt.org, or a different one?
-
-2. **Confirmation of IONOS account setup**
-   - Is scenarios@mortgagebolt.org configured as a separate mailbox in IONOS?
-   - Or is it an alias/forwarding address?
-
-If it's a separate mailbox with its own password, I can proceed with the implementation. If it's an alias or uses the same credentials, the approach might be simpler.
-
----
-
-## Summary
-
-1. **Column Sorting** - Quick fix: add `sortable: true` to all column definitions in ApprovedLenders.tsx
-2. **Scenarios Inbox** - Requires:
-   - New secret for scenarios email password
-   - Edge function update to support multiple accounts
-   - UI update with account switcher in sidebar
+| `src/pages/Email.tsx` | Add unread dot indicator, add account unread counts state, show counts in sidebar |
 
