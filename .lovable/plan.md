@@ -1,77 +1,136 @@
 
-Goal: Fix “Approve” (green checkmark) for Lender Marketing Update suggestions that currently won’t apply (e.g., Max LTV 101.5%, Max Loan Amount $5,000,000, Product DSCR = Y), while “Deny” (X) works.
 
-What’s actually happening (root causes found in code/schema)
-1) Type mismatch on numeric columns
-- In `lenders` table, several fields are numeric/integer:
-  - `max_ltv`, `dscr_max_ltv`, `bs_loan_max_ltv`, `max_loan_amount`, `min_loan_amount` are `numeric`
-  - `min_fico` is `integer`
-- But suggestions often contain formatted strings like:
-  - `"101.5%"` (percent sign)
-  - `"$5,000,000"` (currency symbols/commas)
-- Current approval code (in `src/hooks/useLenderMarketingSuggestions.tsx`) writes `suggested_value` directly into those numeric columns, which causes Postgres/PostgREST errors (invalid input syntax). The UI doesn’t “accept” because the update fails and the suggestion remains pending.
+# Plan: Title Case Lender Names in List View + Dynamic Field Discovery
 
-2) “Product DSCR” field name mismatch for NEW lender suggestions
-- Your DB column for DSCR offering is `product_fthb_dscr` (per schema), not `product_dscr`.
-- The edge function already maps DSCR correctly for existing lenders, but “new lender” suggestions can still produce field_names like `product_dscr` (or other extracted-key names).
-- Current approval code tries to update/insert using `[suggestion.field_name]` directly, which fails if that column doesn’t exist.
+## Overview
+Two main requests:
+1. **Display lender names in Title Case** in the Lender Directory list (currently showing ALL CAPS)
+2. **Enable AI to discover and suggest NEW field categories** from marketing emails (beyond the ~40 existing product/number columns)
 
-Plan (implementation steps)
-A) Improve approve logic to normalize values before updating lenders
-File: `src/hooks/useLenderMarketingSuggestions.tsx`
+---
 
-1) Add a small “field alias” map for known extracted keys that don’t match actual `lenders` columns:
-- Example aliases:
-  - `product_dscr` → `product_fthb_dscr`
-  - `product_bank_statement` → `product_bs_loan`
-  - `product_p_l` → `product_pl_program`
-  - `product_1099` → `product_1099_program`
-  - `product_foreign_national` → `product_fn`
-  - (any other known ones mirroring the edge function’s corrected mapping)
+## Part 1: Title Case Lender Names in List View
 
-2) Add a value coercion helper that converts formatted strings into the correct DB-friendly values:
-- For percent-like fields (field contains `ltv`): `"101.5%"` → `101.5` (number)
-- For currency-like fields (field contains `loan_amount`, `heloc_min`, etc.): `"$5,000,000"` → `5000000` (number)
-- For integer-like fields (`min_fico`, `heloc_min_fico`, etc.): `"620"` → `620` (number)
-- Otherwise keep as string (e.g., product flags `'Y'`, clauses, notes, etc.)
+### Current State
+- Lender names are stored in the database as-is (often ALL CAPS from imports)
+- The `toLenderTitleCase()` utility exists in `src/lib/utils.ts` and is used for email sending
+- The Approved Lenders page (`src/pages/contacts/ApprovedLenders.tsx`) displays `lender_name` directly without formatting
 
-3) Change `updateData` typing to allow numbers (not only strings)
-- Replace `Record<string, string>` with `Record<string, unknown>` (or `any`) so numeric writes are allowed.
+### Change
+**File: `src/pages/contacts/ApprovedLenders.tsx`**
 
-B) Add a robust fallback for “unknown column” cases (optional but recommended)
-File: `src/hooks/useLenderMarketingSuggestions.tsx`
+Update the lender name column cell renderer (lines 225-235) to apply the title case formatting:
 
-If a lender update/insert fails with an error indicating the column doesn’t exist (typical when field_name is not a real column and not in our alias map), then:
-1) Fetch current `custom_fields` for that lender
-2) Merge `{ [fieldName]: suggestedValue }` into `custom_fields`
-3) Update the lender row with the merged `custom_fields`
+```tsx
+// Current
+<span className="font-medium">{row.original.lender_name}</span>
 
-This makes approvals resilient even if we introduce new dynamic fields later, and aligns with your existing `custom_fields jsonb` strategy.
+// Updated
+import { toLenderTitleCase } from "@/lib/utils";
+// ...
+<span className="font-medium">{toLenderTitleCase(row.original.lender_name)}</span>
+```
 
-C) Improve user-visible error feedback
-File: `src/hooks/useLenderMarketingSuggestions.tsx`
+This uses the existing utility that:
+- Preserves known acronyms: EPM, PRMG, UWM, FEMBI, BAC, A&D
+- Keeps 2-letter words uppercase (BB, TD, etc.)
+- Converts everything else to Title Case ("ANGEL OAK" → "Angel Oak")
 
-When an update fails, show the actual `updateError.message` (or a shortened version) in the toast, so it’s obvious whether it failed due to “invalid input syntax for type numeric” vs “column does not exist”.
+---
 
-D) Verification checklist (manual)
-1) Open /contacts/lenders → Lender Marketing Updates modal
-2) Approve these cases:
-   - Existing lender + Max LTV “101.5%” → should save to `lenders.max_ltv` as numeric 101.5 and remove the suggestion row
-   - NEW lender + Max Loan Amount “$5,000,000” → should create lender with `max_loan_amount` numeric 5000000 and remove the suggestion
-   - NEW lender + Product DSCR “Y” → should write to `product_fthb_dscr = 'Y'` (via alias) and remove the suggestion
-3) Confirm in Lender Detail UI that values actually updated (not just removed from pending list).
+## Part 2: Dynamic Field Discovery from Lender Marketing Emails
 
-Notes / why this approach
-- This fixes the immediate “checkmark does nothing” behavior without requiring any database migrations.
-- It makes approval robust against both formatting issues (%, $) and naming mismatches for product keys.
-- It leverages your `custom_fields` JSONB as a safety net for future dynamic fields.
+### Current State
+- The edge function `parse-lender-marketing-data/index.ts` has a fixed set of ~25 product/number fields it looks for
+- The AI is instructed to extract only predefined fields (max_ltv, min_fico, product_dscr, etc.)
+- When it finds something new (like "mortgage lates" or "max acres"), it has nowhere to put it
+- The `lenders` table has a `custom_fields` JSONB column already available for dynamic data
 
-Files expected to change
-- `src/hooks/useLenderMarketingSuggestions.tsx` (primary)
-(Optional depending on how far we go)
-- No other files required unless we want to display more detailed inline error UI in the modal.
+### Solution: Expand AI extraction to discover NEW categories
 
-Potential edge cases we’ll handle
-- Suggested value parses to NaN (e.g., “Up to 101.5%” with extra words): we’ll strip common symbols/commas and parse; if still invalid, we’ll show a toast and keep the suggestion pending.
-- New lender + multiple suggestions: each approval should succeed independently, even if the lender is created on the first approval and subsequent approvals need to “find existing lender” (we already do the case-insensitive lookup).
+#### A) Update AI System Prompt
+Add instructions for the AI to identify and extract "special features" as discoverable categories:
+
+**New prompt additions:**
+```
+DISCOVERING NEW PRODUCT/FEATURE CATEGORIES:
+Beyond standard products, look for distinctive offerings that could become new tracking categories:
+- Late payment policies (e.g., "Unlimited 30 day lates accepted" → category: "mortgage_lates_accepted", value: "Yes")
+- Credit event seasoning (e.g., "2-year credit event seasoning" → category: "credit_event_seasoning", value: "2 years")
+- FICO policies (e.g., "Primary wage earner FICO used" → category: "primary_wage_earner_fico_only", value: "Yes")
+- Property constraints (e.g., "Up to 20 acres" → category: "max_acres", value: "20")
+- Trade line requirements (e.g., "No trade lines required" → category: "no_tradelines_required", value: "Yes")
+- Borrower-specific LTVs (e.g., "I-10 borrowers 85% LTV" → category: "itin_max_ltv", value: "85%")
+- Special products (e.g., "HE Loan offered" → category: "product_he_loan", value: "Y")
+
+Format discovered features as:
+{ category_key: "snake_case_name", display_name: "Human Readable Name", value: "extracted value", value_type: "boolean|number|text" }
+```
+
+#### B) Add Tool Parameter for Discovered Features
+Update the AI tool schema to include a `discovered_features` array:
+
+```typescript
+discovered_features: {
+  type: 'array',
+  items: {
+    type: 'object',
+    properties: {
+      category_key: { type: 'string', description: 'Snake case identifier (e.g., mortgage_lates_accepted)' },
+      display_name: { type: 'string', description: 'Human-readable name (e.g., Mortgage Lates Accepted)' },
+      value: { type: 'string', description: 'The extracted value' },
+      value_type: { type: 'string', enum: ['boolean', 'number', 'text'] }
+    }
+  }
+}
+```
+
+#### C) Store Discovered Features as Suggestions
+When the AI extracts `discovered_features`, create `lender_field_suggestions` entries with:
+- `field_name`: The `category_key` from AI (e.g., "mortgage_lates_accepted")
+- `suggested_value`: The value (e.g., "Yes" or "20")
+- `is_custom_field`: true (new flag to distinguish from standard fields)
+
+#### D) Handle Approval of Custom Fields
+Update the approval logic in `useLenderMarketingSuggestions.tsx` to:
+1. Check if `field_name` matches a known database column
+2. If not, write to `custom_fields` JSONB (already implemented as fallback)
+3. The existing JSONB fallback handles this, but we'll improve it to preserve the `display_name`
+
+---
+
+## Technical Changes Summary
+
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/pages/contacts/ApprovedLenders.tsx` | Add `toLenderTitleCase` formatting to lender name column |
+| `supabase/functions/parse-lender-marketing-data/index.ts` | Expand AI prompt + add `discovered_features` to tool schema + create suggestions for new categories |
+| `src/hooks/useLenderMarketingSuggestions.tsx` | (Already handles custom_fields fallback) - optionally improve display of custom field suggestions |
+
+---
+
+## Example: How the LeadPlus Email Would Be Parsed
+
+From the email content you shared:
+- "Unlimited 30 day late accepted" → `{ category_key: "mortgage_lates_30day", display_name: "30-Day Mortgage Lates", value: "Unlimited", value_type: "text" }`
+- "Credit Events 2yr seasoning" → `{ category_key: "credit_event_seasoning_years", display_name: "Credit Event Seasoning", value: "2", value_type: "number" }`
+- "Primary wage earner FICO used" → `{ category_key: "primary_wage_earner_fico_only", display_name: "Primary Wage Earner FICO Only", value: "Y", value_type: "boolean" }`
+- "Up to 20 acre properties" → `{ category_key: "max_acres", display_name: "Max Property Acres", value: "20", value_type: "number" }`
+- "No trade lines required" → `{ category_key: "no_tradelines_required", display_name: "No Trade Lines Required", value: "Y", value_type: "boolean" }`
+- "I-10 borrowers 85% LTV" → `{ category_key: "itin_max_ltv", display_name: "ITIN Max LTV", value: "85%", value_type: "text" }`
+- "HE Loan" → `{ category_key: "product_he_loan", display_name: "HE Loan Product", value: "Y", value_type: "boolean" }`
+
+These would appear in the Lender Marketing Updates modal as suggestions. When approved, they'd be stored in the lender's `custom_fields` JSONB column.
+
+---
+
+## Benefits
+
+1. **Title Case Display**: Lender names look professional ("Angel Oak" instead of "ANGEL OAK")
+2. **Schema Flexibility**: New product types and features get captured without database migrations
+3. **AI-Driven Discovery**: The system learns about new lender offerings automatically
+4. **Human Review**: All discoveries require approval before saving (existing workflow)
+5. **Extensible**: Custom fields can later be promoted to real columns if they become common
 
