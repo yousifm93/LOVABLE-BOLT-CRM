@@ -1942,6 +1942,7 @@ export type Database = {
       }
       email_categories: {
         Row: {
+          account: string | null
           category: string
           created_at: string | null
           email_folder: string
@@ -1950,6 +1951,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          account?: string | null
           category: string
           created_at?: string | null
           email_folder: string
@@ -1958,6 +1960,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          account?: string | null
           category?: string
           created_at?: string | null
           email_folder?: string
