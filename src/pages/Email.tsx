@@ -817,35 +817,40 @@ export default function Email() {
     }
   }, [currentUserConfig?.primary]);
 
-  // Fetch unread counts for allowed accounts only
+  // Fetch unread counts for allowed accounts only - batched parallel fetch
   useEffect(() => {
     // Wait for crmUser to determine allowed accounts
     if (!crmUser) return;
     
     const fetchUnreadCounts = async () => {
-      for (const account of allowedAccounts) {
-        try {
-          const { data } = await supabase.functions.invoke("fetch-emails-imap", {
+      // Batch all account fetches into single Promise.allSettled
+      const results = await Promise.allSettled(
+        allowedAccounts.map(account =>
+          supabase.functions.invoke("fetch-emails-imap", {
             body: {
               account,
               folder: 'Inbox',
               limit: 50,
               offset: 0
             }
-          });
-          if (data?.success && data.emails) {
-            const unreadCount = data.emails.filter((e: EmailMessage) => e.unread).length;
-            setAccountUnreadCounts(prev => ({ ...prev, [account]: unreadCount }));
-          }
-        } catch (error) {
-          console.error(`Error fetching unread count for ${account}:`, error);
+          })
+        )
+      );
+
+      const newCounts = { yousif: 0, scenarios: 0, salma: 0, herman: 0 };
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value.data?.success && result.value.data.emails) {
+          const account = allowedAccounts[index];
+          newCounts[account] = result.value.data.emails.filter((e: EmailMessage) => e.unread).length;
         }
-      }
+      });
+      setAccountUnreadCounts(newCounts);
     };
+
     if (allowedAccounts.length > 0) {
       fetchUnreadCounts();
     }
-  }, [allowedAccounts, crmUser]);
+  }, [crmUser?.id]); // Only re-fetch when user changes, not on every allowedAccounts reference change
 
   // Fetch comments for selected email
   const fetchComments = useCallback(async (email: EmailMessage) => {

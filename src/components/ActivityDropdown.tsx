@@ -113,6 +113,7 @@ export function ActivityDropdown() {
   const [open, setOpen] = useState(false);
   const [showFullModal, setShowFullModal] = useState(false);
   const [recentCount, setRecentCount] = useState(0);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const fetchActivities = async () => {
     try {
@@ -173,10 +174,18 @@ export function ActivityDropdown() {
     }
   };
 
+  // Lazy load: only fetch when dropdown is opened for the first time
   useEffect(() => {
-    fetchActivities();
+    if (open && !hasLoaded) {
+      fetchActivities();
+      setHasLoaded(true);
+    }
+  }, [open, hasLoaded]);
 
-    // Set up real-time subscription
+  // Set up real-time subscription only after first load
+  useEffect(() => {
+    if (!hasLoaded) return;
+
     const channel = supabase
       .channel("audit-log-changes")
       .on(
@@ -195,7 +204,7 @@ export function ActivityDropdown() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [hasLoaded]);
 
   const getUserInitials = (name: string) => {
     if (!name || name === "System") return "S";
