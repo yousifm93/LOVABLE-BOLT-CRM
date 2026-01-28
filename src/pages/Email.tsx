@@ -205,7 +205,7 @@ export default function Email() {
   } = useAuth();
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedAccount, setSelectedAccount] = useState<'yousif' | 'scenarios'>('yousif');
+  const [selectedAccount, setSelectedAccount] = useState<'yousif' | 'scenarios' | 'salma' | 'herman'>('yousif');
   const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
   const [emailContent, setEmailContent] = useState<{
@@ -419,7 +419,9 @@ export default function Email() {
   // Unread counts per account for sidebar badges
   const [accountUnreadCounts, setAccountUnreadCounts] = useState<Record<string, number>>({
     yousif: 0,
-    scenarios: 0
+    scenarios: 0,
+    salma: 0,
+    herman: 0
   });
 
   // Fetch email categories from database
@@ -571,7 +573,7 @@ export default function Email() {
       console.error('Error fetching email tags:', error);
     }
   }, []);
-  const fetchEmails = useCallback(async (folder: string, offset: number = 0, append: boolean = false, account: 'yousif' | 'scenarios' = 'yousif') => {
+  const fetchEmails = useCallback(async (folder: string, offset: number = 0, append: boolean = false, account: 'yousif' | 'scenarios' | 'salma' | 'herman' = 'yousif') => {
     if (append) {
       setIsLoadingMore(true);
     } else {
@@ -790,10 +792,10 @@ export default function Email() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFolder, selectedCategory, selectedAccount]);
 
-  // Fetch unread counts for both accounts on initial load
+  // Fetch unread counts for all accounts on initial load
   useEffect(() => {
     const fetchUnreadCounts = async () => {
-      for (const account of ['yousif', 'scenarios'] as const) {
+      for (const account of ['yousif', 'scenarios', 'salma', 'herman'] as const) {
         try {
           const { data } = await supabase.functions.invoke("fetch-emails-imap", {
             body: {
@@ -1435,6 +1437,58 @@ export default function Email() {
                         : "bg-blue-500 text-white"
                     )}>
                       {accountUnreadCounts.scenarios}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedAccount('salma');
+                    setSelectedCategory(null);
+                    setSelectedFolder('Inbox');
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+                    selectedAccount === 'salma' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <span className="truncate">Salma Inbox</span>
+                  </div>
+                  {accountUnreadCounts.salma > 0 && (
+                    <span className={cn(
+                      "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+                      selectedAccount === 'salma' 
+                        ? "bg-primary-foreground/20 text-primary-foreground" 
+                        : "bg-blue-500 text-white"
+                    )}>
+                      {accountUnreadCounts.salma}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedAccount('herman');
+                    setSelectedCategory(null);
+                    setSelectedFolder('Inbox');
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+                    selectedAccount === 'herman' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <span className="truncate">Herman Inbox</span>
+                  </div>
+                  {accountUnreadCounts.herman > 0 && (
+                    <span className={cn(
+                      "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+                      selectedAccount === 'herman' 
+                        ? "bg-primary-foreground/20 text-primary-foreground" 
+                        : "bg-blue-500 text-white"
+                    )}>
+                      {accountUnreadCounts.herman}
                     </span>
                   )}
                 </button>

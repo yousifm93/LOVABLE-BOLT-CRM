@@ -20,10 +20,18 @@ const ACCOUNTS: Record<string, { user: string; passwordEnvVar: string }> = {
     user: "scenarios@mortgagebolt.org",
     passwordEnvVar: "SCENARIOS_EMAIL_PASSWORD",
   },
+  salma: {
+    user: "salma@mortgagebolt.org",
+    passwordEnvVar: "SALMA_EMAIL_PASSWORD",
+  },
+  herman: {
+    user: "herman@mortgagebolt.org",
+    passwordEnvVar: "HERMAN_EMAIL_PASSWORD",
+  },
 };
 
 interface FetchEmailsRequest {
-  account?: 'yousif' | 'scenarios';
+  account?: 'yousif' | 'scenarios' | 'salma' | 'herman';
   folder?: string;
   limit?: number;
   offset?: number;
