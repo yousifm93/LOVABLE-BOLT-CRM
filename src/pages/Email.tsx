@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import DOMPurify from "dompurify";
-import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, AlertCircle, CheckCircle, Paperclip, FileText, Download, GripVertical, Square, CheckSquare, X, AtSign, Smile, Maximize2, ArrowRight, Tag, Pencil, Calendar } from "lucide-react";
+import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, AlertCircle, CheckCircle, Paperclip, FileText, Download, GripVertical, Square, CheckSquare, X, AtSign, Smile, Maximize2, ArrowRight, Tag, Pencil, Calendar, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -253,6 +253,7 @@ export default function Email() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [categoriesExpanded, setCategoriesExpanded] = useState(true);
 
   // Multi-select state
   const [selectedEmails, setSelectedEmails] = useState<Set<number>>(new Set());
@@ -1394,7 +1395,17 @@ export default function Email() {
                 {/* Separator and Categories */}
                 <Separator className="mt-8 mb-3" />
                 <div className="flex items-center justify-between pl-2 pr-3 mb-2 pt-4">
-                  <p className="text-xs font-medium text-muted-foreground">CATEGORIES</p>
+                  <button
+                    onClick={() => setCategoriesExpanded(!categoriesExpanded)}
+                    className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {categoriesExpanded ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
+                    CATEGORIES
+                  </button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1406,68 +1417,72 @@ export default function Email() {
                   </Button>
                 </div>
                 
-                {/* Add category input */}
-                {isAddingCategory && (
-                  <div className="px-2 mb-2 flex gap-1">
-                    <Input
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      placeholder="Category name..."
-                      className="h-7 text-xs"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleAddCategory();
-                        if (e.key === 'Escape') { setIsAddingCategory(false); setNewCategoryName(""); }
-                      }}
-                    />
-                    <Button size="sm" className="h-7 px-2" onClick={handleAddCategory}>
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
+                {categoriesExpanded && (
+                  <>
+                    {/* Add category input */}
+                    {isAddingCategory && (
+                      <div className="px-2 mb-2 flex gap-1">
+                        <Input
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          placeholder="Category name..."
+                          className="h-7 text-xs"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleAddCategory();
+                            if (e.key === 'Escape') { setIsAddingCategory(false); setNewCategoryName(""); }
+                          }}
+                        />
+                        <Button size="sm" className="h-7 px-2" onClick={handleAddCategory}>
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {customCategories.map(category => {
+                      const IconComponent = iconMap[category.icon_name] || CheckCircle;
+                      return (
+                        <DroppableFolder key={category.key} id={category.key} isActive={selectedCategory === category.key}>
+                          <button onClick={() => handleCategoryClick(category.key)} className={cn("w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors group", selectedCategory === category.key ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground")}>
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <IconComponent className={cn("h-4 w-4 flex-shrink-0", selectedCategory !== category.key && category.color)} />
+                              {editingCategoryId === category.id ? (
+                                <Input
+                                  value={editingCategoryName}
+                                  onChange={(e) => setEditingCategoryName(e.target.value)}
+                                  className="h-6 text-xs px-1"
+                                  autoFocus
+                                  onClick={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => {
+                                    e.stopPropagation();
+                                    if (e.key === 'Enter') handleUpdateCategoryName(category.id, editingCategoryName);
+                                    if (e.key === 'Escape') setEditingCategoryId(null);
+                                  }}
+                                  onBlur={() => handleUpdateCategoryName(category.id, editingCategoryName)}
+                                />
+                              ) : (
+                                <span className="truncate">{category.name}</span>
+                              )}
+                              {!editingCategoryId && (
+                                <Pencil 
+                                  className="h-3 w-3 opacity-0 group-hover:opacity-50 hover:!opacity-100 cursor-pointer flex-shrink-0" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingCategoryId(category.id);
+                                    setEditingCategoryName(category.name);
+                                  }}
+                                />
+                              )}
+                            </div>
+                            {(categoryCounts[category.key] || 0) > 0 && <span className={cn("text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1", selectedCategory === category.key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground")}>
+                                {categoryCounts[category.key]}
+                              </span>}
+                          </button>
+                        </DroppableFolder>
+                      );
+                    })}
+                  </>
                 )}
-                
-                {customCategories.map(category => {
-                  const IconComponent = iconMap[category.icon_name] || CheckCircle;
-                  return (
-                    <DroppableFolder key={category.key} id={category.key} isActive={selectedCategory === category.key}>
-                      <button onClick={() => handleCategoryClick(category.key)} className={cn("w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors group", selectedCategory === category.key ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground")}>
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <IconComponent className={cn("h-4 w-4 flex-shrink-0", selectedCategory !== category.key && category.color)} />
-                          {editingCategoryId === category.id ? (
-                            <Input
-                              value={editingCategoryName}
-                              onChange={(e) => setEditingCategoryName(e.target.value)}
-                              className="h-6 text-xs px-1"
-                              autoFocus
-                              onClick={(e) => e.stopPropagation()}
-                              onKeyDown={(e) => {
-                                e.stopPropagation();
-                                if (e.key === 'Enter') handleUpdateCategoryName(category.id, editingCategoryName);
-                                if (e.key === 'Escape') setEditingCategoryId(null);
-                              }}
-                              onBlur={() => handleUpdateCategoryName(category.id, editingCategoryName)}
-                            />
-                          ) : (
-                            <span className="truncate">{category.name}</span>
-                          )}
-                          {!editingCategoryId && (
-                            <Pencil 
-                              className="h-3 w-3 opacity-0 group-hover:opacity-50 hover:!opacity-100 cursor-pointer flex-shrink-0" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingCategoryId(category.id);
-                                setEditingCategoryName(category.name);
-                              }}
-                            />
-                          )}
-                        </div>
-                        {(categoryCounts[category.key] || 0) > 0 && <span className={cn("text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1", selectedCategory === category.key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground")}>
-                            {categoryCounts[category.key]}
-                          </span>}
-                      </button>
-                    </DroppableFolder>
-                  );
-                })}
 
                 {/* Accounts Section */}
                 <Separator className="mt-6 mb-3" />
