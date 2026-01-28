@@ -1,245 +1,149 @@
 
-# Plan: Enhance Bulk Lender Email Feature
 
-## Overview
-Enhance the BulkLenderEmailModal to include:
-1. User email signatures (auto-appended based on logged-in user)
-2. Fix reply-to to scenarios@mortgagebolt.org
-3. Updated default message template with proper spacing
-4. Title case conversion for lender names (preserving acronyms)
-5. File attachment capability
+# Plan: Fix Lender Marketing Update System
+
+## Root Cause Analysis
+
+After investigating the code and database, I identified **three critical bugs**:
+
+### Bug 1: Wrong Database Column Names
+The edge function uses column names that **don't exist** in the lenders table:
+
+| Code Uses (Wrong) | Database Has (Correct) |
+|-------------------|------------------------|
+| `product_dscr` | `product_fthb_dscr` |
+| `product_foreign_national` | `product_fn` |
+| `product_conventional` | `product_conv` |
+| `product_bank_statement` | `product_bs_loan` |
+| `product_p_l` | `product_pl_program` |
+| `product_1099` | `product_1099_program` |
+
+**Impact**: When the code tries to read `matchedLender["product_dscr"]`, it returns `undefined` because that column doesn't exist. The code then treats `undefined` as empty/null and creates duplicate suggestions - even though `product_fthb_dscr = 'Y'` already exists in the CRM.
+
+### Bug 2: Missing Domain Mappings
+`forwardlendingmtg.com` and other common lender domains are not in `LENDER_DOMAIN_MAPPINGS`. When the AI fails to extract the lender name, the fallback detection doesn't find it either.
+
+### Bug 3: Orphaned Suggestions with No Lender Name
+When new lender field suggestions are created, they're missing the `suggested_lender_name` - only the main `new_lender` entry gets the name. This causes the "Unknown Lender" grouping in the UI for related field suggestions.
 
 ---
 
-## Current State
-- **Email signatures**: Already stored in `users.email_signature` for all team members
-- **Lender names**: Currently stored as ALL CAPS (e.g., "ACRA", "ANGEL OAK")
-- **Reply-to**: Currently uses crmUser.email, should be scenarios@mortgagebolt.org
-- **Attachments**: Not supported in bulk lender emails
+## Implementation
 
----
+### File: `supabase/functions/parse-lender-marketing-data/index.ts`
 
-## Changes
-
-### 1. Email Signature Integration
-
-**File:** `src/components/modals/BulkLenderEmailModal.tsx`
-
-- Fetch the logged-in user's `email_signature` from the database
-- Replace "Best regards, Yousif Mohamed" with just "Best" followed by the signature
-- The signature HTML includes the user's photo, name, contact info, etc.
+#### Change 1: Fix Field Mappings to Match Actual Database Columns
 
 ```typescript
-// Fetch user's email signature
-const [userSignature, setUserSignature] = useState<string | null>(null);
-
-useEffect(() => {
-  if (crmUser?.id) {
-    supabase.from('users')
-      .select('email_signature')
-      .eq('id', crmUser.id)
-      .single()
-      .then(({ data }) => setUserSignature(data?.email_signature || null));
-  }
-}, [crmUser?.id]);
-
-// Update default body to end with "Best" + signature placeholder
-const [body, setBody] = useState(`<p>Hello {{AccountExecutiveFirstName}},</p>
-<p>I wanted to reach out regarding a loan scenario for {{LenderName}}.</p>
-<p>Best,</p>`);
-
-// Append signature when sending
-const finalBody = userSignature 
-  ? `${personalizedBody}<br><br>${userSignature}` 
-  : personalizedBody;
+// Lines 599-623 - Replace with correct column names
+const fieldMappings: { extracted: keyof LenderMarketingData; db: string; display: string }[] = [
+  { extracted: 'max_loan_amount', db: 'max_loan_amount', display: 'Max Loan Amount' },
+  { extracted: 'min_loan_amount', db: 'min_loan_amount', display: 'Min Loan Amount' },
+  { extracted: 'min_fico', db: 'min_fico', display: 'Min FICO' },
+  { extracted: 'max_ltv', db: 'max_ltv', display: 'Max LTV' },
+  { extracted: 'dscr_ltv', db: 'dscr_max_ltv', display: 'DSCR Max LTV' },
+  { extracted: 'bank_statement_ltv', db: 'bs_loan_max_ltv', display: 'Bank Statement Max LTV' },
+  // CORRECTED column names:
+  { extracted: 'product_dscr', db: 'product_fthb_dscr', display: 'DSCR Product' },
+  { extracted: 'product_bank_statement', db: 'product_bs_loan', display: 'Bank Statement Product' },
+  { extracted: 'product_p_l', db: 'product_pl_program', display: 'P&L Product' },
+  { extracted: 'product_1099', db: 'product_1099_program', display: '1099 Product' },
+  { extracted: 'product_foreign_national', db: 'product_fn', display: 'Foreign National Product' },
+  { extracted: 'product_conventional', db: 'product_conv', display: 'Conventional Product' },
+  { extracted: 'product_itin', db: 'product_itin', display: 'ITIN Product' },
+  { extracted: 'product_jumbo', db: 'product_jumbo', display: 'Jumbo Product' },
+  { extracted: 'product_fha', db: 'product_fha', display: 'FHA Product' },
+  { extracted: 'product_va', db: 'product_va', display: 'VA Product' },
+  { extracted: 'product_heloc', db: 'product_heloc', display: 'HELOC Product' },
+  { extracted: 'product_construction', db: 'product_construction', display: 'Construction Product' },
+  { extracted: 'product_commercial', db: 'product_commercial', display: 'Commercial Product' },
+  { extracted: 'product_non_warrantable_condo', db: 'product_nwc', display: 'Non-Warrantable Condo' },
+];
 ```
 
-### 2. Fix Reply-To Address
-
-**File:** `src/components/modals/BulkLenderEmailModal.tsx`
-
-Change the reply-to from crmUser.email to always be "scenarios@mortgagebolt.org":
+#### Change 2: Add Missing Domain Mappings
 
 ```typescript
-// Line 89 - Change from:
-const replyToEmail = crmUser?.email || user?.email || "yousif@mortgagebolt.org";
-
-// To:
-const replyToEmail = "scenarios@mortgagebolt.org"; // Always reply to scenarios
-```
-
-Update the display field as well (line 149 and 228-235).
-
-### 3. Title Case Lender Names
-
-**File:** `src/lib/utils.ts` (add utility function)
-
-Create a smart title case function that preserves acronyms:
-
-```typescript
-// Known acronyms that should stay uppercase
-const LENDER_ACRONYMS = ['EPM', 'PRMG', 'UWM', 'FEMBI', 'BAC', 'A&D'];
-
-export function toLenderTitleCase(name: string): string {
-  if (!name) return name;
-  
-  // Check if entire name is a known acronym
-  if (LENDER_ACRONYMS.includes(name.toUpperCase())) {
-    return name.toUpperCase();
-  }
-  
-  // Split by spaces and convert each word
-  return name.split(' ').map(word => {
-    const upper = word.toUpperCase();
-    // Keep acronyms uppercase
-    if (LENDER_ACRONYMS.includes(upper) || word.length <= 2) {
-      return upper;
-    }
-    // Title case: first letter uppercase, rest lowercase
-    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-  }).join(' ');
-}
-
-// Examples:
-// "ACRA" → "Acra"
-// "ANGEL OAK" → "Angel Oak"
-// "BB AMERICAS" → "BB Americas"  
-// "EPM" → "EPM" (acronym preserved)
-// "JMAC Lending" → "Jmac Lending" (already mixed case stays)
-// "UWM" → "UWM" (acronym preserved)
-```
-
-**File:** `src/components/modals/BulkLenderEmailModal.tsx`
-
-Apply title case in merge tag replacement:
-
-```typescript
-import { toLenderTitleCase } from "@/lib/utils";
-
-const replaceMergeTags = (text: string, lender: Lender): string => {
-  const firstName = lender.account_executive?.split(' ')[0] || 'Team';
-  const formattedLenderName = toLenderTitleCase(lender.lender_name);
-  
-  return text
-    .replace(/\{\{AccountExecutiveFirstName\}\}/g, firstName)
-    .replace(/\{\{AccountExecutiveName\}\}/g, lender.account_executive || 'Team')
-    .replace(/\{\{LenderName\}\}/g, formattedLenderName);
+// Lines 104-129 - Add more domain mappings
+const LENDER_DOMAIN_MAPPINGS: Record<string, string> = {
+  // Existing mappings...
+  'forwardlendingmtg.com': 'Forward Lending',
+  'forwardlending.com': 'Forward Lending',
+  'admortgage.com': 'A&D Mortgage',
+  'a-dmortgage.com': 'A&D Mortgage',
+  'kindlending.com': 'Kind Lending',
+  'velocitymortgage.com': 'Velocity Mortgage',
+  'cakemorgage.com': 'CAKE Mortgage',
+  'caketpo.com': 'CAKE TPO',
+  'openmortgage.com': 'Open Mortgage',
+  'foundationmortgage.com': 'Foundation Mortgage',
+  'unionhomemortgage.com': 'Union Home Mortgage',
+  'classval.com': 'Class Valuation',
+  // ... existing mappings
 };
 ```
 
-### 4. File Attachment Support
+#### Change 3: Exclude "Unknown Lender" Suggestions Entirely
 
-**File:** `src/components/modals/BulkLenderEmailModal.tsx`
-
-Add attachment state and file upload UI:
+Add a guard to prevent any suggestions from being created when lender name is unknown:
 
 ```typescript
-interface Attachment {
-  file: File;
-  name: string;
-  type: string;
-}
-
-const [attachments, setAttachments] = useState<Attachment[]>([]);
-
-const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const files = Array.from(e.target.files || []);
-  const newAttachments = files.map(file => ({
-    file,
-    name: file.name,
-    type: file.type
-  }));
-  setAttachments(prev => [...prev, ...newAttachments]);
-};
-
-const removeAttachment = (index: number) => {
-  setAttachments(prev => prev.filter((_, i) => i !== index));
-};
-
-// Convert files to base64 for SendGrid
-const convertToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
+// After line 503 (after lender detection fallback), add:
+// CRITICAL: Do NOT create suggestions for unknown lenders
+if (!extractedData.lender_name || 
+    extractedData.lender_name === 'Unknown Lender' || 
+    extractedData.lender_name.toLowerCase().includes('unknown')) {
+  console.log('[parse-lender-marketing-data] Skipping email - could not identify lender');
+  return new Response(JSON.stringify({
+    success: false,
+    reason: 'Could not identify lender from email',
+    data: extractedData,
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
-};
+}
 ```
 
-Add attachment UI component:
+#### Change 4: Propagate Lender Name to All New Lender Suggestions
 
-```tsx
-{/* Attachments Section */}
-<div className="space-y-2">
-  <Label>Attachments</Label>
-  <div className="flex flex-wrap gap-2">
-    {attachments.map((att, index) => (
-      <Badge key={index} variant="secondary" className="flex items-center gap-1">
-        <Paperclip className="h-3 w-3" />
-        {att.name}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-4 w-4 p-0 ml-1"
-          onClick={() => removeAttachment(index)}
-        >
-          <X className="h-3 w-3" />
-        </Button>
-      </Badge>
-    ))}
-    <label>
-      <input
-        type="file"
-        multiple
-        onChange={handleFileSelect}
-        className="hidden"
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-      />
-      <Button variant="outline" size="sm" asChild>
-        <span className="cursor-pointer">
-          <Paperclip className="h-4 w-4 mr-1" />
-          Add Files
-        </span>
-      </Button>
-    </label>
-  </div>
-</div>
-```
-
-**File:** `supabase/functions/send-direct-email/index.ts`
-
-Update to support attachments:
+When creating suggestions for a new lender, ensure ALL suggestions (not just the `new_lender` entry) include the `suggested_lender_name`:
 
 ```typescript
-interface SendDirectEmailRequest {
-  to: string;
-  cc?: string;
-  subject: string;
-  html: string;
-  from_email: string;
-  from_name: string;
-  reply_to?: string;
-  attachments?: Array<{
-    content: string; // base64
-    filename: string;
-    type: string;
-  }>;
-}
-
-// In email payload building:
-if (attachments && attachments.length > 0) {
-  emailPayload.attachments = attachments.map(att => ({
-    content: att.content,
-    filename: att.filename,
-    type: att.type,
-    disposition: 'attachment'
-  }));
-}
+// Lines 787-798 - Update suggestion records to always include lender name
+const suggestionRecords = suggestions.map(s => ({
+  email_log_id: emailLogId,
+  lender_id: matchedLender?.id || null,
+  is_new_lender: !matchedLender,  // Mark ALL suggestions as new lender if no match
+  suggested_lender_name: !matchedLender ? extractedData.lender_name : null,  // Always include name for new lenders
+  field_name: s.field_name,
+  current_value: s.current_value,
+  suggested_value: s.suggested_value,
+  confidence: s.confidence,
+  reason: `${s.reason} | Source: ${subject || 'Unknown subject'}`,
+  status: 'pending',
+}));
 ```
+
+---
+
+## Expected Results After Fix
+
+| Issue | Before | After |
+|-------|--------|-------|
+| A&D DSCR "Empty → Y" | Shows suggestion (wrong column name) | No suggestion (reads correct column) |
+| A&D Conventional "Empty → Y" | Shows suggestion (wrong column name) | No suggestion (reads correct column) |
+| Forward Lending as "Unknown" | Falls back to Unknown Lender | Detected via domain mapping |
+| Orphaned suggestions | Shows as "Unknown Lender" in UI | All suggestions include lender name |
+| Same product multiple times | Multiple duplicate suggestions | De-duplicated by correct column check |
+
+---
+
+## Post-Implementation
+
+After deploying the fix, I'll:
+1. Clear the current pending suggestions (again)
+2. Re-process the last 48 hours of emails with the corrected logic
+3. Verify the new suggestions show proper lender identification and no duplicates
 
 ---
 
@@ -247,54 +151,5 @@ if (attachments && attachments.length > 0) {
 
 | File | Changes |
 |------|---------|
-| `src/lib/utils.ts` | Add `toLenderTitleCase()` function |
-| `src/components/modals/BulkLenderEmailModal.tsx` | Email signature, reply-to fix, title case, attachments |
-| `supabase/functions/send-direct-email/index.ts` | Support attachments in SendGrid payload |
+| `supabase/functions/parse-lender-marketing-data/index.ts` | Fix column mappings, add domain mappings, exclude unknown lenders, propagate lender names |
 
----
-
-## Default Message Template (Updated)
-
-**Before:**
-```html
-<p>Hello {{AccountExecutiveFirstName}},</p>
-<p><br></p>
-<p>I wanted to reach out regarding a loan scenario for {{LenderName}}.</p>
-<p><br></p>
-<p>Best regards,<br>Yousif Mohamed</p>
-```
-
-**After:**
-```html
-<p>Hello {{AccountExecutiveFirstName}},</p>
-<p>I wanted to reach out regarding a loan scenario for {{LenderName}}.</p>
-<p>Best,</p>
-<!-- Email signature auto-appended here when sending -->
-```
-
----
-
-## Lender Name Conversion Examples
-
-| Original (Database) | After Title Case |
-|---------------------|------------------|
-| ACRA | Acra |
-| ANGEL OAK | Angel Oak |
-| BB AMERICAS | BB Americas |
-| EPM | EPM (acronym) |
-| FUND LOANS | Fund Loans |
-| JMAC Lending | Jmac Lending |
-| KIND LENDING | Kind Lending |
-| PRMG | PRMG (acronym) |
-| UWM | UWM (acronym) |
-| A&D | A&D (acronym) |
-
----
-
-## Summary of Changes
-
-1. **Email Signature**: Fetches from `users.email_signature` and appends after "Best,"
-2. **Reply-To**: Changed to always be `scenarios@mortgagebolt.org`
-3. **Message Template**: Cleaner spacing, ends with "Best," (signature appended automatically)
-4. **Lender Names**: Title case conversion preserving known acronyms
-5. **Attachments**: File picker with base64 conversion sent via SendGrid API
