@@ -1,133 +1,252 @@
 
-# Plan: Fix Active Stage loan_status and Document Sync Issues
+
+# Plan: Feedback Badge Fix, Quick Tasks, and Task Contingencies
 
 ## Overview
-Fix two issues: (1) loan_status not being set to 'NEW' when moving to Active stage through validation modal, and (2) ensure appraisal documents appear in all relevant sections regardless of where they're uploaded.
+This plan addresses three feature requests:
+1. Fix Team Feedback Review badges to only show "Open Items" count
+2. Add "Disclose" quick task template (HSCI already exists)
+3. Add task contingencies/dependencies selection when creating tasks
 
 ---
 
-## Bug Analysis
+## Summary of Changes
 
-### Bug 1: loan_status Not Set to 'NEW' When Moving to Active
-
-**Root Cause:** The validation modal button handlers are missing the Active stage-specific logic.
-
-When moving a lead to Active, validation requirements often trigger a modal. The "Save & Continue" and "Refinance Bypass" button handlers in that modal have duplicated stage-change code that's missing:
-
-```typescript
-// MISSING from both modal handlers:
-const isActiveStage = normalizedLabel.toLowerCase() === 'active' || stageId === '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
-if (isActiveStage) {
-  updateData.pipeline_section = 'Incoming';
-  updateData.loan_status = 'NEW';
-}
-```
-
-### Bug 2: Appraisal Document Sync
-
-Documents should appear in three places:
-1. **Third Party Items > Appraisal** (shows `lead.appraisal_file`)
-2. **Active File Documents > Appraisal Report** (shows `lead.appraisal_file`)
-3. **Documents Tab** (shows records from `documents` table)
-
-Currently, both upload locations create a `documents` record and update `appraisal_file`, but the Documents tab query may need to refresh.
+| Feature | Description |
+|---------|-------------|
+| Feedback Badge Fix | Change count from "unread feedback" to "Open Items" (pending + needs_help status) |
+| Quick Task: Disclose | Add "Disclose" template assigned to Herman with due date today |
+| Task Contingencies | Add dropdown to select contingencies that must be met before task completion |
 
 ---
 
-## Implementation
+## Part 1: Fix Feedback Badge Count
 
-### Fix 1: Add Active Stage Logic to Validation Modal Handlers
+**Problem:** The red badges currently show "unread feedback" count, but should show "Open Items" count (only items with pending or needs_help status).
 
-**File:** `src/components/ClientDetailDrawer.tsx`
+**File:** `src/pages/admin/FeedbackReview.tsx`
 
-**Change 1: Save & Continue button (around line 3329)**
-
-Add Active stage handling after building the updateData:
-
+**Current code (line 276-278):**
 ```typescript
-const stageUpdateData: any = { pipeline_stage_id: stageId };
-
-// ... existing date field population code ...
-
-// Add: Handle Active stage defaults
-const isActiveStage = normalizedLabel.toLowerCase() === 'active' || 
-  stageId === '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
-if (isActiveStage) {
-  stageUpdateData.pipeline_section = 'Incoming';
-  stageUpdateData.loan_status = 'NEW';
-}
-
-await databaseService.updateLead(leadId!, stageUpdateData);
+const getUnreadCount = (userId: string) => {
+  const userFeedback = getUserFeedback(userId);
+  return userFeedback.filter(f => !f.is_read_by_admin).length;
+};
 ```
 
-**Change 2: Refinance Bypass button (around line 3392)**
-
-Add the same Active stage handling:
-
+**Fix:** Change to count Open Items instead:
 ```typescript
-const updateData: any = { pipeline_stage_id: stageId };
+const getOpenItemsCount = (userId: string) => {
+  const userFeedback = getUserFeedback(userId);
+  let count = 0;
+  userFeedback.forEach(fb => {
+    fb.feedback_items.forEach((item, index) => {
+      const status = getItemStatus(fb.id, index);
+      // Only count pending and needs_help as "open"
+      if (status === 'pending' || status === 'needs_help') {
+        count++;
+      }
+    });
+  });
+  return count;
+};
+```
 
-// ... existing date field population code ...
+Update usage (line 490):
+```typescript
+const openCount = getOpenItemsCount(member.id);
+```
 
-// Add: Handle Active stage defaults
-const isActiveStage = normalizedLabel.toLowerCase() === 'active' || 
-  stageId === '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
-if (isActiveStage) {
-  updateData.pipeline_section = 'Incoming';
-  updateData.loan_status = 'NEW';
+And render badge only when `openCount > 0`.
+
+---
+
+## Part 2: Add "Disclose" Quick Task Template
+
+**Files to modify:**
+- `src/components/modals/CreateTaskModal.tsx`
+- `src/components/modals/CreateNextTaskModal.tsx`
+
+**Add template to QUICK_TASK_TEMPLATES array:**
+```typescript
+{
+  id: 'disclose',
+  label: 'Disclose',
+  title: 'Disclose',
+  description: 'Send out initial disclosures to the borrower',
+  default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+  priority: 'High',
+  completion_requirement_type: 'none',
+},
+```
+
+Note: HSCI template already exists with Herman as assignee.
+
+---
+
+## Part 3: Add Task Contingencies Selection
+
+**Concept:** When creating a task, the user can select one or more contingencies that must be met on the lead before the task can be completed.
+
+### Database Change
+Add a new column to the `tasks` table:
+```sql
+ALTER TABLE tasks ADD COLUMN contingency_requirements jsonb DEFAULT NULL;
+-- Example value: ["finance_contingency", "appraisal_status_received"]
+```
+
+### Available Contingencies
+Based on lead fields, offer these options:
+| Contingency | Lead Field | Condition |
+|-------------|------------|-----------|
+| Finance Contingency Met | `fin_cont` | Date has passed |
+| Appraisal Received | `appraisal_status` | = 'Received' |
+| Title Clear | `title_status` | = 'Clear' |
+| Insurance Received | `hoi_status` | = 'Received' |
+| CTC Status | `cd_status` | = 'CTC' |
+| Contract Uploaded | `contract_file` | Not null |
+| Initial Approval Received | `initial_approval_file` | Not null |
+
+### UI Changes
+
+**Files to modify:**
+- `src/components/modals/CreateTaskModal.tsx`
+- `src/components/modals/CreateNextTaskModal.tsx`
+
+**Add new section in task creation form:**
+```typescript
+// Add after Due Date/Priority fields
+
+<div className="space-y-2">
+  <Label>Contingencies (Optional)</Label>
+  <p className="text-xs text-muted-foreground mb-2">
+    Task cannot be completed until these conditions are met on the lead
+  </p>
+  <div className="flex flex-wrap gap-2">
+    {CONTINGENCY_OPTIONS.map((option) => (
+      <Button
+        key={option.id}
+        type="button"
+        variant={selectedContingencies.includes(option.id) ? "default" : "outline"}
+        size="sm"
+        onClick={() => toggleContingency(option.id)}
+        className="text-xs"
+      >
+        {option.label}
+      </Button>
+    ))}
+  </div>
+</div>
+```
+
+**Contingency options array:**
+```typescript
+const CONTINGENCY_OPTIONS = [
+  { id: 'finance_contingency', label: 'Finance Contingency', field: 'fin_cont', type: 'date_passed' },
+  { id: 'appraisal_received', label: 'Appraisal Received', field: 'appraisal_status', value: 'Received' },
+  { id: 'title_clear', label: 'Title Clear', field: 'title_status', value: 'Clear' },
+  { id: 'insurance_received', label: 'Insurance Received', field: 'hoi_status', value: 'Received' },
+  { id: 'contract_uploaded', label: 'Contract Uploaded', field: 'contract_file', type: 'not_null' },
+  { id: 'initial_approval', label: 'Initial Approval', field: 'initial_approval_file', type: 'not_null' },
+];
+```
+
+### Task Completion Logic
+
+**File:** `src/services/taskCompletionValidation.ts` (or create new)
+
+When marking a task as complete, check if contingencies are met:
+```typescript
+async function validateTaskContingencies(task: Task, lead: Lead): Promise<{ valid: boolean; unmet: string[] }> {
+  const unmet: string[] = [];
+  
+  if (!task.contingency_requirements?.length) {
+    return { valid: true, unmet: [] };
+  }
+  
+  for (const contingencyId of task.contingency_requirements) {
+    const option = CONTINGENCY_OPTIONS.find(c => c.id === contingencyId);
+    if (!option) continue;
+    
+    if (option.type === 'date_passed') {
+      const dateValue = lead[option.field];
+      if (!dateValue || new Date(dateValue) > new Date()) {
+        unmet.push(option.label);
+      }
+    } else if (option.type === 'not_null') {
+      if (!lead[option.field]) {
+        unmet.push(option.label);
+      }
+    } else if (option.value) {
+      if (lead[option.field] !== option.value) {
+        unmet.push(option.label);
+      }
+    }
+  }
+  
+  return { valid: unmet.length === 0, unmet };
 }
+```
 
-await databaseService.updateLead(leadId!, updateData);
+### Visual Indicator on Tasks
+
+Show a lock icon or badge on tasks that have unmet contingencies:
+```typescript
+{task.contingency_requirements?.length > 0 && (
+  <Badge variant="outline" className="text-xs bg-amber-50">
+    <Lock className="h-3 w-3 mr-1" />
+    {task.contingency_requirements.length} contingencies
+  </Badge>
+)}
 ```
 
 ---
 
-### Fix 2: Ensure Document Sync Triggers Refresh
-
-**File:** `src/components/lead-details/AppraisalTab.tsx`
-
-Ensure that after uploading an appraisal, the parent's document list is refreshed. The current implementation calls `onUpdate` but may not trigger a documents refresh.
-
-**Enhancement:** Call `onDocumentsChange` callback (if available) after creating the document record:
-
-```typescript
-// After line 79 (after creating document)
-// If a documents refresh callback exists, call it
-if (typeof onDocumentsChange === 'function') {
-  onDocumentsChange();
-}
-```
-
-This requires adding the optional prop to AppraisalTab if not already present.
-
----
-
-## Files to Modify
+## Files to Create/Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/ClientDetailDrawer.tsx` | Add Active stage handling (loan_status='NEW', pipeline_section='Incoming') to both validation modal button handlers |
-| `src/components/lead-details/AppraisalTab.tsx` | (Optional) Add documents refresh callback after upload |
+| `src/pages/admin/FeedbackReview.tsx` | Change badge count logic from unread to open items |
+| `src/components/modals/CreateTaskModal.tsx` | Add Disclose template + contingencies UI |
+| `src/components/modals/CreateNextTaskModal.tsx` | Add Disclose template + contingencies UI |
+| `src/services/taskCompletionValidation.ts` | Add contingency validation logic |
+| New migration | Add `contingency_requirements` column to tasks table |
 
 ---
 
-## Why This Fix Works
+## Implementation Order
 
-1. **Both code paths are covered:** Whether the user moves to Active directly (no validation) or through the validation modal, the loan_status will be set to 'NEW'
-
-2. **Task automations will trigger:** Once loan_status is set to 'NEW', the database trigger `execute_pipeline_stage_changed_automations` will create the four associated tasks (Disclose, On-board, Call Borrower, Call Buyers Agent)
-
-3. **Documents sync correctly:** Both AppraisalTab and ActiveFileDocuments already create `documents` table records. The fix ensures refresh callbacks properly update the UI
+1. **Quick Win:** Add "Disclose" template to both modals
+2. **Badge Fix:** Update FeedbackReview.tsx count logic
+3. **Database:** Create migration for contingency_requirements column
+4. **UI:** Add contingencies selection to task creation forms
+5. **Logic:** Implement contingency validation on task completion
 
 ---
 
-## Testing Checklist
+## Visual Preview
 
-After implementing:
-1. Move a lead from Leads/Pre-Approved to Active via the pill tracker
-2. Verify the validation modal appears (if requirements exist)
-3. Click "Save & Continue" or use refinance bypass
-4. Confirm lead appears in Active with loan_status = 'NEW'
-5. Verify all 4 Active stage tasks are created
-6. Upload an appraisal in Third Party Items - confirm it appears in Documents tab
-7. Upload an appraisal in Active File Documents - confirm it shows in Third Party Items
+```text
+Create Task Modal (Updated)
++--------------------------------------------------+
+| Task Title *        [Disclose                  ] |
++--------------------------------------------------+
+| Description         [Send out initial discl... ] |
++--------------------------------------------------+
+| Quick Tasks                                      |
+| [Lead Follow-up] [Pending App] [Screen]         |
+| [Conditions] [Pre-Qualify] [Pre-Approve]        |
+| [Borrower Call] [Buyer's Agent] [Listing Agent] |
+| [HSCI] [Disclose] [On-board]                    |
++--------------------------------------------------+
+| Due Date      | Priority      | Assignee        |
+| [Today      ] | [High      ▾] | [Herman Daza ▾] |
++--------------------------------------------------+
+| Contingencies (Optional)                         |
+| Task cannot be completed until these are met     |
+| [Finance ✓] [Appraisal] [Title] [Contract ✓]   |
++--------------------------------------------------+
+|                              [Cancel] [Create]  |
++--------------------------------------------------+
+```
+
