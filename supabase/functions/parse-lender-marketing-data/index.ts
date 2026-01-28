@@ -282,6 +282,13 @@ function normalizeProductName(rawName: string): string | null {
 // INTERFACES
 // =============================================================================
 
+interface DiscoveredFeature {
+  category_key: string;
+  display_name: string;
+  value: string;
+  value_type: 'boolean' | 'number' | 'text';
+}
+
 interface LenderMarketingData {
   lender_name: string | null;
   max_loan_amount: string | null;
@@ -326,6 +333,8 @@ interface LenderMarketingData {
   account_executive_last_name: string | null;
   account_executive_email: string | null;
   account_executive_phone: string | null;
+  // Discovered features (dynamic categories)
+  discovered_features?: DiscoveredFeature[];
 }
 
 interface LenderFieldSuggestion {
@@ -334,6 +343,8 @@ interface LenderFieldSuggestion {
   current_value: string | null;
   reason: string;
   confidence: number;
+  is_custom_field?: boolean;
+  display_name?: string;
 }
 
 // =============================================================================
@@ -382,7 +393,32 @@ Account Executive fields (extract from email signature, sender info, or explicit
 - account_executive_phone: Phone number of the account executive (from signature)
 
 IMPORTANT: Only extract explicitly stated values. Never infer or guess values.
-Include key source phrases in the "notes" field for audit trail.`;
+Include key source phrases in the "notes" field for audit trail.
+
+DISCOVERING NEW PRODUCT/FEATURE CATEGORIES:
+Beyond the standard products listed above, actively look for distinctive offerings that could become new tracking categories. These should capture unique lender policies or capabilities NOT covered by standard fields.
+
+Examples of discoverable categories:
+- Late payment policies: "Unlimited 30 day lates accepted" → discovered_feature with category_key: "mortgage_lates_30day", display_name: "30-Day Mortgage Lates Allowed", value: "Unlimited", value_type: "text"
+- Credit event seasoning: "2-year credit event seasoning" → category_key: "credit_event_seasoning_years", display_name: "Credit Event Seasoning (Years)", value: "2", value_type: "number"
+- FICO policies: "Primary wage earner FICO used for pricing" → category_key: "primary_wage_earner_fico_only", display_name: "Primary Wage Earner FICO Only", value: "Y", value_type: "boolean"
+- Property constraints: "Up to 20 acre properties" → category_key: "max_acres", display_name: "Max Property Acres", value: "20", value_type: "number"
+- Trade line requirements: "No trade lines required" → category_key: "no_tradelines_required", display_name: "No Trade Lines Required", value: "Y", value_type: "boolean"
+- Borrower-specific LTVs: "ITIN borrowers 85% LTV" → category_key: "itin_max_ltv", display_name: "ITIN Max LTV", value: "85", value_type: "number"
+- Special products: "HE Loan offered" → category_key: "product_he_loan", display_name: "Home Equity Loan Product", value: "Y", value_type: "boolean"
+- Reserves: "No reserves required" → category_key: "no_reserves_required", display_name: "No Reserves Required", value: "Y", value_type: "boolean"
+- Seasoning: "No seasoning required" → category_key: "no_seasoning_required", display_name: "No Seasoning Required", value: "Y", value_type: "boolean"
+- Cash-out: "Cash-out up to $500K" → category_key: "max_cashout", display_name: "Max Cash-Out Amount", value: "500000", value_type: "number"
+- DTI: "Max 50% DTI" → category_key: "max_dti", display_name: "Max DTI", value: "50", value_type: "number"
+- Mortgage-only credit: "Mortgage-only credit allowed" → category_key: "mortgage_only_credit_allowed", display_name: "Mortgage Only Credit Allowed", value: "Y", value_type: "boolean"
+- First-time buyers: "First-time homebuyer programs" → category_key: "fthb_programs", display_name: "First-Time Homebuyer Programs", value: "Y", value_type: "boolean"
+
+Use value_type:
+- "boolean" for yes/no features (value should be "Y" or "N")
+- "number" for numeric limits, percentages (strip %, $, commas - just the number)
+- "text" for descriptive values
+
+Only include truly distinctive features - do NOT duplicate fields already extracted in standard products/numbers.`;
 
 // =============================================================================
 // MAIN HANDLER
@@ -478,7 +514,21 @@ serve(async (req) => {
                   account_executive_last_name: { type: 'string', nullable: true },
                   account_executive_email: { type: 'string', nullable: true },
                   account_executive_phone: { type: 'string', nullable: true },
-                  ai_summary: { type: 'string', description: 'Brief 1-2 sentence summary of what this email is about' }
+                  ai_summary: { type: 'string', description: 'Brief 1-2 sentence summary of what this email is about' },
+                  discovered_features: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        category_key: { type: 'string', description: 'Snake_case identifier for the category (e.g., mortgage_lates_30day, max_acres)' },
+                        display_name: { type: 'string', description: 'Human-readable name (e.g., 30-Day Mortgage Lates Allowed)' },
+                        value: { type: 'string', description: 'The extracted value (e.g., "Y", "20", "Unlimited")' },
+                        value_type: { type: 'string', enum: ['boolean', 'number', 'text'], description: 'Type of value for proper storage' }
+                      },
+                      required: ['category_key', 'display_name', 'value', 'value_type']
+                    },
+                    description: 'New categories/features discovered that are not covered by standard fields'
+                  }
                 },
                 required: ['products', 'special_features', 'restrictions'],
                 additionalProperties: false
@@ -818,6 +868,42 @@ serve(async (req) => {
         }
       }
 
+      // ==========================================================================
+      // PROCESS DISCOVERED FEATURES (dynamic categories)
+      // ==========================================================================
+      if (extractedData.discovered_features && extractedData.discovered_features.length > 0) {
+        console.log('[parse-lender-marketing-data] Processing', extractedData.discovered_features.length, 'discovered features');
+        
+        for (const feature of extractedData.discovered_features) {
+          // Skip if no valid category_key or value
+          if (!feature.category_key || !feature.value) continue;
+          
+          // Check if this category_key already exists in lender's custom_fields (if matched)
+          let currentCustomValue = null;
+          if (matchedLender?.custom_fields && typeof matchedLender.custom_fields === 'object') {
+            currentCustomValue = (matchedLender.custom_fields as Record<string, unknown>)[feature.category_key];
+          }
+          
+          // Skip if already has the same value
+          if (currentCustomValue && String(currentCustomValue) === feature.value) {
+            console.log(`[parse-lender-marketing-data] Skipping discovered feature ${feature.category_key}: already has value "${currentCustomValue}"`);
+            continue;
+          }
+          
+          suggestions.push({
+            field_name: feature.category_key,
+            suggested_value: feature.value,
+            current_value: currentCustomValue ? String(currentCustomValue) : null,
+            reason: `Discovered: ${feature.display_name} = ${feature.value}`,
+            confidence: 0.75, // Slightly lower confidence for discovered features
+            is_custom_field: true,
+            display_name: feature.display_name,
+          });
+          
+          console.log(`[parse-lender-marketing-data] Created suggestion for discovered feature: ${feature.category_key} = ${feature.value}`);
+        }
+      }
+
       // Insert suggestions into database with enhanced metadata
       if (suggestions.length > 0 && emailLogId) {
         const sourceMetadata = {
@@ -839,6 +925,13 @@ serve(async (req) => {
           confidence: s.confidence,
           reason: `${s.reason} | Source: ${subject || 'Unknown subject'}`,
           status: 'pending',
+          // Include metadata for custom fields
+          ...(s.is_custom_field ? { 
+            metadata: JSON.stringify({ 
+              is_custom_field: true, 
+              display_name: s.display_name 
+            }) 
+          } : {}),
         }));
 
         const { error: insertError } = await supabase

@@ -10,6 +10,7 @@ import { LenderDetailDialog } from "@/components/LenderDetailDialog";
 import { SendLenderEmailModal } from "@/components/modals/SendLenderEmailModal";
 import { BulkLenderEmailModal } from "@/components/modals/BulkLenderEmailModal";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
+import { toLenderTitleCase } from "@/lib/utils";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
@@ -228,7 +229,7 @@ export default function ApprovedLenders() {
       cell: ({ row }: any) => (
         <div className="flex items-center justify-start text-left">
           <Building className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
-          <span className="font-medium">{row.original.lender_name}</span>
+          <span className="font-medium">{toLenderTitleCase(row.original.lender_name)}</span>
         </div>
       ),
       sortable: true,
