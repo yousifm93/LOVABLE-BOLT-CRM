@@ -52,12 +52,18 @@ export function PreApprovalLetterModal({ isOpen, onClose, client }: PreApprovalL
   useEffect(() => {
     if (isOpen && client) {
       let propertyAddress = "No Address Yet";
-      if (client.subjectAddress1) {
+      // Check for snake_case fields (from transformLeadToClient) or camelCase fields
+      const address1 = (client as any).subject_address_1 || client.subjectAddress1;
+      const city = (client as any).subject_city || client.subjectCity;
+      const state = (client as any).subject_state || client.subjectState;
+      const zip = (client as any).subject_zip || client.subjectZip;
+      
+      if (address1) {
         const parts = [
-          client.subjectAddress1,
-          client.subjectCity,
-          client.subjectState,
-          client.subjectZip
+          address1,
+          city,
+          state,
+          zip
         ].filter(Boolean);
         propertyAddress = parts.join(", ");
       }
