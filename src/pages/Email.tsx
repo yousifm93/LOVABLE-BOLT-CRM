@@ -196,13 +196,28 @@ function DroppableFolder({
       {children}
     </div>;
 }
+// Map CRM user IDs to their allowed email accounts
+const USER_ACCOUNT_MAP: Record<string, { primary: 'yousif' | 'salma' | 'herman'; label: string }> = {
+  '230ccf6d-48f5-4f3c-89fd-f2907ebdba1e': { primary: 'yousif', label: 'Yousif Inbox' },
+  '159376ae-30e9-4997-b61f-76ab8d7f224b': { primary: 'salma', label: 'Salma Inbox' },
+  'fa92a4c6-890d-4d69-99a8-c3adc6c904ee': { primary: 'herman', label: 'Herman Inbox' },
+};
+
 export default function Email() {
   const {
     toast
   } = useToast();
   const {
-    user
+    user,
+    crmUser
   } = useAuth();
+  
+  // Get current user's allowed accounts (their own + scenarios)
+  const currentUserConfig = crmUser?.id ? USER_ACCOUNT_MAP[crmUser.id] : null;
+  const allowedAccounts = currentUserConfig 
+    ? [currentUserConfig.primary, 'scenarios'] as const
+    : ['yousif', 'scenarios', 'salma', 'herman'] as const; // Fallback for unknown users
+  
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<'yousif' | 'scenarios' | 'salma' | 'herman'>('yousif');
@@ -792,10 +807,17 @@ export default function Email() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFolder, selectedCategory, selectedAccount]);
 
-  // Fetch unread counts for all accounts on initial load
+  // Set default account based on logged-in user
+  useEffect(() => {
+    if (currentUserConfig?.primary) {
+      setSelectedAccount(currentUserConfig.primary);
+    }
+  }, [currentUserConfig?.primary]);
+
+  // Fetch unread counts for allowed accounts only
   useEffect(() => {
     const fetchUnreadCounts = async () => {
-      for (const account of ['yousif', 'scenarios', 'salma', 'herman'] as const) {
+      for (const account of allowedAccounts) {
         try {
           const { data } = await supabase.functions.invoke("fetch-emails-imap", {
             body: {
@@ -814,8 +836,10 @@ export default function Email() {
         }
       }
     };
-    fetchUnreadCounts();
-  }, []);
+    if (allowedAccounts.length > 0) {
+      fetchUnreadCounts();
+    }
+  }, [allowedAccounts]);
 
   // Fetch comments for selected email
   const fetchComments = useCallback(async (email: EmailMessage) => {
@@ -1388,110 +1412,176 @@ export default function Email() {
                 <div className="flex items-center pl-2 pr-3 mb-2 pt-4">
                   <p className="text-xs font-medium text-muted-foreground">ACCOUNTS</p>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedAccount('yousif');
-                    setSelectedCategory(null);
-                    setSelectedFolder('Inbox');
-                  }}
-                  className={cn(
-                    "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
-                    selectedAccount === 'yousif' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <span className="truncate">Yousif Inbox</span>
-                  </div>
-                  {accountUnreadCounts.yousif > 0 && (
-                    <span className={cn(
-                      "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
-                      selectedAccount === 'yousif' 
-                        ? "bg-primary-foreground/20 text-primary-foreground" 
-                        : "bg-blue-500 text-white"
-                    )}>
-                      {accountUnreadCounts.yousif}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedAccount('scenarios');
-                    setSelectedCategory(null);
-                    setSelectedFolder('Inbox');
-                  }}
-                  className={cn(
-                    "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
-                    selectedAccount === 'scenarios' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <span className="truncate">Scenarios Inbox</span>
-                  </div>
-                  {accountUnreadCounts.scenarios > 0 && (
-                    <span className={cn(
-                      "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
-                      selectedAccount === 'scenarios' 
-                        ? "bg-primary-foreground/20 text-primary-foreground" 
-                        : "bg-blue-500 text-white"
-                    )}>
-                      {accountUnreadCounts.scenarios}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedAccount('salma');
-                    setSelectedCategory(null);
-                    setSelectedFolder('Inbox');
-                  }}
-                  className={cn(
-                    "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
-                    selectedAccount === 'salma' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <span className="truncate">Salma Inbox</span>
-                  </div>
-                  {accountUnreadCounts.salma > 0 && (
-                    <span className={cn(
-                      "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
-                      selectedAccount === 'salma' 
-                        ? "bg-primary-foreground/20 text-primary-foreground" 
-                        : "bg-blue-500 text-white"
-                    )}>
-                      {accountUnreadCounts.salma}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedAccount('herman');
-                    setSelectedCategory(null);
-                    setSelectedFolder('Inbox');
-                  }}
-                  className={cn(
-                    "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
-                    selectedAccount === 'herman' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <span className="truncate">Herman Inbox</span>
-                  </div>
-                  {accountUnreadCounts.herman > 0 && (
-                    <span className={cn(
-                      "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
-                      selectedAccount === 'herman' 
-                        ? "bg-primary-foreground/20 text-primary-foreground" 
-                        : "bg-blue-500 text-white"
-                    )}>
-                      {accountUnreadCounts.herman}
-                    </span>
-                  )}
-                </button>
+                
+                {/* User's Primary Inbox */}
+                {currentUserConfig && (
+                  <button
+                    onClick={() => {
+                      setSelectedAccount(currentUserConfig.primary);
+                      setSelectedCategory(null);
+                      setSelectedFolder('Inbox');
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+                      selectedAccount === currentUserConfig.primary ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      <span className="truncate">{currentUserConfig.label}</span>
+                    </div>
+                    {accountUnreadCounts[currentUserConfig.primary] > 0 && (
+                      <span className={cn(
+                        "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+                        selectedAccount === currentUserConfig.primary 
+                          ? "bg-primary-foreground/20 text-primary-foreground" 
+                          : "bg-blue-500 text-white"
+                      )}>
+                        {accountUnreadCounts[currentUserConfig.primary]}
+                      </span>
+                    )}
+                  </button>
+                )}
+                
+                {/* Scenarios Inbox - Always visible for known users */}
+                {currentUserConfig && (
+                  <button
+                    onClick={() => {
+                      setSelectedAccount('scenarios');
+                      setSelectedCategory(null);
+                      setSelectedFolder('Inbox');
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+                      selectedAccount === 'scenarios' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      <span className="truncate">Scenarios Inbox</span>
+                    </div>
+                    {accountUnreadCounts.scenarios > 0 && (
+                      <span className={cn(
+                        "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+                        selectedAccount === 'scenarios' 
+                          ? "bg-primary-foreground/20 text-primary-foreground" 
+                          : "bg-blue-500 text-white"
+                      )}>
+                        {accountUnreadCounts.scenarios}
+                      </span>
+                    )}
+                  </button>
+                )}
+                
+                {/* Fallback: Show all inboxes if user not in map (admin/unknown) */}
+                {!currentUserConfig && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setSelectedAccount('yousif');
+                        setSelectedCategory(null);
+                        setSelectedFolder('Inbox');
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+                        selectedAccount === 'yousif' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        <span className="truncate">Yousif Inbox</span>
+                      </div>
+                      {accountUnreadCounts.yousif > 0 && (
+                        <span className={cn(
+                          "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+                          selectedAccount === 'yousif' 
+                            ? "bg-primary-foreground/20 text-primary-foreground" 
+                            : "bg-blue-500 text-white"
+                        )}>
+                          {accountUnreadCounts.yousif}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedAccount('scenarios');
+                        setSelectedCategory(null);
+                        setSelectedFolder('Inbox');
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+                        selectedAccount === 'scenarios' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        <span className="truncate">Scenarios Inbox</span>
+                      </div>
+                      {accountUnreadCounts.scenarios > 0 && (
+                        <span className={cn(
+                          "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+                          selectedAccount === 'scenarios' 
+                            ? "bg-primary-foreground/20 text-primary-foreground" 
+                            : "bg-blue-500 text-white"
+                        )}>
+                          {accountUnreadCounts.scenarios}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedAccount('salma');
+                        setSelectedCategory(null);
+                        setSelectedFolder('Inbox');
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+                        selectedAccount === 'salma' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        <span className="truncate">Salma Inbox</span>
+                      </div>
+                      {accountUnreadCounts.salma > 0 && (
+                        <span className={cn(
+                          "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+                          selectedAccount === 'salma' 
+                            ? "bg-primary-foreground/20 text-primary-foreground" 
+                            : "bg-blue-500 text-white"
+                        )}>
+                          {accountUnreadCounts.salma}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedAccount('herman');
+                        setSelectedCategory(null);
+                        setSelectedFolder('Inbox');
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+                        selectedAccount === 'herman' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        <span className="truncate">Herman Inbox</span>
+                      </div>
+                      {accountUnreadCounts.herman > 0 && (
+                        <span className={cn(
+                          "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+                          selectedAccount === 'herman' 
+                            ? "bg-primary-foreground/20 text-primary-foreground" 
+                            : "bg-blue-500 text-white"
+                        )}>
+                          {accountUnreadCounts.herman}
+                        </span>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
