@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -148,152 +149,109 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
 
 export function usePermissions() {
   const { crmUser } = useAuth();
-  const [permissions, setPermissions] = useState<UserPermissions | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  const fetchPermissions = useCallback(async () => {
-    if (!crmUser?.id) {
-      setLoading(false);
-      return;
-    }
+  // Use React Query for permissions caching
+  const { data: permissions, isLoading: loading } = useQuery({
+    queryKey: ['permissions', crmUser?.id, crmUser?.role],
+    queryFn: async () => {
+      if (!crmUser?.id) return DEFAULT_PERMISSIONS;
 
-    // Admins get full access - no need to fetch permissions
-    if (crmUser.role === 'Admin') {
-      setPermissions(DEFAULT_PERMISSIONS);
-      setLoading(false);
-      return;
-    }
+      // Admins get full access - no need to fetch permissions
+      if (crmUser.role === 'Admin') {
+        return DEFAULT_PERMISSIONS;
+      }
 
-    try {
       const { data, error } = await supabase
         .from('user_permissions')
         .select('*')
         .eq('user_id', crmUser.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        // If no permissions found, default to visible for non-admin sections
-        if (error.code === 'PGRST116') {
-          setPermissions({
-            ...DEFAULT_PERMISSIONS,
-            admin: 'hidden', // Default non-admins to hidden admin
-          });
-        } else {
-          console.error('Error fetching permissions:', error);
-          setPermissions(DEFAULT_PERMISSIONS);
-        }
-      } else if (data) {
-        setPermissions({
-          // Top-level sections
-          home: data.home || 'visible',
-          dashboard: data.dashboard || 'visible',
-          overview: data.overview || 'visible',
-          tasks: data.tasks || 'visible',
-          email: data.email || 'visible',
-          pipeline: data.pipeline || 'visible',
-          contacts: data.contacts || 'visible',
-          resources: data.resources || 'visible',
-          calculators: data.calculators || 'visible',
-          admin: data.admin || 'hidden',
-          // Dashboard tabs
-          dashboard_sales: data.dashboard_sales || 'visible',
-          dashboard_calls: data.dashboard_calls || 'visible',
-          dashboard_active: data.dashboard_active || 'visible',
-          dashboard_closed: data.dashboard_closed || 'visible',
-          dashboard_miscellaneous: data.dashboard_miscellaneous || 'visible',
-          dashboard_all: data.dashboard_all || 'visible',
-          // Pipeline sub-items
-          pipeline_leads: data.pipeline_leads || 'visible',
-          pipeline_pending_app: data.pipeline_pending_app || 'visible',
-          pipeline_screening: data.pipeline_screening || 'visible',
-          pipeline_pre_qualified: data.pipeline_pre_qualified || 'visible',
-          pipeline_pre_approved: data.pipeline_pre_approved || 'visible',
-          pipeline_active: data.pipeline_active || 'visible',
-          pipeline_past_clients: data.pipeline_past_clients || 'visible',
-          pipeline_idle: (data as any).pipeline_idle || 'visible',
-          // Contacts sub-items
-          contacts_agents: data.contacts_agents || 'visible',
-          contacts_borrowers: data.contacts_borrowers || 'visible',
-          contacts_lenders: data.contacts_lenders || 'visible',
-          // Calculators sub-items
-          calculators_loan_pricer: data.calculators_loan_pricer || 'visible',
-          calculators_property_value: data.calculators_property_value || 'visible',
-          calculators_income: data.calculators_income || 'visible',
-          calculators_estimate: data.calculators_estimate || 'visible',
-          // Resources sub-items
-          resources_bolt_bot: data.resources_bolt_bot || 'visible',
-          resources_email_marketing: data.resources_email_marketing || 'visible',
-          resources_condolist: data.resources_condolist || 'visible',
-          resources_preapproval: data.resources_preapproval || 'visible',
-          // Admin sub-items
-          admin_assistant: data.admin_assistant || 'visible',
-          admin_mortgage_app: data.admin_mortgage_app || 'visible',
-          admin_settings: data.admin_settings || 'visible',
-          admin_deleted_items: data.admin_deleted_items || 'visible',
-          // Homepage card permissions
-          home_inbox: data.home_inbox || 'visible',
-          home_calendar: data.home_calendar || 'visible',
-          home_agents: data.home_agents || 'visible',
-          home_lenders: data.home_lenders || 'visible',
-          home_active_files: data.home_active_files || 'visible',
-          home_loan_estimate: data.home_loan_estimate || 'visible',
-          home_income_calculator: data.home_income_calculator || 'visible',
-          home_loan_pricer: data.home_loan_pricer || 'visible',
-          home_bolt_bot: data.home_bolt_bot || 'visible',
-          // New homepage section permissions
-          home_activity_panel: (data as any).home_activity_panel || 'visible',
-          home_market_rates: (data as any).home_market_rates || 'visible',
-          home_daily_reports: (data as any).home_daily_reports || 'visible',
-          home_monthly_reports: (data as any).home_monthly_reports || 'visible',
-          // New fine-grained permissions
-          default_landing_page: (data as any).default_landing_page || '/',
-          lead_details_all_fields: (data as any).lead_details_all_fields || 'visible',
-          lead_details_send_email: (data as any).lead_details_send_email || 'visible',
-          filter_leads_by_assignment: (data as any).filter_leads_by_assignment || false,
-          // Sidebar behavior
-          sidebar_pipeline_expanded_default: (data as any).sidebar_pipeline_expanded_default || false,
-        });
+        console.error('Error fetching permissions:', error);
+        return { ...DEFAULT_PERMISSIONS, admin: 'hidden' };
       }
-    } catch (error) {
-      console.error('Error fetching permissions:', error);
-      setPermissions(DEFAULT_PERMISSIONS);
-    } finally {
-      setLoading(false);
-    }
-  }, [crmUser?.id, crmUser?.role]);
+      
+      if (!data) {
+        // No permissions found, default to hidden admin for non-admins
+        return { ...DEFAULT_PERMISSIONS, admin: 'hidden' };
+      }
 
-  // Initial fetch
-  useEffect(() => {
-    fetchPermissions();
-  }, [fetchPermissions]);
-
-  // Real-time subscription for permission changes
-  useEffect(() => {
-    if (!crmUser?.id || crmUser.role === 'Admin') {
-      return;
-    }
-
-    const channel = supabase
-      .channel(`user_permissions_${crmUser.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_permissions',
-          filter: `user_id=eq.${crmUser.id}`
-        },
-        (payload) => {
-          console.log('Permission change detected:', payload);
-          fetchPermissions();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [crmUser?.id, crmUser?.role, fetchPermissions]);
+      return {
+        // Top-level sections
+        home: data.home || 'visible',
+        dashboard: data.dashboard || 'visible',
+        overview: data.overview || 'visible',
+        tasks: data.tasks || 'visible',
+        email: data.email || 'visible',
+        pipeline: data.pipeline || 'visible',
+        contacts: data.contacts || 'visible',
+        resources: data.resources || 'visible',
+        calculators: data.calculators || 'visible',
+        admin: data.admin || 'hidden',
+        // Dashboard tabs
+        dashboard_sales: data.dashboard_sales || 'visible',
+        dashboard_calls: data.dashboard_calls || 'visible',
+        dashboard_active: data.dashboard_active || 'visible',
+        dashboard_closed: data.dashboard_closed || 'visible',
+        dashboard_miscellaneous: data.dashboard_miscellaneous || 'visible',
+        dashboard_all: data.dashboard_all || 'visible',
+        // Pipeline sub-items
+        pipeline_leads: data.pipeline_leads || 'visible',
+        pipeline_pending_app: data.pipeline_pending_app || 'visible',
+        pipeline_screening: data.pipeline_screening || 'visible',
+        pipeline_pre_qualified: data.pipeline_pre_qualified || 'visible',
+        pipeline_pre_approved: data.pipeline_pre_approved || 'visible',
+        pipeline_active: data.pipeline_active || 'visible',
+        pipeline_past_clients: data.pipeline_past_clients || 'visible',
+        pipeline_idle: (data as any).pipeline_idle || 'visible',
+        // Contacts sub-items
+        contacts_agents: data.contacts_agents || 'visible',
+        contacts_borrowers: data.contacts_borrowers || 'visible',
+        contacts_lenders: data.contacts_lenders || 'visible',
+        // Calculators sub-items
+        calculators_loan_pricer: data.calculators_loan_pricer || 'visible',
+        calculators_property_value: data.calculators_property_value || 'visible',
+        calculators_income: data.calculators_income || 'visible',
+        calculators_estimate: data.calculators_estimate || 'visible',
+        // Resources sub-items
+        resources_bolt_bot: data.resources_bolt_bot || 'visible',
+        resources_email_marketing: data.resources_email_marketing || 'visible',
+        resources_condolist: data.resources_condolist || 'visible',
+        resources_preapproval: data.resources_preapproval || 'visible',
+        // Admin sub-items
+        admin_assistant: data.admin_assistant || 'visible',
+        admin_mortgage_app: data.admin_mortgage_app || 'visible',
+        admin_settings: data.admin_settings || 'visible',
+        admin_deleted_items: data.admin_deleted_items || 'visible',
+        // Homepage card permissions
+        home_inbox: data.home_inbox || 'visible',
+        home_calendar: data.home_calendar || 'visible',
+        home_agents: data.home_agents || 'visible',
+        home_lenders: data.home_lenders || 'visible',
+        home_active_files: data.home_active_files || 'visible',
+        home_loan_estimate: data.home_loan_estimate || 'visible',
+        home_income_calculator: data.home_income_calculator || 'visible',
+        home_loan_pricer: data.home_loan_pricer || 'visible',
+        home_bolt_bot: data.home_bolt_bot || 'visible',
+        // New homepage section permissions
+        home_activity_panel: (data as any).home_activity_panel || 'visible',
+        home_market_rates: (data as any).home_market_rates || 'visible',
+        home_daily_reports: (data as any).home_daily_reports || 'visible',
+        home_monthly_reports: (data as any).home_monthly_reports || 'visible',
+        // New fine-grained permissions
+        default_landing_page: (data as any).default_landing_page || '/',
+        lead_details_all_fields: (data as any).lead_details_all_fields || 'visible',
+        lead_details_send_email: (data as any).lead_details_send_email || 'visible',
+        filter_leads_by_assignment: (data as any).filter_leads_by_assignment || false,
+        // Sidebar behavior
+        sidebar_pipeline_expanded_default: (data as any).sidebar_pipeline_expanded_default || false,
+      } as UserPermissions;
+    },
+    enabled: !!crmUser?.id,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+  });
 
   const hasPermission = useCallback((section: keyof UserPermissions): PermissionLevel => {
     if (!permissions) return 'visible';
@@ -303,7 +261,7 @@ export function usePermissions() {
   const isAdmin = crmUser?.role === 'Admin';
 
   return { 
-    permissions, 
+    permissions: permissions || null, 
     hasPermission, 
     loading,
     isAdmin,

@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions, UserPermissions } from "@/hooks/usePermissions";
+import { useHomeCounts } from "@/hooks/useSharedData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { 
@@ -61,14 +62,18 @@ export default function Home() {
   const navigate = useNavigate();
   const { crmUser } = useAuth();
   const { hasPermission } = usePermissions();
-  const [leadsThisMonth, setLeadsThisMonth] = useState(0);
-  const [applicationsThisMonth, setApplicationsThisMonth] = useState(0);
-  const [closedThisMonth, setClosedThisMonth] = useState(0);
-  const [activeCount, setActiveCount] = useState(0);
-  const [agentCount, setAgentCount] = useState(0);
-  const [unreadEmailCount, setUnreadEmailCount] = useState(0);
-  const [agentsAddedThisMonth, setAgentsAddedThisMonth] = useState(0);
-  const [agentsRemovedThisMonth, setAgentsRemovedThisMonth] = useState(0);
+  
+  // Use React Query for cached home counts (parallel fetching + caching)
+  const { data: counts } = useHomeCounts();
+  const leadsThisMonth = counts?.leadsThisMonth || 0;
+  const applicationsThisMonth = counts?.applicationsThisMonth || 0;
+  const closedThisMonth = counts?.closedThisMonth || 0;
+  const activeCount = counts?.activeCount || 0;
+  const agentCount = counts?.agentCount || 0;
+  const unreadEmailCount = counts?.unreadEmailCount || 0;
+  const agentsAddedThisMonth = counts?.agentsAddedThisMonth || 0;
+  const agentsRemovedThisMonth = counts?.agentsRemovedThisMonth || 0;
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -81,91 +86,18 @@ export default function Home() {
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
   const [selectedLender, setSelectedLender] = useState<any | null>(null);
 
-  useEffect(() => {
-    const fetchCounts = async () => {
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      const startOfMonthISO = startOfMonth.toISOString();
-      // Format as YYYY-MM-DD for date columns
-      const startOfMonthDate = startOfMonthISO.split('T')[0];
-
-      // Fetch leads created this month (exclude past clients)
-      const { count: leads } = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_closed', false)
-        .gte('lead_on_date', startOfMonthDate);
-      setLeadsThisMonth(leads || 0);
-
-      // Fetch applications this month (Pending App stage)
-      const { count: apps } = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .eq('pipeline_stage_id', '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945')
-        .gte('pending_app_at', startOfMonthISO);
-      setApplicationsThisMonth(apps || 0);
-
-      // Fetch closed this month (Past Clients with close_date this month)
-      const { count: closed } = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .eq('pipeline_stage_id', 'e9fc7eb8-6519-4768-b49e-3ebdd3738ac0')
-        .gte('close_date', startOfMonthISO.split('T')[0]);
-      setClosedThisMonth(closed || 0);
-
-      // Fetch active files count for quick access card
-      const { count: active } = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .eq('pipeline_stage_id', '76eb2e82-e1d9-4f2d-a57d-2120a25696db');
-      setActiveCount(active || 0);
-
-      // Fetch total agents count for quick access card
-      const { count: agents } = await supabase
-        .from('buyer_agents')
-        .select('*', { count: 'exact', head: true })
-        .is('deleted_at', null);
-      setAgentCount(agents || 0);
-
-      // Fetch unread emails count for quick access card
-      const { count: unread } = await supabase
-        .from('email_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('direction', 'In')
-        .is('opened_at', null);
-      setUnreadEmailCount(unread || 0);
-
-      // Fetch agents added this month
-      const { count: added } = await supabase
-        .from('buyer_agents')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', startOfMonthISO);
-      setAgentsAddedThisMonth(added || 0);
-
-      // Fetch agents removed this month
-      const { count: removed } = await supabase
-        .from('buyer_agents')
-        .select('*', { count: 'exact', head: true })
-        .not('deleted_at', 'is', null)
-        .gte('deleted_at', startOfMonthISO);
-      setAgentsRemovedThisMonth(removed || 0);
-    };
-
-    fetchCounts();
+  // Close dropdown when clicking outside
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      setShowDropdown(false);
+    }
   }, []);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-
+  // Set up click outside listener
+  useState(() => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  });
 
   const performSearch = useCallback(async (query: string) => {
     if (query.length < 2) {

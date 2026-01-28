@@ -293,96 +293,38 @@ export function AppSidebar() {
     }
   };
 
-  // Fetch pending suggestion count
+  // Consolidated initial data fetch for sidebar counts
   useEffect(() => {
-    const fetchPendingCount = async () => {
-      const { count } = await supabase
-        .from('email_field_suggestions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-      setPendingSuggestionCount(count || 0);
+    const loadSidebarData = async () => {
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      
+      const [suggestions, queue, feedback, contacts, lenderSuggestions] = await Promise.allSettled([
+        supabase.from('email_field_suggestions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('email_automation_queue').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('team_feedback').select('*', { count: 'exact', head: true }).eq('is_read_by_admin', false),
+        supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('approval_status', 'pending'),
+        supabase.from('lender_field_suggestions').select('*', { count: 'exact', head: true }).eq('status', 'pending').gte('created_at', twentyFourHoursAgo),
+      ]);
+
+      if (suggestions.status === 'fulfilled') setPendingSuggestionCount(suggestions.value.count || 0);
+      if (queue.status === 'fulfilled') setPendingEmailQueueCount(queue.value.count || 0);
+      if (feedback.status === 'fulfilled') setNewFeedbackCount(feedback.value.count || 0);
+      if (contacts.status === 'fulfilled') setPendingContactCount(contacts.value.count || 0);
+      if (lenderSuggestions.status === 'fulfilled') setPendingLenderSuggestionCount(lenderSuggestions.value.count || 0);
     };
 
-    fetchPendingCount();
-    
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('email_field_suggestions_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'email_field_suggestions' },
-        () => fetchPendingCount()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    loadSidebarData();
   }, []);
 
-  // Fetch pending email queue count
-  useEffect(() => {
-    const fetchEmailQueueCount = async () => {
-      const { count } = await supabase
-        .from('email_automation_queue')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-      setPendingEmailQueueCount(count || 0);
-    };
-
-    fetchEmailQueueCount();
-    
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('email_automation_queue_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'email_automation_queue' },
-        () => fetchEmailQueueCount()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Fetch feedback notification counts
-  useEffect(() => {
-    const fetchFeedbackCounts = async () => {
-      // For admin: count unread new feedback (is_read_by_admin = false)
-      const { count: newCount } = await supabase
-        .from('team_feedback')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_read_by_admin', false);
-      setNewFeedbackCount(newCount || 0);
-    };
-
-    fetchFeedbackCounts();
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('team_feedback_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'team_feedback' },
-        () => fetchFeedbackCounts()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Fetch unread response count for current user
+  // Fetch unread response count for current user (separate effect - depends on user)
   useEffect(() => {
     const fetchUnreadResponses = async () => {
       if (!user?.id) return;
       try {
-        // First get user's internal ID from users table
-        const { data: usersData } = await supabase.from('users').select('*');
+        const { data: usersData } = await supabase.from('users').select('id, auth_user_id');
         const currentUser = usersData?.find(u => u.auth_user_id === user.id);
         if (!currentUser?.id) return;
         
-        // Then count unread responses for this user
         const { data } = await supabase
           .from('team_feedback')
           .select('id')
@@ -392,60 +334,36 @@ export function AppSidebar() {
     };
 
     fetchUnreadResponses();
-    const channel = supabase
-      .channel('feedback_user_sub')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_feedback' }, () => fetchUnreadResponses())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
-  // Fetch pending contact approval count
+  // Single consolidated realtime subscription for all sidebar counts
   useEffect(() => {
-    const fetchPendingContactCount = async () => {
-      const { count } = await supabase
-        .from('contacts')
-        .select('*', { count: 'exact', head: true })
-        .eq('approval_status', 'pending');
-      setPendingContactCount(count || 0);
-    };
-
-    fetchPendingContactCount();
-    
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('contacts_pending_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'contacts' },
-        () => fetchPendingContactCount()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Fetch pending lender marketing suggestion count (last 24 hours)
-  useEffect(() => {
-    const fetchPendingLenderCount = async () => {
+    const handleRefresh = () => {
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { count } = await supabase
-        .from('lender_field_suggestions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending')
-        .gte('created_at', twentyFourHoursAgo);
-      setPendingLenderSuggestionCount(count || 0);
+      
+      // Refetch all counts in parallel
+      Promise.allSettled([
+        supabase.from('email_field_suggestions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('email_automation_queue').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('team_feedback').select('*', { count: 'exact', head: true }).eq('is_read_by_admin', false),
+        supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('approval_status', 'pending'),
+        supabase.from('lender_field_suggestions').select('*', { count: 'exact', head: true }).eq('status', 'pending').gte('created_at', twentyFourHoursAgo),
+      ]).then(([suggestions, queue, feedback, contacts, lenderSuggestions]) => {
+        if (suggestions.status === 'fulfilled') setPendingSuggestionCount(suggestions.value.count || 0);
+        if (queue.status === 'fulfilled') setPendingEmailQueueCount(queue.value.count || 0);
+        if (feedback.status === 'fulfilled') setNewFeedbackCount(feedback.value.count || 0);
+        if (contacts.status === 'fulfilled') setPendingContactCount(contacts.value.count || 0);
+        if (lenderSuggestions.status === 'fulfilled') setPendingLenderSuggestionCount(lenderSuggestions.value.count || 0);
+      });
     };
 
-    fetchPendingLenderCount();
-    
-    // Set up real-time subscription
     const channel = supabase
-      .channel('lender_field_suggestions_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'lender_field_suggestions' },
-        () => fetchPendingLenderCount()
-      )
+      .channel('sidebar_notifications')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'email_field_suggestions' }, handleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'email_automation_queue' }, handleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_feedback' }, handleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contacts' }, handleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lender_field_suggestions' }, handleRefresh)
       .subscribe();
 
     return () => {
