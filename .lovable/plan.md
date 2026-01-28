@@ -1,160 +1,300 @@
 
-
-# Plan: Clear and Re-Process Lender Marketing Suggestions
+# Plan: Enhance Bulk Lender Email Feature
 
 ## Overview
-Create a new edge function to clear all current pending suggestions and re-process the last 48 hours of lender marketing emails through the enhanced `parse-lender-marketing-data` function.
+Enhance the BulkLenderEmailModal to include:
+1. User email signatures (auto-appended based on logged-in user)
+2. Fix reply-to to scenarios@mortgagebolt.org
+3. Updated default message template with proper spacing
+4. Title case conversion for lender names (preserving acronyms)
+5. File attachment capability
 
 ---
 
 ## Current State
-- **Pending suggestions**: 1,446 records to clear
-- **Lender marketing emails (48h)**: 76 emails to re-process
+- **Email signatures**: Already stored in `users.email_signature` for all team members
+- **Lender names**: Currently stored as ALL CAPS (e.g., "ACRA", "ANGEL OAK")
+- **Reply-to**: Currently uses crmUser.email, should be scenarios@mortgagebolt.org
+- **Attachments**: Not supported in bulk lender emails
 
 ---
 
-## Implementation
+## Changes
 
-### Create New Edge Function: `reprocess-lender-suggestions`
+### 1. Email Signature Integration
 
-This function will:
-1. Delete all pending suggestions from `lender_field_suggestions` 
-2. Query `email_logs` for marketing emails from the last 48 hours
-3. Call `parse-lender-marketing-data` for each email
-4. Return summary of processing results
+**File:** `src/components/modals/BulkLenderEmailModal.tsx`
 
-**File:** `supabase/functions/reprocess-lender-suggestions/index.ts`
+- Fetch the logged-in user's `email_signature` from the database
+- Replace "Best regards, Yousif Mohamed" with just "Best" followed by the signature
+- The signature HTML includes the user's photo, name, contact info, etc.
 
 ```typescript
-// Edge function that:
-// 1. DELETE FROM lender_field_suggestions WHERE status = 'pending'
-// 2. SELECT id, subject, body, html_body, from_email FROM email_logs 
-//    WHERE is_lender_marketing = true 
-//    AND timestamp >= NOW() - INTERVAL '48 hours'
-// 3. For each email, call parse-lender-marketing-data
-// 4. Return { cleared: count, reprocessed: count, errors: [] }
+// Fetch user's email signature
+const [userSignature, setUserSignature] = useState<string | null>(null);
+
+useEffect(() => {
+  if (crmUser?.id) {
+    supabase.from('users')
+      .select('email_signature')
+      .eq('id', crmUser.id)
+      .single()
+      .then(({ data }) => setUserSignature(data?.email_signature || null));
+  }
+}, [crmUser?.id]);
+
+// Update default body to end with "Best" + signature placeholder
+const [body, setBody] = useState(`<p>Hello {{AccountExecutiveFirstName}},</p>
+<p>I wanted to reach out regarding a loan scenario for {{LenderName}}.</p>
+<p>Best,</p>`);
+
+// Append signature when sending
+const finalBody = userSignature 
+  ? `${personalizedBody}<br><br>${userSignature}` 
+  : personalizedBody;
 ```
 
-### Processing Flow
+### 2. Fix Reply-To Address
 
-```text
-1. Clear Pending Suggestions
-   DELETE FROM lender_field_suggestions WHERE status = 'pending'
-   ↓
-2. Fetch Marketing Emails (48h)
-   SELECT * FROM email_logs 
-   WHERE is_lender_marketing = true 
-   AND timestamp >= NOW() - INTERVAL '48 hours'
-   ↓
-3. For Each Email (76 total):
-   Call parse-lender-marketing-data with:
-   - subject
-   - body / html_body
-   - from_email  
-   - emailLogId
-   ↓
-4. Return Summary
-   { cleared: 1446, reprocessed: 76, newSuggestions: X }
-```
+**File:** `src/components/modals/BulkLenderEmailModal.tsx`
 
----
-
-## Technical Details
-
-### Edge Function Implementation
+Change the reply-to from crmUser.email to always be "scenarios@mortgagebolt.org":
 
 ```typescript
-serve(async (req) => {
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// Line 89 - Change from:
+const replyToEmail = crmUser?.email || user?.email || "yousif@mortgagebolt.org";
+
+// To:
+const replyToEmail = "scenarios@mortgagebolt.org"; // Always reply to scenarios
+```
+
+Update the display field as well (line 149 and 228-235).
+
+### 3. Title Case Lender Names
+
+**File:** `src/lib/utils.ts` (add utility function)
+
+Create a smart title case function that preserves acronyms:
+
+```typescript
+// Known acronyms that should stay uppercase
+const LENDER_ACRONYMS = ['EPM', 'PRMG', 'UWM', 'FEMBI', 'BAC', 'A&D'];
+
+export function toLenderTitleCase(name: string): string {
+  if (!name) return name;
   
-  // Step 1: Clear all pending suggestions
-  const { count: clearedCount } = await supabase
-    .from('lender_field_suggestions')
-    .delete()
-    .eq('status', 'pending');
-  
-  // Step 2: Fetch marketing emails from last 48 hours
-  const cutoffDate = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-  const { data: emails } = await supabase
-    .from('email_logs')
-    .select('id, subject, body, html_body, from_email')
-    .eq('is_lender_marketing', true)
-    .gte('timestamp', cutoffDate);
-  
-  // Step 3: Process each email
-  let processed = 0;
-  let errors = [];
-  
-  for (const email of emails) {
-    try {
-      await fetch(`${supabaseUrl}/functions/v1/parse-lender-marketing-data`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({
-          subject: email.subject,
-          body: email.body,
-          htmlBody: email.html_body,
-          fromEmail: email.from_email,
-          emailLogId: email.id,
-        }),
-      });
-      processed++;
-    } catch (e) {
-      errors.push({ emailId: email.id, error: e.message });
-    }
+  // Check if entire name is a known acronym
+  if (LENDER_ACRONYMS.includes(name.toUpperCase())) {
+    return name.toUpperCase();
   }
   
-  return new Response(JSON.stringify({
-    success: true,
-    cleared: clearedCount,
-    emailsFound: emails.length,
-    processed,
-    errors,
+  // Split by spaces and convert each word
+  return name.split(' ').map(word => {
+    const upper = word.toUpperCase();
+    // Keep acronyms uppercase
+    if (LENDER_ACRONYMS.includes(upper) || word.length <= 2) {
+      return upper;
+    }
+    // Title case: first letter uppercase, rest lowercase
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+}
+
+// Examples:
+// "ACRA" → "Acra"
+// "ANGEL OAK" → "Angel Oak"
+// "BB AMERICAS" → "BB Americas"  
+// "EPM" → "EPM" (acronym preserved)
+// "JMAC Lending" → "Jmac Lending" (already mixed case stays)
+// "UWM" → "UWM" (acronym preserved)
+```
+
+**File:** `src/components/modals/BulkLenderEmailModal.tsx`
+
+Apply title case in merge tag replacement:
+
+```typescript
+import { toLenderTitleCase } from "@/lib/utils";
+
+const replaceMergeTags = (text: string, lender: Lender): string => {
+  const firstName = lender.account_executive?.split(' ')[0] || 'Team';
+  const formattedLenderName = toLenderTitleCase(lender.lender_name);
+  
+  return text
+    .replace(/\{\{AccountExecutiveFirstName\}\}/g, firstName)
+    .replace(/\{\{AccountExecutiveName\}\}/g, lender.account_executive || 'Team')
+    .replace(/\{\{LenderName\}\}/g, formattedLenderName);
+};
+```
+
+### 4. File Attachment Support
+
+**File:** `src/components/modals/BulkLenderEmailModal.tsx`
+
+Add attachment state and file upload UI:
+
+```typescript
+interface Attachment {
+  file: File;
+  name: string;
+  type: string;
+}
+
+const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = Array.from(e.target.files || []);
+  const newAttachments = files.map(file => ({
+    file,
+    name: file.name,
+    type: file.type
   }));
-});
+  setAttachments(prev => [...prev, ...newAttachments]);
+};
+
+const removeAttachment = (index: number) => {
+  setAttachments(prev => prev.filter((_, i) => i !== index));
+};
+
+// Convert files to base64 for SendGrid
+const convertToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+  });
+};
 ```
 
-### Config.toml Entry
+Add attachment UI component:
 
-```toml
-[functions.reprocess-lender-suggestions]
-verify_jwt = false
+```tsx
+{/* Attachments Section */}
+<div className="space-y-2">
+  <Label>Attachments</Label>
+  <div className="flex flex-wrap gap-2">
+    {attachments.map((att, index) => (
+      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+        <Paperclip className="h-3 w-3" />
+        {att.name}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-4 w-4 p-0 ml-1"
+          onClick={() => removeAttachment(index)}
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </Badge>
+    ))}
+    <label>
+      <input
+        type="file"
+        multiple
+        onChange={handleFileSelect}
+        className="hidden"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+      />
+      <Button variant="outline" size="sm" asChild>
+        <span className="cursor-pointer">
+          <Paperclip className="h-4 w-4 mr-1" />
+          Add Files
+        </span>
+      </Button>
+    </label>
+  </div>
+</div>
+```
+
+**File:** `supabase/functions/send-direct-email/index.ts`
+
+Update to support attachments:
+
+```typescript
+interface SendDirectEmailRequest {
+  to: string;
+  cc?: string;
+  subject: string;
+  html: string;
+  from_email: string;
+  from_name: string;
+  reply_to?: string;
+  attachments?: Array<{
+    content: string; // base64
+    filename: string;
+    type: string;
+  }>;
+}
+
+// In email payload building:
+if (attachments && attachments.length > 0) {
+  emailPayload.attachments = attachments.map(att => ({
+    content: att.content,
+    filename: att.filename,
+    type: att.type,
+    disposition: 'attachment'
+  }));
+}
 ```
 
 ---
 
-## Files to Create
+## Files to Modify
 
-| File | Purpose |
+| File | Changes |
 |------|---------|
-| `supabase/functions/reprocess-lender-suggestions/index.ts` | New edge function to clear and re-process |
-| Update `supabase/config.toml` | Add function config |
+| `src/lib/utils.ts` | Add `toLenderTitleCase()` function |
+| `src/components/modals/BulkLenderEmailModal.tsx` | Email signature, reply-to fix, title case, attachments |
+| `supabase/functions/send-direct-email/index.ts` | Support attachments in SendGrid payload |
 
 ---
 
-## Execution
+## Default Message Template (Updated)
 
-After deployment, the function will be called to:
-1. Clear all 1,446 pending suggestions
-2. Re-process all 76 lender marketing emails from the last 48 hours
-3. Generate new, improved suggestions using the enhanced AI prompt and validation logic
+**Before:**
+```html
+<p>Hello {{AccountExecutiveFirstName}},</p>
+<p><br></p>
+<p>I wanted to reach out regarding a loan scenario for {{LenderName}}.</p>
+<p><br></p>
+<p>Best regards,<br>Yousif Mohamed</p>
+```
 
-The new suggestions will include:
-- Proper lender identification (no more "Unknown Lender")
-- De-duplicated product fields (no duplicate Y values)
-- Min/max validation (no backwards changes)
-- Complete field extraction from each email
+**After:**
+```html
+<p>Hello {{AccountExecutiveFirstName}},</p>
+<p>I wanted to reach out regarding a loan scenario for {{LenderName}}.</p>
+<p>Best,</p>
+<!-- Email signature auto-appended here when sending -->
+```
 
 ---
 
-## Expected Results
+## Lender Name Conversion Examples
 
-After re-processing:
-- Fewer total suggestions (duplicates removed)
-- More accurate lender names
-- Better field coverage per email
-- Proper min/max direction validation
+| Original (Database) | After Title Case |
+|---------------------|------------------|
+| ACRA | Acra |
+| ANGEL OAK | Angel Oak |
+| BB AMERICAS | BB Americas |
+| EPM | EPM (acronym) |
+| FUND LOANS | Fund Loans |
+| JMAC Lending | Jmac Lending |
+| KIND LENDING | Kind Lending |
+| PRMG | PRMG (acronym) |
+| UWM | UWM (acronym) |
+| A&D | A&D (acronym) |
 
+---
+
+## Summary of Changes
+
+1. **Email Signature**: Fetches from `users.email_signature` and appends after "Best,"
+2. **Reply-To**: Changed to always be `scenarios@mortgagebolt.org`
+3. **Message Template**: Cleaner spacing, ends with "Best," (signature appended automatically)
+4. **Lender Names**: Title case conversion preserving known acronyms
+5. **Attachments**: File picker with base64 conversion sent via SendGrid API
