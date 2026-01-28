@@ -34,15 +34,27 @@ export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmai
   const [cc, setCc] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [userSignature, setUserSignature] = useState<string | null>(null);
+
+  // Fetch user's email signature
+  useEffect(() => {
+    if (crmUser?.id) {
+      supabase.from('users')
+        .select('email_signature')
+        .eq('id', crmUser.id)
+        .single()
+        .then(({ data }) => setUserSignature(data?.email_signature || null));
+    }
+  }, [crmUser?.id]);
 
   // Reset form when modal opens with new lender
   useEffect(() => {
     if (isOpen && lender) {
       setSubject(`Inquiry - ${lender.lender_name}`);
-      setBody(`<p>Hello ${lender.account_executive || 'Team'},</p><p><br></p><p>I wanted to reach out regarding potential loan opportunities.</p><p><br></p><p>Best regards,<br>${crmUser?.first_name || ''} ${crmUser?.last_name || ''}</p>`);
+      setBody(`<p>Hello ${lender.account_executive || 'Team'},</p><p><br></p><p>I wanted to reach out regarding potential loan opportunities.</p><p><br></p><p>Best,</p>`);
       setCc("");
     }
-  }, [isOpen, lender, crmUser]);
+  }, [isOpen, lender]);
 
   const handleSend = async () => {
     if (!lender?.account_executive_email) {
@@ -68,13 +80,19 @@ export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmai
     try {
       const senderName = crmUser ? `${crmUser.first_name} ${crmUser.last_name}` : "Mortgage Bolt";
       const replyToEmail = crmUser?.email || user?.email || "yousif@mortgagebolt.org";
+      
+      // Append email signature if available
+      let emailBody = body;
+      if (userSignature) {
+        emailBody = `${body}<br>${userSignature}`;
+      }
 
       const { error } = await supabase.functions.invoke('send-direct-email', {
         body: {
           to: lender.account_executive_email,
           cc: cc.trim() || undefined,
           subject: subject,
-          html: body,
+          html: emailBody,
           from_email: "scenarios@mortgagebolt.org",
           from_name: senderName,
           reply_to: replyToEmail
@@ -107,7 +125,7 @@ export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmai
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[85vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
@@ -174,7 +192,7 @@ export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmai
               value={body}
               onChange={setBody}
               placeholder="Type your message..."
-              className="min-h-[200px]"
+              className="min-h-[350px]"
             />
           </div>
 
