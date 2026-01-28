@@ -1,155 +1,118 @@
 
-# Plan: Fix Category Emails Not Displaying (UID Mismatch Issue)
 
-## Problem
+# Plan: Reset Email Categories & Make Section Collapsible
 
-When clicking the "Reviewed - N/A" category (showing count of 18), the main panel displays "No emails in Reviewed - N/A". This happens because:
+## Overview
 
-1. **Category counts work correctly**: The count (18) is calculated from the `email_categories` database table, correctly filtered by account (`yousif`)
-
-2. **Categorized emails have old UIDs**: The database shows emails with UIDs 1061-1172
-
-3. **Loaded emails are recent**: The IMAP fetch returns the most recent 50 emails (UIDs in the 4000+ range)
-
-4. **Matching fails**: The `getCategoryEmails()` function tries to find category UIDs in the loaded `emails` array - but those old emails aren't loaded
-
-```typescript
-// Current logic (line 1277-1280)
-const getCategoryEmails = () => {
-  const categoryEmailUids = emailCategories.filter(c => c.category === selectedCategory).map(c => c.email_uid);
-  return emails.filter(e => categoryEmailUids.includes(e.uid)); // ← Returns empty array!
-};
-```
+This plan addresses two requests:
+1. **Zero out all email categories** - Delete all records from the `email_categories` database table so counts reset to 0
+2. **Make CATEGORIES section collapsible** - Add a toggle chevron to expand/collapse the categories list in the sidebar
 
 ---
 
-## Solution
+## Part 1: Database Cleanup
 
-When a category is selected, fetch those specific emails by UID from IMAP instead of filtering from already-loaded emails.
+### Action: Delete all email category records
 
-### Approach
+Currently there are **25 records** in the `email_categories` table (all assigned to the 'yousif' account from December 2025 - January 2026).
 
-1. Add a `uids` parameter to the IMAP edge function to fetch multiple specific emails by UID
-2. When a category is clicked, call the IMAP function with the list of UIDs from that category
-3. Store/display those category-specific emails
+**SQL to execute:**
+```sql
+DELETE FROM email_categories;
+```
+
+This will:
+- Remove all 25 category assignments
+- Reset all category counts to 0 (Needs Attention, File, Lender Mktg, Reviewed - N/A, Email template)
+- Keep the `custom_email_categories` table intact (the category definitions themselves)
+- Allow fresh drag-and-drop categorization going forward
 
 ---
 
-## Implementation
+## Part 2: Make Categories Section Collapsible
 
-### 1. Update Edge Function: `supabase/functions/fetch-emails-imap/index.ts`
+### Current State
+The CATEGORIES section in the sidebar (lines 1394-1470) is always expanded with no way to collapse it.
 
-Add support for a `uids` parameter to fetch multiple emails by UID:
+### Changes to `src/pages/Email.tsx`
+
+#### 1. Add state for collapse toggle
 
 ```typescript
-interface FetchEmailsRequest {
-  // ... existing params
-  uids?: number[];  // New: fetch specific emails by UID
-}
-
-// In the handler, add:
-if (uids && uids.length > 0) {
-  console.log(`Fetching ${uids.length} specific emails by UID`);
-  const uidRange = uids.join(',');
-  
-  for await (const message of client.fetch(uidRange, {
-    envelope: true,
-    flags: true,
-    bodyStructure: true,
-  }, { uid: true })) {
-    // Build EmailMessage object same as existing logic
-    emails.push({ uid: message.uid, ... });
-  }
-  
-  return new Response(JSON.stringify({ success: true, emails }), ...);
-}
+const [categoriesExpanded, setCategoriesExpanded] = useState(true);
 ```
 
-### 2. Update Email Page: `src/pages/Email.tsx`
+#### 2. Update the CATEGORIES header (around line 1396-1407)
 
-#### A. Add function to fetch category emails by UID
+Replace the static header with an interactive toggle:
 
 ```typescript
-const fetchCategoryEmails = useCallback(async (categoryKey: string) => {
-  setIsLoading(true);
-  try {
-    // Get UIDs for this category from database
-    const categoryEmailUids = emailCategories
-      .filter(c => c.category === categoryKey)
-      .map(c => c.email_uid);
-    
-    if (categoryEmailUids.length === 0) {
-      setEmails([]);
-      return;
-    }
-    
-    // Fetch those specific emails from IMAP by UID
-    const { data, error } = await supabase.functions.invoke("fetch-emails-imap", {
-      body: {
-        account: selectedAccount,
-        folder: 'Inbox',  // Categories are all from Inbox
-        uids: categoryEmailUids
-      }
-    });
-    
-    if (error) throw error;
-    if (data.success && data.emails) {
-      setEmails(data.emails);
-    }
-  } catch (error) {
-    console.error('Error fetching category emails:', error);
-    toast({ title: "Failed to load category emails", variant: "destructive" });
-  } finally {
-    setIsLoading(false);
-  }
-}, [emailCategories, selectedAccount, toast]);
+<div className="flex items-center justify-between pl-2 pr-3 mb-2 pt-4">
+  <button
+    onClick={() => setCategoriesExpanded(!categoriesExpanded)}
+    className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+  >
+    {categoriesExpanded ? (
+      <ChevronDown className="h-3 w-3" />
+    ) : (
+      <ChevronRight className="h-3 w-3" />
+    )}
+    CATEGORIES
+  </button>
+  <Button
+    variant="ghost"
+    size="icon"
+    className="h-5 w-5"
+    onClick={() => setIsAddingCategory(true)}
+    title="Add category"
+  >
+    <Plus className="h-3 w-3" />
+  </Button>
+</div>
 ```
 
-#### B. Update category click handler to fetch emails
+#### 3. Wrap category items in collapsible container (lines 1409-1470)
 
 ```typescript
-// When category is selected, fetch those specific emails
-useEffect(() => {
-  if (selectedCategory) {
-    fetchCategoryEmails(selectedCategory);
-  }
-}, [selectedCategory, fetchCategoryEmails]);
+{categoriesExpanded && (
+  <>
+    {/* Add category input */}
+    {isAddingCategory && (
+      // ... existing add category input
+    )}
+    
+    {customCategories.map(category => {
+      // ... existing category buttons
+    })}
+  </>
+)}
 ```
 
-#### C. Update `getCategoryEmails()` to return loaded emails directly
+#### 4. Add ChevronDown and ChevronRight to imports
 
+Add to the existing lucide-react import (line 3):
 ```typescript
-const getCategoryEmails = () => {
-  // When category is selected, emails state already contains category emails
-  if (!selectedCategory) return [];
-  return emails;  // Emails were fetched specifically for this category
-};
+import { ..., ChevronDown, ChevronRight } from "lucide-react";
 ```
 
 ---
 
 ## Summary of Changes
 
-| File | Change |
-|------|--------|
-| `supabase/functions/fetch-emails-imap/index.ts` | Add `uids` parameter to fetch specific emails by UID |
-| `src/pages/Email.tsx` | Add `fetchCategoryEmails` function that fetches emails by UID |
-| `src/pages/Email.tsx` | Update category selection to trigger UID-based fetch |
-| `src/pages/Email.tsx` | Simplify `getCategoryEmails()` since emails are pre-fetched |
+| Component | Change |
+|-----------|--------|
+| `email_categories` table | Delete all 25 records (data cleanup) |
+| `src/pages/Email.tsx` | Add `categoriesExpanded` state |
+| `src/pages/Email.tsx` | Add chevron toggle to CATEGORIES header |
+| `src/pages/Email.tsx` | Wrap category list in conditional render |
+| `src/pages/Email.tsx` | Import ChevronDown and ChevronRight icons |
 
 ---
 
 ## Expected Result
 
-- Clicking "Reviewed - N/A" (showing 18) will now display all 18 categorized emails
-- Category counts will match displayed emails
-- Works for all categories (Needs Attention, File, Lender Mktg, custom categories)
-- Old emails that were categorized months ago will still be accessible
+- All category counts will show **0** immediately after cleanup
+- The CATEGORIES section will have a clickable chevron to expand/collapse
+- Dragging emails to categories will work correctly going forward with proper account isolation
+- Fresh start with no legacy UID mismatches
 
----
-
-## Technical Notes
-
-- The IMAP `fetch()` command supports comma-separated UID ranges (e.g., "1061,1062,1063")
-- This adds one additional IMAP call when clicking a category, but only fetches the exact emails needed
-- Consider adding caching to avoid re-fetching if category is clicked multiple times
