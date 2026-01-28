@@ -1,67 +1,102 @@
 
-# Plan: Fix Missing Email Signature for Yousif
 
-## Root Cause
+# Plan: Email Modal Improvements
 
-The email signature is stored on the wrong user account. You have 3 Yousif accounts in the `users` table:
-
-| Email | Has Signature | Account ID |
-|-------|---------------|------------|
-| `yousif@mortgagebolt.com` | ❌ NULL | `b06a12ea...` |
-| `yousifminc@gmail.com` | ❌ NULL | `08e73d69...` |
-| `yousif@mortgagebolt.org` | ✅ HAS SIGNATURE | `230ccf6d...` |
-
-When you log in, the CRM matches your auth session to a `users` record via `auth_user_id`. If you're logging in with `yousif@mortgagebolt.com` or `yousifminc@gmail.com`, those accounts have NULL signatures.
+## Overview
+Three improvements to the lender email modals:
+1. Reduce spacing between "Best," and email signature in bulk emails
+2. Add email signature support to the single lender email modal
+3. Make the single lender email modal taller for composing longer emails
 
 ---
 
-## Solution: Copy Signature to Active Account(s)
+## Changes
 
-This is a **database fix** - no code changes needed. The signature HTML exists and just needs to be copied to the correct user record(s).
+### 1. Reduce Signature Spacing (BulkLenderEmailModal.tsx)
 
-### SQL to Run (in Supabase SQL Editor)
+**Current (Line 158):**
+```typescript
+personalizedBody = `${personalizedBody}<br><br>${userSignature}`;
+```
+Creates too much vertical space with double line breaks.
 
-```sql
--- Copy Yousif's signature from the .org account to the other Yousif accounts
-UPDATE users 
-SET email_signature = (
-  SELECT email_signature 
-  FROM users 
-  WHERE id = '230ccf6d-48f5-4f3c-89fd-f2907ebdba1e'
-)
-WHERE id IN (
-  'b06a12ea-00b9-4725-b368-e8a416d4028d',  -- yousif@mortgagebolt.com
-  '08e73d69-4707-4773-84a4-69ce2acd6a11'   -- yousifminc@gmail.com
-);
+**Fix:** Remove one `<br>` tag:
+```typescript
+personalizedBody = `${personalizedBody}<br>${userSignature}`;
 ```
 
 ---
 
-## Alternative: Use Single Account
+### 2. Add Email Signature to Single Lender Modal (SendLenderEmailModal.tsx)
 
-If you prefer, you could consolidate to a single account by updating the `auth_user_id` on the account that has the signature. But the simpler fix is to just copy the signature.
+**Current behavior:** Uses static text "Best regards, Yousif Mohamed"
 
----
+**Changes needed:**
+- Add state for user signature
+- Fetch signature from database (same pattern as bulk modal)
+- Update default body template to end with just "Best,"
+- Append signature when sending the email
 
-## Verification
+```typescript
+// Add state
+const [userSignature, setUserSignature] = useState<string | null>(null);
 
-After running the SQL, you can verify:
-```sql
-SELECT id, email, 
-  CASE WHEN email_signature IS NULL THEN 'NULL' 
-       ELSE 'HAS SIGNATURE' END as sig_status
-FROM users 
-WHERE first_name = 'Yousif';
+// Add useEffect to fetch signature
+useEffect(() => {
+  if (crmUser?.id) {
+    supabase.from('users')
+      .select('email_signature')
+      .eq('id', crmUser.id)
+      .single()
+      .then(({ data }) => setUserSignature(data?.email_signature || null));
+  }
+}, [crmUser?.id]);
+
+// Update body template (line 42)
+setBody(`<p>Hello ${lender.account_executive || 'Team'},</p><p><br></p><p>I wanted to reach out regarding potential loan opportunities.</p><p><br></p><p>Best,</p>`);
+
+// Update handleSend to append signature before sending
+let emailBody = body;
+if (userSignature) {
+  emailBody = `${body}<br>${userSignature}`;
+}
+// Use emailBody in the API call
 ```
 
-All Yousif accounts should show "HAS SIGNATURE".
+---
+
+### 3. Increase Single Modal Height (SendLenderEmailModal.tsx)
+
+**Current (Line 110, 177-178):**
+```typescript
+<DialogContent className="max-w-2xl">
+...
+<RichTextEditor ... className="min-h-[200px]" />
+```
+
+**Fix:** Make the modal wider and taller:
+```typescript
+<DialogContent className="max-w-3xl max-h-[85vh]">
+...
+<RichTextEditor ... className="min-h-[350px]" />
+```
 
 ---
 
-## No Code Changes Required
+## Files to Modify
 
-The `BulkLenderEmailModal.tsx` code is already correct:
-- It fetches `email_signature` from the logged-in user's record (line 62-68)
-- It appends the signature to emails when available (line 157-159)
+| File | Changes |
+|------|---------|
+| `src/components/modals/BulkLenderEmailModal.tsx` | Line 158: Change `<br><br>` to `<br>` |
+| `src/components/modals/SendLenderEmailModal.tsx` | Add signature fetch, update template, increase modal size |
 
-The issue is purely a data problem - the signature data exists but is on a different user record than the one you're logging in with.
+---
+
+## Summary
+
+| Issue | Before | After |
+|-------|--------|-------|
+| Bulk email spacing | Double `<br><br>` before signature | Single `<br>` - tighter spacing |
+| Single email signature | Static "Best regards, Yousif Mohamed" | Dynamic signature from database |
+| Single modal height | 200px editor, max-w-2xl | 350px editor, max-w-3xl |
+
