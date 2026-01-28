@@ -39,6 +39,7 @@ interface FetchEmailsRequest {
   messageUid?: number;
   action?: 'fetch' | 'move';
   targetFolder?: string;
+  uids?: number[]; // Fetch specific emails by UID array
 }
 
 interface EmailMessage {
@@ -131,7 +132,8 @@ serve(async (req) => {
       fetchContent = false, 
       messageUid, 
       action = 'fetch', 
-      targetFolder 
+      targetFolder,
+      uids
     }: FetchEmailsRequest = await req.json().catch(() => ({}));
     
     // Get account configuration
@@ -146,7 +148,7 @@ serve(async (req) => {
     }
 
     console.log(`Connecting to IMAP: ${IMAP_HOST}:${IMAP_PORT} as ${accountConfig.user}`);
-    console.log(`Action: ${action}, Folder: ${folder}, Limit: ${limit}, Offset: ${offset}, FetchContent: ${fetchContent}, MessageUid: ${messageUid}, TargetFolder: ${targetFolder}`);
+    console.log(`Action: ${action}, Folder: ${folder}, Limit: ${limit}, Offset: ${offset}, FetchContent: ${fetchContent}, MessageUid: ${messageUid}, TargetFolder: ${targetFolder}, UIDs: ${uids?.length || 0}`);
 
     const client = new ImapFlow({
       host: IMAP_HOST,
@@ -259,6 +261,97 @@ serve(async (req) => {
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+      }
+
+      // Fetch specific emails by UID array (for category views)
+      if (uids && uids.length > 0) {
+        console.log(`Fetching ${uids.length} specific emails by UID`);
+        const uidRange = uids.join(',');
+        
+        for await (const message of client.fetch(uidRange, {
+          envelope: true,
+          flags: true,
+          bodyStructure: true,
+          source: { start: 0, maxLength: 4000 },
+        }, { uid: true })) {
+          const envelope = message.envelope;
+          const flags = message.flags || new Set();
+          
+          const fromAddr = envelope?.from?.[0];
+          const envelopeFrom = { name: fromAddr?.name, address: fromAddr?.address };
+
+          const sourcePreview = message.source?.toString() || "";
+          let decodedBody = "";
+          try {
+            const parsed = await parseEmailWithPostalMime(sourcePreview);
+            decodedBody = parsed.text || parsed.html || "";
+          } catch (e) {
+            decodedBody = sourcePreview;
+          }
+          const { from: fromName, fromEmail } = extractOriginalSender(decodedBody, envelopeFrom);
+
+          const toAddr = envelope?.to?.[0];
+          const toEmail = toAddr?.address || "";
+
+          const hasAttachments = message.bodyStructure?.childNodes?.some(
+            (node: any) => node.disposition === "attachment"
+          ) || false;
+
+          const emailDate = envelope?.date ? new Date(envelope.date) : new Date();
+          const now = new Date();
+          const emailDateET = new Date(emailDate.toLocaleString("en-US", { timeZone: "America/New_York" }));
+          const nowET = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+          
+          const isToday = emailDateET.toDateString() === nowET.toDateString();
+          const yesterdayET = new Date(nowET);
+          yesterdayET.setDate(yesterdayET.getDate() - 1);
+          const isYesterday = emailDateET.toDateString() === yesterdayET.toDateString();
+          
+          let dateStr: string;
+          if (isToday) {
+            dateStr = emailDate.toLocaleTimeString("en-US", { 
+              hour: "numeric", 
+              minute: "2-digit",
+              timeZone: "America/New_York"
+            });
+          } else if (isYesterday) {
+            dateStr = "Yesterday";
+          } else {
+            dateStr = emailDate.toLocaleDateString("en-US", { 
+              month: "short", 
+              day: "numeric",
+              timeZone: "America/New_York"
+            });
+          }
+
+          const cleanedSubject = cleanSubject(envelope?.subject || "(No Subject)");
+
+          emails.push({
+            uid: message.uid,
+            from: fromName,
+            fromEmail: fromEmail,
+            to: toEmail,
+            subject: cleanedSubject,
+            date: dateStr,
+            snippet: "",
+            unread: !flags.has("\\Seen"),
+            starred: flags.has("\\Flagged"),
+            hasAttachments,
+          });
+        }
+
+        console.log(`Fetched ${emails.length} emails by UID`);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            account,
+            folder: imapFolder,
+            total: emails.length,
+            emails,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       // Fetch email list with pagination support
