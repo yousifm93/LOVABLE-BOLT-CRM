@@ -1,218 +1,106 @@
 
+# Plan: Fix Initial Email Fetch Using Wrong Account
 
-# Plan: Filter Email Inboxes Per User
+## Problem
 
-## Overview
-Restrict inbox visibility so each user only sees their own inbox plus the shared Scenarios inbox:
-- **Yousif** sees: Yousif Inbox + Scenarios Inbox
-- **Salma** sees: Salma Inbox + Scenarios Inbox
-- **Herman** sees: Herman Inbox + Scenarios Inbox
+When Salma (or Herman) loads the Email page, emails from Yousif's inbox are displayed initially because:
 
----
+1. `selectedAccount` state is initialized to `'yousif'` (hardcoded default on line 223)
+2. The `fetchEmails` effect (lines 803-808) runs immediately on mount with this default value
+3. The `currentUserConfig` is computed from `crmUser`, which loads asynchronously
+4. By the time the "set default account" effect (lines 810-815) runs, the initial fetch has already completed with the wrong account
 
-## Current State
-All four inboxes (Yousif, Scenarios, Salma, Herman) are displayed to every user regardless of who is logged in.
+## Solution
 
----
-
-## Changes Required
+Prevent the email fetch from executing until we know the correct account for the logged-in user.
 
 ### File: `src/pages/Email.tsx`
 
-#### 1. Create User-to-Account Mapping
+#### 1. Add Guard to Email Fetch Effect
 
-Add a mapping near the top of the component (after the `useAuth()` hook) that determines which accounts each user can see:
+Modify the `fetchEmails` useEffect (lines 803-808) to wait until `crmUser` is loaded before fetching. This ensures we fetch from the correct account:
 
 ```typescript
-const { user, crmUser } = useAuth();
+// BEFORE (current code):
+useEffect(() => {
+  if (!selectedCategory) {
+    fetchEmails(selectedFolder, 0, false, selectedAccount);
+  }
+}, [selectedFolder, selectedCategory, selectedAccount]);
 
-// Map CRM user IDs to their allowed email accounts
-const USER_ACCOUNT_MAP: Record<string, { primary: 'yousif' | 'salma' | 'herman'; label: string }> = {
-  '230ccf6d-48f5-4f3c-89fd-f2907ebdba1e': { primary: 'yousif', label: 'Yousif Inbox' },
-  '159376ae-30e9-4997-b61f-76ab8d7f224b': { primary: 'salma', label: 'Salma Inbox' },
-  'fa92a4c6-890d-4d69-99a8-c3adc6c904ee': { primary: 'herman', label: 'Herman Inbox' },
-};
-
-// Get current user's allowed accounts (their own + scenarios)
-const currentUserConfig = crmUser?.id ? USER_ACCOUNT_MAP[crmUser.id] : null;
-const allowedAccounts = currentUserConfig 
-  ? [currentUserConfig.primary, 'scenarios'] as const
-  : ['yousif', 'scenarios', 'salma', 'herman'] as const; // Fallback for unknown users (e.g., admins)
+// AFTER (with guard):
+useEffect(() => {
+  // Wait for crmUser to load before fetching to ensure correct account
+  if (!crmUser) return;
+  
+  if (!selectedCategory) {
+    fetchEmails(selectedFolder, 0, false, selectedAccount);
+  }
+}, [selectedFolder, selectedCategory, selectedAccount, crmUser]);
 ```
 
-#### 2. Set Default Account Based on User
+#### 2. Initialize selectedAccount Correctly
 
-Update the initial `selectedAccount` state to default to the user's own inbox:
+Change the initial state to be undefined or derive it from user config when available:
 
 ```typescript
+// BEFORE:
+const [selectedAccount, setSelectedAccount] = useState<'yousif' | 'scenarios' | 'salma' | 'herman'>('yousif');
+
+// AFTER (derive default from currentUserConfig or fallback):
 const [selectedAccount, setSelectedAccount] = useState<'yousif' | 'scenarios' | 'salma' | 'herman'>(
-  currentUserConfig?.primary || 'yousif'
+  () => {
+    // This won't work because crmUser isn't available at initial render
+    // So we still need the useEffect approach
+    return 'yousif'; // Still need a default, but the guard prevents premature fetch
+  }
 );
 ```
 
-**Note:** Since `crmUser` loads asynchronously, we also need a `useEffect` to set the correct initial account once the user data is available:
+Since `crmUser` isn't available during initial render, the primary fix is the guard in the fetch effect.
+
+#### 3. Add Guard to Unread Counts Fetch
+
+Also add a similar guard to the unread counts fetch (lines 817-842):
 
 ```typescript
 useEffect(() => {
-  if (currentUserConfig?.primary) {
-    setSelectedAccount(currentUserConfig.primary);
-  }
-}, [currentUserConfig?.primary]);
-```
-
-#### 3. Filter Unread Counts Fetch
-
-Update the `fetchUnreadCounts` useEffect to only fetch counts for allowed accounts:
-
-```typescript
-useEffect(() => {
+  // Wait for crmUser to determine allowed accounts
+  if (!crmUser) return;
+  
   const fetchUnreadCounts = async () => {
-    // Only fetch for accounts this user can access
-    const accountsToFetch = allowedAccounts;
-    for (const account of accountsToFetch) {
-      try {
-        const { data } = await supabase.functions.invoke("fetch-emails-imap", {
-          body: {
-            account,
-            folder: 'Inbox',
-            limit: 50,
-            offset: 0
-          }
-        });
-        if (data?.success && data.emails) {
-          const unreadCount = data.emails.filter((e: EmailMessage) => e.unread).length;
-          setAccountUnreadCounts(prev => ({ ...prev, [account]: unreadCount }));
-        }
-      } catch (error) {
-        console.error(`Error fetching unread count for ${account}:`, error);
-      }
+    for (const account of allowedAccounts) {
+      // ... existing fetch logic
     }
   };
   if (allowedAccounts.length > 0) {
     fetchUnreadCounts();
   }
-}, [allowedAccounts]);
-```
-
-#### 4. Conditionally Render Account Buttons in Sidebar
-
-Replace the hardcoded account buttons (lines ~1386-1494) with a dynamic rendering approach:
-
-```tsx
-{/* Accounts Section */}
-<Separator className="mt-6 mb-3" />
-<div className="flex items-center pl-2 pr-3 mb-2 pt-4">
-  <p className="text-xs font-medium text-muted-foreground">ACCOUNTS</p>
-</div>
-
-{/* User's Primary Inbox */}
-{currentUserConfig && (
-  <button
-    onClick={() => {
-      setSelectedAccount(currentUserConfig.primary);
-      setSelectedCategory(null);
-      setSelectedFolder('Inbox');
-    }}
-    className={cn(
-      "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
-      selectedAccount === currentUserConfig.primary ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
-    )}
-  >
-    <div className="flex items-center gap-2">
-      <Mail className="h-4 w-4" />
-      <span className="truncate">{currentUserConfig.label}</span>
-    </div>
-    {accountUnreadCounts[currentUserConfig.primary] > 0 && (
-      <span className={cn(
-        "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
-        selectedAccount === currentUserConfig.primary 
-          ? "bg-primary-foreground/20 text-primary-foreground" 
-          : "bg-blue-500 text-white"
-      )}>
-        {accountUnreadCounts[currentUserConfig.primary]}
-      </span>
-    )}
-  </button>
-)}
-
-{/* Scenarios Inbox - Always visible */}
-<button
-  onClick={() => {
-    setSelectedAccount('scenarios');
-    setSelectedCategory(null);
-    setSelectedFolder('Inbox');
-  }}
-  className={cn(
-    "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
-    selectedAccount === 'scenarios' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
-  )}
->
-  <div className="flex items-center gap-2">
-    <Mail className="h-4 w-4" />
-    <span className="truncate">Scenarios Inbox</span>
-  </div>
-  {accountUnreadCounts.scenarios > 0 && (
-    <span className={cn(
-      "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
-      selectedAccount === 'scenarios' 
-        ? "bg-primary-foreground/20 text-primary-foreground" 
-        : "bg-blue-500 text-white"
-    )}>
-      {accountUnreadCounts.scenarios}
-    </span>
-  )}
-</button>
-
-{/* Fallback: Show all inboxes if user not in map (admin/unknown) */}
-{!currentUserConfig && (
-  <>
-    {/* Render all 4 account buttons as before */}
-  </>
-)}
+}, [allowedAccounts, crmUser]);
 ```
 
 ---
 
-## Visual Result
+## Summary of Changes
 
-**When Salma logs in:**
-```
-ACCOUNTS
-✉ Salma Inbox      (3)
-✉ Scenarios Inbox  (1)
-```
-
-**When Herman logs in:**
-```
-ACCOUNTS
-✉ Herman Inbox     (0)
-✉ Scenarios Inbox  (1)
-```
-
-**When Yousif (or unknown admin) logs in:**
-```
-ACCOUNTS
-✉ Yousif Inbox     (5)
-✉ Scenarios Inbox  (1)
-```
+| Location | Change |
+|----------|--------|
+| Lines 803-808 | Add `if (!crmUser) return;` guard before fetching emails |
+| Lines 817-842 | Add `if (!crmUser) return;` guard before fetching unread counts |
 
 ---
 
-## Technical Summary
+## Expected Result
 
-| Change | Location | Description |
-|--------|----------|-------------|
-| Add user-to-account mapping | After `useAuth()` | Map CRM user IDs to their primary inbox |
-| Compute `allowedAccounts` | After mapping | Determine which accounts user can see |
-| Set initial account | State initialization + useEffect | Default to user's own inbox |
-| Filter unread fetch | `fetchUnreadCounts` useEffect | Only fetch counts for allowed accounts |
-| Dynamic sidebar buttons | Lines ~1386-1494 | Only render user's inbox + scenarios |
+- When Salma logs in: Email page waits for user data to load, then fetches from `salma` account
+- When Herman logs in: Email page waits for user data to load, then fetches from `herman` account
+- When Yousif logs in: Email page waits for user data to load, then fetches from `yousif` account
+- No more "yousif" emails appearing in other users' inboxes initially
 
 ---
 
-## Files Modified
+## Technical Notes
 
-| File | Changes |
-|------|---------|
-| `src/pages/Email.tsx` | Add user mapping, filter sidebar accounts, filter unread count fetching |
-
+- The `crmUser` loading is fast (typically under 500ms) so the delay will be minimal
+- The loading state (`isLoading`) will show the spinner during this brief wait
+- This approach is more reliable than trying to initialize state from async data
