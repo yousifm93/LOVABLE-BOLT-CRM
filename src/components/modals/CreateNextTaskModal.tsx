@@ -18,7 +18,7 @@ interface CreateNextTaskModalProps {
   onTaskCreated?: () => void;
 }
 
-const DEFAULT_ASSIGNEE_ID = "fa92a4c6-890d-4d69-99a8-c3adc6c904ee";
+const DEFAULT_ASSIGNEE_ID = "230ccf6d-48f5-4f3c-89fd-f2907ebdba1e"; // Yousif Mohamed
 
 // Quick task templates - same as CreateTaskModal
 const QUICK_TASK_TEMPLATES = [
@@ -138,7 +138,7 @@ export function CreateNextTaskModal({
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [selectedContingencies, setSelectedContingencies] = useState<string[]>([]);
   
-  const getDefaultAssigneeId = () => crmUser?.id || DEFAULT_ASSIGNEE_ID;
+  const getDefaultAssigneeId = () => DEFAULT_ASSIGNEE_ID; // Always default to Yousif Mohamed
   
   const [formData, setFormData] = useState({
     title: "",
@@ -373,10 +373,10 @@ export function CreateNextTaskModal({
               </Select>
             </div>
 
-            {/* Contingencies Section */}
+            {/* Lead Requirements Section */}
             <div className="space-y-2 pt-2 border-t">
-              <Label className="text-xs text-muted-foreground">Contingencies (Optional)</Label>
-              <p className="text-xs text-muted-foreground">Task cannot be completed until these conditions are met on the lead</p>
+              <Label className="text-xs text-muted-foreground">Lead Requirements (Optional)</Label>
+              <p className="text-xs text-muted-foreground">These lead conditions must be met before the task can be completed</p>
               <div className="flex flex-wrap gap-2">
                 {CONTINGENCY_OPTIONS.map((option) => (
                   <Button

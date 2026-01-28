@@ -1154,9 +1154,17 @@ export const databaseService = {
   },
 
   async createTask(task: TaskInsert) {
+    // Apply defaults for due_date and assignee_id if not provided
+    const DEFAULT_ASSIGNEE_ID = '230ccf6d-48f5-4f3c-89fd-f2907ebdba1e'; // Yousif Mohamed
+    const taskWithDefaults = {
+      ...task,
+      due_date: task.due_date || new Date().toISOString().split('T')[0],
+      assignee_id: task.assignee_id || DEFAULT_ASSIGNEE_ID,
+    };
+    
     const { data, error } = await supabase
       .from('tasks')
-      .insert(task)
+      .insert(taskWithDefaults)
       .select(`
         *,
         assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),

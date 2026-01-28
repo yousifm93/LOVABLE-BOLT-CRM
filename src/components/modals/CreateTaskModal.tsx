@@ -133,8 +133,8 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
   const { crmUser } = useAuth();
   const [mode, setMode] = useState<'single' | 'multiple'>('single');
   
-  // Get default assignee - current user or fallback to Herman
-  const getDefaultAssigneeId = () => crmUser?.id || "fa92a4c6-890d-4d69-99a8-c3adc6c904ee";
+  // Get default assignee - Yousif Mohamed
+  const getDefaultAssigneeId = () => "230ccf6d-48f5-4f3c-89fd-f2907ebdba1e"; // Yousif Mohamed
   
   const [formData, setFormData] = useState({
     title: "",
@@ -744,10 +744,10 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
             </div>
           </div>
 
-          {/* Contingencies Section */}
+          {/* Lead Requirements Section */}
           <div className="space-y-2 pt-2 border-t">
-            <Label className="text-xs text-muted-foreground">Contingencies (Optional)</Label>
-            <p className="text-xs text-muted-foreground">Task cannot be completed until these conditions are met on the lead</p>
+            <Label className="text-xs text-muted-foreground">Lead Requirements (Optional)</Label>
+            <p className="text-xs text-muted-foreground">These lead conditions must be met before the task can be completed</p>
             <div className="flex flex-wrap gap-2">
               {CONTINGENCY_OPTIONS.map((option) => (
                 <Button
