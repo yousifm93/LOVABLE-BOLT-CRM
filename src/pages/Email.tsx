@@ -801,11 +801,14 @@ export default function Email() {
     fetchEmailCategories();
   }, [fetchEmailCategories]);
   useEffect(() => {
+    // Wait for crmUser to load before fetching to ensure correct account
+    if (!crmUser) return;
+    
     if (!selectedCategory) {
       fetchEmails(selectedFolder, 0, false, selectedAccount);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFolder, selectedCategory, selectedAccount]);
+  }, [selectedFolder, selectedCategory, selectedAccount, crmUser]);
 
   // Set default account based on logged-in user
   useEffect(() => {
@@ -816,6 +819,9 @@ export default function Email() {
 
   // Fetch unread counts for allowed accounts only
   useEffect(() => {
+    // Wait for crmUser to determine allowed accounts
+    if (!crmUser) return;
+    
     const fetchUnreadCounts = async () => {
       for (const account of allowedAccounts) {
         try {
@@ -839,7 +845,7 @@ export default function Email() {
     if (allowedAccounts.length > 0) {
       fetchUnreadCounts();
     }
-  }, [allowedAccounts]);
+  }, [allowedAccounts, crmUser]);
 
   // Fetch comments for selected email
   const fetchComments = useCallback(async (email: EmailMessage) => {
