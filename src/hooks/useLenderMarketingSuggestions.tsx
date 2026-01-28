@@ -1,6 +1,47 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Json } from '@/integrations/supabase/types';
+// Field alias map: extracted key -> actual DB column
+const FIELD_ALIASES: Record<string, string> = {
+  product_dscr: 'product_fthb_dscr',
+  product_bank_statement: 'product_bs_loan',
+  product_p_l: 'product_pl_program',
+  product_1099: 'product_1099_program',
+  product_foreign_national: 'product_fn',
+};
+
+// Numeric fields that need value coercion
+const NUMERIC_FIELDS = [
+  'max_ltv', 'dscr_max_ltv', 'bs_loan_max_ltv', 'fn_max_ltv', 'heloc_max_ltv',
+  'max_loan_amount', 'min_loan_amount', 'heloc_min', 'condotel_min_sqft',
+  'min_fico', 'heloc_min_fico', 'asset_dep_months', 'epo_period',
+];
+
+// Coerce value to DB-friendly format based on field name
+function coerceValue(fieldName: string, value: string): string | number {
+  const lowerField = fieldName.toLowerCase();
+  
+  // Check if this is a numeric field
+  const isNumeric = NUMERIC_FIELDS.some(f => lowerField.includes(f) || lowerField === f);
+  
+  if (isNumeric) {
+    // Strip %, $, commas and parse as number
+    const cleaned = value.replace(/[%$,]/g, '').trim();
+    const parsed = parseFloat(cleaned);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  
+  // Return original string for non-numeric or unparseable values
+  return value;
+}
+
+// Resolve field name using alias map
+function resolveFieldName(fieldName: string): string {
+  return FIELD_ALIASES[fieldName] || fieldName;
+}
 
 export interface LenderFieldSuggestion {
   id: string;
@@ -138,18 +179,23 @@ export function useLenderMarketingSuggestions() {
 
   const approveSuggestion = useCallback(async (suggestion: LenderFieldSuggestion) => {
     try {
+      // Resolve field name using alias map
+      const resolvedFieldName = resolveFieldName(suggestion.field_name);
+      // Coerce value to proper type
+      const coercedValue = coerceValue(resolvedFieldName, suggestion.suggested_value);
+
       if (suggestion.is_new_lender && suggestion.suggested_lender_name) {
         // First check if lender already exists (case-insensitive)
         const { data: existingLender } = await supabase
           .from('lenders')
-          .select('id')
+          .select('id, custom_fields')
           .ilike('lender_name', suggestion.suggested_lender_name)
           .maybeSingle();
 
         if (existingLender) {
           // Lender exists - update the field on existing lender
-          const updateData: Record<string, string> = {
-            [suggestion.field_name]: suggestion.suggested_value,
+          const updateData: Record<string, unknown> = {
+            [resolvedFieldName]: coercedValue,
           };
 
           const { error: updateError } = await supabase
@@ -158,34 +204,75 @@ export function useLenderMarketingSuggestions() {
             .eq('id', existingLender.id);
 
           if (updateError) {
-            toast.error('Failed to update existing lender field');
-            console.error('Error updating lender:', updateError);
-            return false;
+            // Check if it's a column doesn't exist error - fallback to custom_fields
+            if (updateError.message?.includes('column') || updateError.code === '42703') {
+              const currentCustomFields = (existingLender.custom_fields as Record<string, Json>) || {};
+              const mergedFields: Json = { ...currentCustomFields, [suggestion.field_name]: suggestion.suggested_value };
+              
+              const { error: customError } = await supabase
+                .from('lenders')
+                .update({ custom_fields: mergedFields })
+                .eq('id', existingLender.id);
+              
+              if (customError) {
+                toast.error(`Failed to update: ${customError.message}`);
+                console.error('Error updating custom_fields:', customError);
+                return false;
+              }
+              toast.success(`Saved ${suggestion.field_name} to custom fields`);
+            } else {
+              toast.error(`Failed to update: ${updateError.message}`);
+              console.error('Error updating lender:', updateError);
+              return false;
+            }
+          } else {
+            toast.success(`Updated ${resolvedFieldName} on ${suggestion.suggested_lender_name}`);
           }
-
-          toast.success(`Updated ${suggestion.field_name} on ${suggestion.suggested_lender_name}`);
         } else {
           // Lender doesn't exist - create new with the field value
+          const insertData: Record<string, unknown> = {
+            lender_name: suggestion.suggested_lender_name,
+            status: 'Pending',
+            [resolvedFieldName]: coercedValue,
+          };
+
           const { error: insertError } = await supabase
             .from('lenders')
-            .insert({
-              lender_name: suggestion.suggested_lender_name,
-              status: 'Pending',
-              [suggestion.field_name]: suggestion.suggested_value,
-            });
+            .insert(insertData as any);
 
           if (insertError) {
-            toast.error('Failed to create new lender');
-            console.error('Error creating lender:', insertError);
-            return false;
+            // Check if it's a column doesn't exist error - try without the field, then add to custom_fields
+            if (insertError.message?.includes('column') || insertError.code === '42703') {
+              const customFieldsData: Json = { [suggestion.field_name]: suggestion.suggested_value };
+              const { data: newLender, error: basicInsertError } = await supabase
+                .from('lenders')
+                .insert({
+                  lender_name: suggestion.suggested_lender_name,
+                  status: 'Pending',
+                  custom_fields: customFieldsData,
+                })
+                .select('id')
+                .single();
+              
+              if (basicInsertError) {
+                toast.error(`Failed to create lender: ${basicInsertError.message}`);
+                console.error('Error creating lender:', basicInsertError);
+                return false;
+              }
+              toast.success(`Created ${suggestion.suggested_lender_name} with ${suggestion.field_name} in custom fields`);
+            } else {
+              toast.error(`Failed to create lender: ${insertError.message}`);
+              console.error('Error creating lender:', insertError);
+              return false;
+            }
+          } else {
+            toast.success(`Created new lender: ${suggestion.suggested_lender_name}`);
           }
-
-          toast.success(`Created new lender: ${suggestion.suggested_lender_name}`);
         }
       } else if (suggestion.lender_id) {
         // Update existing lender field
-        const updateData: Record<string, string> = {
-          [suggestion.field_name]: suggestion.suggested_value,
+        const updateData: Record<string, unknown> = {
+          [resolvedFieldName]: coercedValue,
         };
 
         const { error: updateError } = await supabase
@@ -194,12 +281,36 @@ export function useLenderMarketingSuggestions() {
           .eq('id', suggestion.lender_id);
 
         if (updateError) {
-          toast.error('Failed to update lender field');
-          console.error('Error updating lender:', updateError);
-          return false;
+          // Check if it's a column doesn't exist error - fallback to custom_fields
+          if (updateError.message?.includes('column') || updateError.code === '42703') {
+            const { data: lenderData } = await supabase
+              .from('lenders')
+              .select('custom_fields')
+              .eq('id', suggestion.lender_id)
+              .single();
+            
+            const currentCustomFields = (lenderData?.custom_fields as Record<string, Json>) || {};
+            const mergedFields: Json = { ...currentCustomFields, [suggestion.field_name]: suggestion.suggested_value };
+            
+            const { error: customError } = await supabase
+              .from('lenders')
+              .update({ custom_fields: mergedFields })
+              .eq('id', suggestion.lender_id);
+            
+            if (customError) {
+              toast.error(`Failed to update: ${customError.message}`);
+              console.error('Error updating custom_fields:', customError);
+              return false;
+            }
+            toast.success(`Saved ${suggestion.field_name} to custom fields`);
+          } else {
+            toast.error(`Failed to update: ${updateError.message}`);
+            console.error('Error updating lender:', updateError);
+            return false;
+          }
+        } else {
+          toast.success(`Updated ${resolvedFieldName} to ${suggestion.suggested_value}`);
         }
-
-        toast.success(`Updated ${suggestion.field_name} to ${suggestion.suggested_value}`);
       }
 
       // Mark suggestion as approved
