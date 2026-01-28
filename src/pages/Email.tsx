@@ -205,6 +205,7 @@ export default function Email() {
   } = useAuth();
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<'yousif' | 'scenarios'>('yousif');
   const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
   const [emailContent, setEmailContent] = useState<{
@@ -564,7 +565,7 @@ export default function Email() {
       console.error('Error fetching email tags:', error);
     }
   }, []);
-  const fetchEmails = useCallback(async (folder: string, offset: number = 0, append: boolean = false) => {
+  const fetchEmails = useCallback(async (folder: string, offset: number = 0, append: boolean = false, account: 'yousif' | 'scenarios' = 'yousif') => {
     if (append) {
       setIsLoadingMore(true);
     } else {
@@ -578,6 +579,7 @@ export default function Email() {
         error
       } = await supabase.functions.invoke("fetch-emails-imap", {
         body: {
+          account,
           folder,
           limit: 50,
           offset
@@ -631,7 +633,7 @@ export default function Email() {
   // Load more emails
   const handleLoadMore = () => {
     if (!isLoadingMore && hasMoreEmails) {
-      fetchEmails(selectedFolder, emailOffset, true);
+      fetchEmails(selectedFolder, emailOffset, true, selectedAccount);
     }
   };
 
@@ -720,6 +722,7 @@ export default function Email() {
         error
       } = await supabase.functions.invoke("fetch-emails-imap", {
         body: {
+          account: selectedAccount,
           folder,
           fetchContent: true,
           messageUid: email.uid
@@ -767,10 +770,10 @@ export default function Email() {
   }, [fetchEmailCategories]);
   useEffect(() => {
     if (!selectedCategory) {
-      fetchEmails(selectedFolder);
+      fetchEmails(selectedFolder, 0, false, selectedAccount);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFolder, selectedCategory]);
+  }, [selectedFolder, selectedCategory, selectedAccount]);
 
   // Fetch comments for selected email
   const fetchComments = useCallback(async (email: EmailMessage) => {
@@ -1337,6 +1340,44 @@ export default function Email() {
                     </DroppableFolder>
                   );
                 })}
+
+                {/* Accounts Section */}
+                <Separator className="mt-6 mb-3" />
+                <div className="flex items-center pl-2 pr-3 mb-2 pt-4">
+                  <p className="text-xs font-medium text-muted-foreground">ACCOUNTS</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedAccount('yousif');
+                    setSelectedCategory(null);
+                    setSelectedFolder('Inbox');
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+                    selectedAccount === 'yousif' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <span className="truncate">Yousif Inbox</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedAccount('scenarios');
+                    setSelectedCategory(null);
+                    setSelectedFolder('Inbox');
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors",
+                    selectedAccount === 'scenarios' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <span className="truncate">Scenarios Inbox</span>
+                  </div>
+                </button>
               </div>
             </div>
           </div>
