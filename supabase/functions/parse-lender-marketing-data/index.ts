@@ -152,6 +152,12 @@ const LENDER_DOMAIN_MAPPINGS: Record<string, string> = {
   'nafinc.com': 'New American Funding',
   'greenwichmortgage.com': 'Greenwich Mortgage',
   'stronghillcapital.com': 'Stronghill Capital',
+  // NEW: Missing lender domains (Helm Bank, Preferred Rate, Valere, Dart Bank)
+  'helmbankusa.com': 'Helm Bank USA',
+  'notification.helmbankusa.com': 'Helm Bank USA',
+  'preferredrate.com': 'Preferred Rate Wholesale',
+  'valerefinancial.com': 'Valere Financial',
+  'dartbank.com': 'Dart Bank',
 };
 
 // =============================================================================
@@ -923,16 +929,21 @@ serve(async (req) => {
           current_value: s.current_value,
           suggested_value: s.suggested_value,
           confidence: s.confidence,
-          reason: `${s.reason} | Source: ${subject || 'Unknown subject'}`,
+          // Include custom field info in reason for tracking (metadata column doesn't exist)
+          reason: s.is_custom_field 
+            ? `${s.reason} [Custom: ${s.display_name}] | Source: ${subject || 'Unknown subject'}`
+            : `${s.reason} | Source: ${subject || 'Unknown subject'}`,
           status: 'pending',
-          // Include metadata for custom fields
-          ...(s.is_custom_field ? { 
-            metadata: JSON.stringify({ 
-              is_custom_field: true, 
-              display_name: s.display_name 
-            }) 
-          } : {}),
         }));
+
+        // DEBUG: Log suggestion records before insertion
+        console.log('[parse-lender-marketing-data] Suggestion records to insert:', 
+          JSON.stringify(suggestionRecords.map(s => ({ 
+            field: s.field_name, 
+            value: s.suggested_value,
+            is_new: s.is_new_lender,
+            lender: s.suggested_lender_name 
+          }))));
 
         const { error: insertError } = await supabase
           .from('lender_field_suggestions')
