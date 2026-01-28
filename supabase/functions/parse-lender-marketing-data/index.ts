@@ -126,6 +126,32 @@ const LENDER_DOMAIN_MAPPINGS: Record<string, string> = {
   'prmg.net': 'PRMG',
   'prmglending.com': 'PRMG',
   'primereliance.com': 'Prime Reliance',
+  // Added domains for better lender detection
+  'forwardlendingmtg.com': 'Forward Lending',
+  'forwardlending.com': 'Forward Lending',
+  'admortgage.com': 'A&D Mortgage',
+  'a-dmortgage.com': 'A&D Mortgage',
+  'kindlending.com': 'Kind Lending',
+  'velocitymortgage.com': 'Velocity Mortgage',
+  'cakemortgage.com': 'CAKE Mortgage',
+  'caketpo.com': 'CAKE TPO',
+  'openmortgage.com': 'Open Mortgage',
+  'foundationmortgage.com': 'Foundation Mortgage',
+  'unionhomemortgage.com': 'Union Home Mortgage',
+  'classval.com': 'Class Valuation',
+  'rfrst.com': 'Rainforest',
+  'rfrst.co': 'Rainforest',
+  'epmmortgage.com': 'EPM',
+  'epm.net': 'EPM',
+  'nqmfunding.com': 'NQM Funding',
+  'sproutmortgage.com': 'Sprout Mortgage',
+  'verusami.com': 'Verus Mortgage',
+  'caliberhomeloans.com': 'Caliber Home Loans',
+  'plazahomemortgage.com': 'Plaza Home Mortgage',
+  'mtgcapital.com': 'New American Funding',
+  'nafinc.com': 'New American Funding',
+  'greenwichmortgage.com': 'Greenwich Mortgage',
+  'stronghillcapital.com': 'Stronghill Capital',
 };
 
 // =============================================================================
@@ -502,6 +528,20 @@ serve(async (req) => {
 
     console.log('[parse-lender-marketing-data] Final lender_name:', extractedData.lender_name);
 
+    // CRITICAL: Do NOT create suggestions for unknown lenders
+    if (!extractedData.lender_name || 
+        extractedData.lender_name === 'Unknown Lender' || 
+        extractedData.lender_name.toLowerCase().includes('unknown')) {
+      console.log('[parse-lender-marketing-data] Skipping email - could not identify lender');
+      return new Response(JSON.stringify({
+        success: false,
+        reason: 'Could not identify lender from email',
+        data: extractedData,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Update the email_logs record
     if (emailLogId) {
       const { error: updateError } = await supabase
@@ -596,6 +636,7 @@ serve(async (req) => {
         console.log('[parse-lender-marketing-data] Found matching lender:', matchedLender.lender_name);
 
         // Generate suggestions for fields that differ
+        // CORRECTED: Map AI extraction keys to ACTUAL database column names
         const fieldMappings: { extracted: keyof LenderMarketingData; db: string; display: string }[] = [
           { extracted: 'max_loan_amount', db: 'max_loan_amount', display: 'Max Loan Amount' },
           { extracted: 'min_loan_amount', db: 'min_loan_amount', display: 'Min Loan Amount' },
@@ -603,12 +644,13 @@ serve(async (req) => {
           { extracted: 'max_ltv', db: 'max_ltv', display: 'Max LTV' },
           { extracted: 'dscr_ltv', db: 'dscr_max_ltv', display: 'DSCR Max LTV' },
           { extracted: 'bank_statement_ltv', db: 'bs_loan_max_ltv', display: 'Bank Statement Max LTV' },
-          { extracted: 'product_dscr', db: 'product_dscr', display: 'DSCR Product' },
-          { extracted: 'product_bank_statement', db: 'product_bank_statement', display: 'Bank Statement Product' },
-          { extracted: 'product_p_l', db: 'product_p_l', display: 'P&L Product' },
-          { extracted: 'product_1099', db: 'product_1099', display: '1099 Product' },
+          // CORRECTED column names to match actual lenders table:
+          { extracted: 'product_dscr', db: 'product_fthb_dscr', display: 'DSCR Product' },
+          { extracted: 'product_bank_statement', db: 'product_bs_loan', display: 'Bank Statement Product' },
+          { extracted: 'product_p_l', db: 'product_pl_program', display: 'P&L Product' },
+          { extracted: 'product_1099', db: 'product_1099_program', display: '1099 Product' },
           { extracted: 'product_asset_depletion', db: 'product_asset_depletion', display: 'Asset Depletion Product' },
-          { extracted: 'product_foreign_national', db: 'product_foreign_national', display: 'Foreign National Product' },
+          { extracted: 'product_foreign_national', db: 'product_fn', display: 'Foreign National Product' },
           { extracted: 'product_itin', db: 'product_itin', display: 'ITIN Product' },
           { extracted: 'product_jumbo', db: 'product_jumbo', display: 'Jumbo Product' },
           { extracted: 'product_bridge', db: 'product_bridge', display: 'Bridge Product' },
@@ -616,10 +658,11 @@ serve(async (req) => {
           { extracted: 'product_construction', db: 'product_construction', display: 'Construction Product' },
           { extracted: 'product_commercial', db: 'product_commercial', display: 'Commercial Product' },
           { extracted: 'product_interest_only', db: 'product_interest_only', display: 'Interest Only Product' },
-          { extracted: 'product_non_warrantable_condo', db: 'product_non_warrantable_condo', display: 'Non-Warrantable Condo Product' },
-          { extracted: 'product_conventional', db: 'product_conventional', display: 'Conventional Product' },
+          { extracted: 'product_non_warrantable_condo', db: 'product_nwc', display: 'Non-Warrantable Condo Product' },
+          { extracted: 'product_conventional', db: 'product_conv', display: 'Conventional Product' },
           { extracted: 'product_fha', db: 'product_fha', display: 'FHA Product' },
           { extracted: 'product_va', db: 'product_va', display: 'VA Product' },
+          { extracted: 'product_heloc', db: 'product_heloc', display: 'HELOC Product' },
         ];
 
         for (const mapping of fieldMappings) {
@@ -784,11 +827,12 @@ serve(async (req) => {
           source_phrases: extractedData.notes || null,
         };
         
+        // FIXED: Propagate lender name to ALL suggestions for new lenders (not just new_lender entry)
         const suggestionRecords = suggestions.map(s => ({
           email_log_id: emailLogId,
           lender_id: matchedLender?.id || null,
-          is_new_lender: s.field_name === 'new_lender',
-          suggested_lender_name: s.field_name === 'new_lender' ? extractedData.lender_name : null,
+          is_new_lender: !matchedLender,  // Mark ALL suggestions as new lender if no match
+          suggested_lender_name: !matchedLender ? extractedData.lender_name : null,  // Always include name for new lenders
           field_name: s.field_name,
           current_value: s.current_value,
           suggested_value: s.suggested_value,
