@@ -155,7 +155,7 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
         
         // Append email signature if available
         if (userSignature) {
-          personalizedBody = `${personalizedBody}<br><br>${userSignature}`;
+          personalizedBody = `${personalizedBody}<br>${userSignature}`;
         }
 
         try {
