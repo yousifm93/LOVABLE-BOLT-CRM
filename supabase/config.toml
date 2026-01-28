@@ -230,3 +230,6 @@ verify_jwt = false
 
 [functions.check-overdue-conditions]
 verify_jwt = false
+
+[functions.reprocess-lender-suggestions]
+verify_jwt = false
