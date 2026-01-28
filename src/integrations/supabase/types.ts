@@ -5335,6 +5335,7 @@ export type Database = {
           automation_id: string | null
           borrower_id: string | null
           completion_requirement_type: string | null
+          contingency_requirements: Json | null
           created_at: string
           created_by: string | null
           creation_log: Json | null
@@ -5358,6 +5359,7 @@ export type Database = {
           automation_id?: string | null
           borrower_id?: string | null
           completion_requirement_type?: string | null
+          contingency_requirements?: Json | null
           created_at?: string
           created_by?: string | null
           creation_log?: Json | null
@@ -5381,6 +5383,7 @@ export type Database = {
           automation_id?: string | null
           borrower_id?: string | null
           completion_requirement_type?: string | null
+          contingency_requirements?: Json | null
           created_at?: string
           created_by?: string | null
           creation_log?: Json | null

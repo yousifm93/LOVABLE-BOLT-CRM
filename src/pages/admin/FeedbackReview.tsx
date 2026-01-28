@@ -273,9 +273,20 @@ export default function FeedbackReview() {
     }
   };
 
-  const getUnreadCount = (userId: string) => {
+  // Count Open Items (pending + needs_help status) instead of unread feedback
+  const getOpenItemsCount = (userId: string) => {
     const userFeedback = getUserFeedback(userId);
-    return userFeedback.filter(f => !f.is_read_by_admin).length;
+    let count = 0;
+    userFeedback.forEach(fb => {
+      fb.feedback_items.forEach((item, index) => {
+        const status = getItemStatus(fb.id, index);
+        // Only count pending and needs_help as "open"
+        if (status === 'pending' || status === 'needs_help') {
+          count++;
+        }
+      });
+    });
+    return count;
   };
 
   const sendFeedbackUpdate = async (member: TeamMember) => {
@@ -486,16 +497,16 @@ export default function FeedbackReview() {
       <h1 className="text-3xl font-bold mb-6">Team Feedback Review</h1>
       <Tabs value={selectedUser || ''} onValueChange={setSelectedUser}>
         <TabsList className="mb-6 flex-wrap h-auto gap-1">
-          {teamMembers.map((member) => {
-            const unreadCount = getUnreadCount(member.id);
+        {teamMembers.map((member) => {
+            const openCount = getOpenItemsCount(member.id);
             return (
               <div key={member.id} className="flex items-center">
                 <TabsTrigger value={member.id} className="flex items-center gap-2">
                   <User className="h-4 w-4" />
                   {member.first_name} {member.last_name}
-                  {unreadCount > 0 && (
+                  {openCount > 0 && (
                     <Badge className="ml-1 bg-red-500 text-white h-5 min-w-[20px] text-xs">
-                      {unreadCount}
+                      {openCount}
                     </Badge>
                   )}
                 </TabsTrigger>
