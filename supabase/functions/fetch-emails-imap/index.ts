@@ -157,9 +157,30 @@ serve(async (req) => {
         pass: password,
       },
       logger: false,
+      greetingTimeout: 15000, // 15 second timeout for server greeting
+      socketTimeout: 30000, // 30 second socket timeout
     });
 
-    await client.connect();
+    // Connect with retry logic for transient failures
+    let connected = false;
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        await client.connect();
+        connected = true;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        console.log(`Connection attempt ${attempt} failed: ${err.message}`);
+        if (attempt < 2) {
+          await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay before retry
+        }
+      }
+    }
+    
+    if (!connected) {
+      throw lastError || new Error("Failed to connect to IMAP server after retries");
+    }
     console.log("Connected to IMAP server");
 
     // Map folder names to IMAP folder paths
