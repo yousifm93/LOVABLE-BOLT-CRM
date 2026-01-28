@@ -804,11 +804,19 @@ export default function Email() {
     // Wait for crmUser to load before fetching to ensure correct account
     if (!crmUser) return;
     
+    // Don't fetch until selectedAccount matches user's expected primary account
+    // This prevents the race condition where selectedAccount is still 'yousif' 
+    // before the account-setting effect has run
+    const expectedPrimary = currentUserConfig?.primary;
+    if (expectedPrimary && selectedAccount !== expectedPrimary && selectedAccount !== 'scenarios') {
+      return; // Wait for account-setting effect to update selectedAccount
+    }
+    
     if (!selectedCategory) {
       fetchEmails(selectedFolder, 0, false, selectedAccount);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFolder, selectedCategory, selectedAccount, crmUser]);
+  }, [selectedFolder, selectedCategory, selectedAccount, crmUser, currentUserConfig?.primary]);
 
   // Set default account based on logged-in user
   useEffect(() => {
