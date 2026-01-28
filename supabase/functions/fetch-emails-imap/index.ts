@@ -9,12 +9,24 @@ const corsHeaders = {
 
 const IMAP_HOST = "imap.ionos.com";
 const IMAP_PORT = 993;
-const EMAIL_USER = "yousif@mortgagebolt.org";
+
+// Account configurations
+const ACCOUNTS: Record<string, { user: string; passwordEnvVar: string }> = {
+  yousif: {
+    user: "yousif@mortgagebolt.org",
+    passwordEnvVar: "IONOS_EMAIL_PASSWORD",
+  },
+  scenarios: {
+    user: "scenarios@mortgagebolt.org",
+    passwordEnvVar: "SCENARIOS_EMAIL_PASSWORD",
+  },
+};
 
 interface FetchEmailsRequest {
+  account?: 'yousif' | 'scenarios';
   folder?: string;
   limit?: number;
-  offset?: number;  // NEW: offset for pagination
+  offset?: number;
   fetchContent?: boolean;
   messageUid?: number;
   action?: 'fetch' | 'move';
@@ -103,14 +115,29 @@ serve(async (req) => {
   }
 
   try {
-    const password = Deno.env.get("IONOS_EMAIL_PASSWORD");
-    if (!password) {
-      throw new Error("IONOS_EMAIL_PASSWORD not configured");
+    const { 
+      account = 'yousif', 
+      folder = "INBOX", 
+      limit = 50, 
+      offset = 0, 
+      fetchContent = false, 
+      messageUid, 
+      action = 'fetch', 
+      targetFolder 
+    }: FetchEmailsRequest = await req.json().catch(() => ({}));
+    
+    // Get account configuration
+    const accountConfig = ACCOUNTS[account];
+    if (!accountConfig) {
+      throw new Error(`Unknown account: ${account}. Valid accounts: ${Object.keys(ACCOUNTS).join(', ')}`);
     }
 
-    const { folder = "INBOX", limit = 50, offset = 0, fetchContent = false, messageUid, action = 'fetch', targetFolder }: FetchEmailsRequest = await req.json().catch(() => ({}));
-    
-    console.log(`Connecting to IMAP: ${IMAP_HOST}:${IMAP_PORT} as ${EMAIL_USER}`);
+    const password = Deno.env.get(accountConfig.passwordEnvVar);
+    if (!password) {
+      throw new Error(`${accountConfig.passwordEnvVar} not configured for account ${account}`);
+    }
+
+    console.log(`Connecting to IMAP: ${IMAP_HOST}:${IMAP_PORT} as ${accountConfig.user}`);
     console.log(`Action: ${action}, Folder: ${folder}, Limit: ${limit}, Offset: ${offset}, FetchContent: ${fetchContent}, MessageUid: ${messageUid}, TargetFolder: ${targetFolder}`);
 
     const client = new ImapFlow({
@@ -118,7 +145,7 @@ serve(async (req) => {
       port: IMAP_PORT,
       secure: true,
       auth: {
-        user: EMAIL_USER,
+        user: accountConfig.user,
         pass: password,
       },
       logger: false,
@@ -318,6 +345,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
+          account,
           folder: imapFolder,
           total: totalMessages,
           emails: filteredEmails,
