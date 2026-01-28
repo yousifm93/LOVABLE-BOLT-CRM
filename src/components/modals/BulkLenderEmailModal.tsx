@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Mail, Loader2, Send, Users, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Mail, Loader2, Send, Users, Info, Paperclip, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,12 +20,19 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toLenderTitleCase } from "@/lib/utils";
 
 interface Lender {
   id: string;
   lender_name: string;
   account_executive?: string;
   account_executive_email?: string;
+}
+
+interface Attachment {
+  file: File;
+  name: string;
+  type: string;
 }
 
 interface BulkLenderEmailModalProps {
@@ -46,7 +53,20 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
   const [isSending, setIsSending] = useState(false);
   const [cc, setCc] = useState("");
   const [subject, setSubject] = useState("Loan Scenario Inquiry - {{LenderName}}");
-  const [body, setBody] = useState(`<p>Hello {{AccountExecutiveFirstName}},</p><p><br></p><p>I wanted to reach out regarding a loan scenario for {{LenderName}}.</p><p><br></p><p>Best regards,<br>${crmUser?.first_name || ''} ${crmUser?.last_name || ''}</p>`);
+  const [body, setBody] = useState(`<p>Hello {{AccountExecutiveFirstName}},</p><p>I wanted to reach out regarding a loan scenario for {{LenderName}}.</p><p>Best,</p>`);
+  const [userSignature, setUserSignature] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  // Fetch the logged-in user's email signature
+  useEffect(() => {
+    if (crmUser?.id) {
+      supabase.from('users')
+        .select('email_signature')
+        .eq('id', crmUser.id)
+        .single()
+        .then(({ data }) => setUserSignature(data?.email_signature || null));
+    }
+  }, [crmUser?.id]);
 
   const lendersWithEmail = lenders.filter(l => l.account_executive_email);
   const lendersWithoutEmail = lenders.filter(l => !l.account_executive_email);
@@ -57,10 +77,39 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
 
   const replaceMergeTags = (text: string, lender: Lender): string => {
     const firstName = lender.account_executive?.split(' ')[0] || 'Team';
+    const formattedLenderName = toLenderTitleCase(lender.lender_name);
     return text
       .replace(/\{\{AccountExecutiveFirstName\}\}/g, firstName)
       .replace(/\{\{AccountExecutiveName\}\}/g, lender.account_executive || 'Team')
-      .replace(/\{\{LenderName\}\}/g, lender.lender_name);
+      .replace(/\{\{LenderName\}\}/g, formattedLenderName);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const newAttachments = files.map(file => ({
+      file,
+      name: file.name,
+      type: file.type
+    }));
+    setAttachments(prev => [...prev, ...newAttachments]);
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+    });
   };
 
   const handleSend = async () => {
@@ -86,14 +135,28 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
 
     try {
       const senderName = crmUser ? `${crmUser.first_name} ${crmUser.last_name}` : "Mortgage Bolt";
-      const replyToEmail = crmUser?.email || user?.email || "yousif@mortgagebolt.org";
+      const replyToEmail = "scenarios@mortgagebolt.org"; // Always reply to scenarios
+
+      // Convert attachments to base64
+      const attachmentPayloads = await Promise.all(
+        attachments.map(async (att) => ({
+          content: await convertToBase64(att.file),
+          filename: att.name,
+          type: att.type
+        }))
+      );
 
       let successCount = 0;
       let errorCount = 0;
 
       for (const lender of lendersWithEmail) {
         const personalizedSubject = replaceMergeTags(subject, lender);
-        const personalizedBody = replaceMergeTags(body, lender);
+        let personalizedBody = replaceMergeTags(body, lender);
+        
+        // Append email signature if available
+        if (userSignature) {
+          personalizedBody = `${personalizedBody}<br><br>${userSignature}`;
+        }
 
         try {
           const { error } = await supabase.functions.invoke('send-direct-email', {
@@ -104,7 +167,8 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
               html: personalizedBody,
               from_email: "scenarios@mortgagebolt.org",
               from_name: senderName,
-              reply_to: replyToEmail
+              reply_to: replyToEmail,
+              attachments: attachmentPayloads.length > 0 ? attachmentPayloads : undefined
             }
           });
 
@@ -146,7 +210,7 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
     }
   };
 
-  const replyToEmail = crmUser?.email || user?.email || "yousif@mortgagebolt.org";
+  const replyToEmail = "scenarios@mortgagebolt.org"; // Always reply to scenarios
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -263,6 +327,42 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
               placeholder="Type your message..."
               className="min-h-[200px]"
             />
+          </div>
+
+          {/* Attachments Section */}
+          <div className="space-y-2">
+            <Label>Attachments</Label>
+            <div className="flex flex-wrap gap-2 items-center">
+              {attachments.map((att, index) => (
+                <Badge key={index} variant="secondary" className="flex items-center gap-1 py-1">
+                  <Paperclip className="h-3 w-3" />
+                  <span className="max-w-[150px] truncate">{att.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 ml-1 hover:bg-destructive/20"
+                    onClick={() => removeAttachment(index)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              ))}
+              <label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt,.csv"
+                />
+                <Button variant="outline" size="sm" asChild>
+                  <span className="cursor-pointer">
+                    <Paperclip className="h-4 w-4 mr-1" />
+                    Add Files
+                  </span>
+                </Button>
+              </label>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

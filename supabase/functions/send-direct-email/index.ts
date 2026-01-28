@@ -13,6 +13,11 @@ interface SendDirectEmailRequest {
   from_email: string;
   from_name: string;
   reply_to?: string;
+  attachments?: Array<{
+    content: string; // base64
+    filename: string;
+    type: string;
+  }>;
 }
 
 // Sanitize TipTap HTML to convert task lists to email-friendly format
@@ -62,7 +67,7 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, cc, subject, html, from_email, from_name, reply_to }: SendDirectEmailRequest = await req.json();
+    const { to, cc, subject, html, from_email, from_name, reply_to, attachments }: SendDirectEmailRequest = await req.json();
 
     console.log(`Sending email to: ${to}, from: ${from_email}, subject: ${subject}`);
 
@@ -100,6 +105,16 @@ serve(async (req: Request): Promise<Response> => {
 
     if (reply_to) {
       emailPayload.reply_to = { email: reply_to };
+    }
+
+    // Add attachments if provided
+    if (attachments && attachments.length > 0) {
+      emailPayload.attachments = attachments.map((att: { content: string; filename: string; type: string }) => ({
+        content: att.content,
+        filename: att.filename,
+        type: att.type,
+        disposition: 'attachment'
+      }));
     }
 
     const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
