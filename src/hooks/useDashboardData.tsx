@@ -225,7 +225,7 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
         .is('deleted_at', null)
         .not('app_complete_at', 'is', null)
@@ -245,7 +245,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
         .is('deleted_at', null)
         .not('app_complete_at', 'is', null)
@@ -265,7 +265,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
         .is('deleted_at', null)
         .not('app_complete_at', 'is', null)
@@ -285,7 +285,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
         .is('deleted_at', null)
         .not('app_complete_at', 'is', null)
@@ -305,7 +305,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
         .is('deleted_at', null)
         .not('app_complete_at', 'is', null)
@@ -325,7 +325,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
         .is('deleted_at', null)
         .not('app_complete_at', 'is', null)

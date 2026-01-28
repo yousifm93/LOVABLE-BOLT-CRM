@@ -89,12 +89,19 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
         .from('documents')
         .createSignedUrl(storagePath, 300); // 5 minute expiry
       
-      if (signedUrlError) throw signedUrlError;
+      if (signedUrlError) {
+        console.error('[AppraisalTab] Failed to create signed URL:', signedUrlError);
+        throw signedUrlError;
+      }
+      
+      console.log('[AppraisalTab] Calling parse-appraisal with URL length:', signedUrlData.signedUrl.length);
       
       // Call edge function with signed URL
       const { data: functionData, error: functionError } = await supabase.functions.invoke('parse-appraisal', {
         body: { file_url: signedUrlData.signedUrl }
       });
+      
+      console.log('[AppraisalTab] parse-appraisal response:', { functionData, functionError });
       
       if (functionError) throw functionError;
       
@@ -136,7 +143,13 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
           </Label>
           <InlineEditSelect
             value={data.appraisal_status}
-            onValueChange={(value) => onUpdate('appraisal_status', value)}
+            onValueChange={(value) => {
+              onUpdate('appraisal_status', value);
+              // Auto-set ordered date when status changes to Ordered
+              if (value === 'Ordered' && !data.appraisal_ordered_date) {
+                onUpdate('appraisal_ordered_date', new Date().toISOString().split('T')[0]);
+              }
+            }}
             options={appraisalStatusOptions}
             placeholder="Select status"
             showAsStatusBadge={false}
