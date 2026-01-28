@@ -139,21 +139,49 @@ export function useLenderMarketingSuggestions() {
   const approveSuggestion = useCallback(async (suggestion: LenderFieldSuggestion) => {
     try {
       if (suggestion.is_new_lender && suggestion.suggested_lender_name) {
-        // Create new lender with status "Pending" (goes to Not Approved section)
-        const { error: insertError } = await supabase
+        // First check if lender already exists (case-insensitive)
+        const { data: existingLender } = await supabase
           .from('lenders')
-          .insert({
-            lender_name: suggestion.suggested_lender_name,
-            status: 'Pending',
-          });
+          .select('id')
+          .ilike('lender_name', suggestion.suggested_lender_name)
+          .maybeSingle();
 
-        if (insertError) {
-          toast.error('Failed to create new lender');
-          console.error('Error creating lender:', insertError);
-          return false;
+        if (existingLender) {
+          // Lender exists - update the field on existing lender
+          const updateData: Record<string, string> = {
+            [suggestion.field_name]: suggestion.suggested_value,
+          };
+
+          const { error: updateError } = await supabase
+            .from('lenders')
+            .update(updateData)
+            .eq('id', existingLender.id);
+
+          if (updateError) {
+            toast.error('Failed to update existing lender field');
+            console.error('Error updating lender:', updateError);
+            return false;
+          }
+
+          toast.success(`Updated ${suggestion.field_name} on ${suggestion.suggested_lender_name}`);
+        } else {
+          // Lender doesn't exist - create new with the field value
+          const { error: insertError } = await supabase
+            .from('lenders')
+            .insert({
+              lender_name: suggestion.suggested_lender_name,
+              status: 'Pending',
+              [suggestion.field_name]: suggestion.suggested_value,
+            });
+
+          if (insertError) {
+            toast.error('Failed to create new lender');
+            console.error('Error creating lender:', insertError);
+            return false;
+          }
+
+          toast.success(`Created new lender: ${suggestion.suggested_lender_name}`);
         }
-
-        toast.success(`Created new lender: ${suggestion.suggested_lender_name}`);
       } else if (suggestion.lender_id) {
         // Update existing lender field
         const updateData: Record<string, string> = {
