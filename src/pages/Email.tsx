@@ -460,6 +460,41 @@ export default function Email() {
     }
   }, []);
 
+  // Fetch specific emails by UID for category views
+  const fetchCategoryEmails = useCallback(async (categoryKey: string, account: string) => {
+    // Get UIDs for this category from current emailCategories state
+    const categoryEmailUids = emailCategories
+      .filter(c => c.category === categoryKey)
+      .map(c => c.email_uid);
+    
+    if (categoryEmailUids.length === 0) {
+      setEmails([]);
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-emails-imap", {
+        body: {
+          account,
+          folder: 'Inbox',
+          uids: categoryEmailUids
+        }
+      });
+      
+      if (error) throw error;
+      if (data?.success && data.emails) {
+        setEmails(data.emails);
+      }
+    } catch (error: any) {
+      console.error('Error fetching category emails:', error);
+      toast({ title: "Failed to load category emails", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [emailCategories, toast]);
+
   // Fetch email_logs to match with IMAP emails for tagging
   const fetchEmailTags = useCallback(async (imapEmails: EmailMessage[]) => {
     try {
@@ -814,7 +849,10 @@ export default function Email() {
       return; // Wait for account-setting effect to update selectedAccount
     }
     
-    if (!selectedCategory) {
+    if (selectedCategory) {
+      // Fetch specific emails by UID for the selected category
+      fetchCategoryEmails(selectedCategory, selectedAccount);
+    } else {
       fetchEmails(selectedFolder, 0, false, selectedAccount);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1273,11 +1311,12 @@ export default function Email() {
     return data;
   };
 
-  // Get emails for selected category
+  // Get emails for selected category - emails are pre-fetched via fetchCategoryEmails
   const getCategoryEmails = () => {
     if (!selectedCategory) return [];
-    const categoryEmailUids = emailCategories.filter(c => c.category === selectedCategory).map(c => c.email_uid);
-    return emails.filter(e => categoryEmailUids.includes(e.uid));
+    // When a category is selected, the emails state already contains
+    // the specific emails fetched by UID via fetchCategoryEmails
+    return emails;
   };
 
   // Create sets for quick lookup
