@@ -439,13 +439,13 @@ export default function Email() {
     herman: 0
   });
 
-  // Fetch email categories from database
-  const fetchEmailCategories = useCallback(async () => {
+  // Fetch email categories from database - filtered by account
+  const fetchEmailCategories = useCallback(async (account: string) => {
     try {
       const {
         data,
         error
-      } = await supabase.from('email_categories').select('*');
+      } = await supabase.from('email_categories').select('*').eq('account', account);
       if (error) throw error;
       setEmailCategories((data || []) as EmailCategory[]);
 
@@ -798,8 +798,10 @@ export default function Email() {
     fetchTeamMembers();
   }, []);
   useEffect(() => {
-    fetchEmailCategories();
-  }, [fetchEmailCategories]);
+    if (selectedAccount) {
+      fetchEmailCategories(selectedAccount);
+    }
+  }, [fetchEmailCategories, selectedAccount]);
   useEffect(() => {
     // Wait for crmUser to load before fetching to ensure correct account
     if (!crmUser) return;
@@ -1074,7 +1076,7 @@ export default function Email() {
   };
   const handleRefresh = () => {
     if (selectedCategory) {
-      fetchEmailCategories();
+      fetchEmailCategories(selectedAccount);
     } else {
       fetchEmails(selectedFolder);
     }
@@ -1166,7 +1168,8 @@ export default function Email() {
         } = await supabase.from('email_categories').insert({
           email_uid: email.uid,
           email_folder: selectedFolder || 'Inbox',
-          category
+          category,
+          account: selectedAccount
         });
         if (error) throw error;
       }
@@ -1175,7 +1178,7 @@ export default function Email() {
         title: "Email categorized",
         description: `Moved to ${categoryName}`
       });
-      fetchEmailCategories();
+      fetchEmailCategories(selectedAccount);
     } catch (error: any) {
       console.error('Error categorizing email:', error);
       toast({
@@ -1228,7 +1231,8 @@ export default function Email() {
           await supabase.from('email_categories').insert({
             email_uid: email.uid,
             email_folder: selectedFolder || 'Inbox',
-            category: targetCategory
+            category: targetCategory,
+            account: selectedAccount
           });
         }
       }
@@ -1238,7 +1242,7 @@ export default function Email() {
         description: `Moved to ${categoryName}`
       });
       setSelectedEmails(new Set());
-      fetchEmailCategories();
+      fetchEmailCategories(selectedAccount);
     } catch (error: any) {
       console.error('Error bulk moving emails:', error);
       toast({
