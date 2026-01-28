@@ -325,7 +325,7 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
               value={body}
               onChange={setBody}
               placeholder="Type your message..."
-              className="min-h-[200px]"
+              className="min-h-[350px]"
             />
           </div>
 
