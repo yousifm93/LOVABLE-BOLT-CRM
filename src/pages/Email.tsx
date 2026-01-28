@@ -415,6 +415,12 @@ export default function Email() {
   }, [selectedEmail, selectedFolder, isArchiving, toast, emailTagsMap, lenderMarketingMap]);
   const [emailView, setEmailView] = useState<'main' | 'file' | 'lender-marketing' | 'new-contacts'>('main');
   const [contactSuggestionsCount, setContactSuggestionsCount] = useState<Map<string, number>>(new Map());
+  
+  // Unread counts per account for sidebar badges
+  const [accountUnreadCounts, setAccountUnreadCounts] = useState<Record<string, number>>({
+    yousif: 0,
+    scenarios: 0
+  });
 
   // Fetch email categories from database
   const fetchEmailCategories = useCallback(async () => {
@@ -608,6 +614,15 @@ export default function Email() {
           ...prev,
           [folder]: (append ? prev[folder] : 0) + fetchedEmails.filter((e: EmailMessage) => e.unread).length || 0
         }));
+        
+        // Update unread count for the specific account
+        if (folder === 'Inbox') {
+          const unreadCount = fetchedEmails.filter((e: EmailMessage) => e.unread).length;
+          setAccountUnreadCounts(prev => ({
+            ...prev,
+            [account]: append ? prev[account] + unreadCount : unreadCount
+          }));
+        }
 
         // Fetch email tags for matching
         fetchEmailTags(fetchedEmails);
@@ -774,6 +789,31 @@ export default function Email() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFolder, selectedCategory, selectedAccount]);
+
+  // Fetch unread counts for both accounts on initial load
+  useEffect(() => {
+    const fetchUnreadCounts = async () => {
+      for (const account of ['yousif', 'scenarios'] as const) {
+        try {
+          const { data } = await supabase.functions.invoke("fetch-emails-imap", {
+            body: {
+              account,
+              folder: 'Inbox',
+              limit: 50,
+              offset: 0
+            }
+          });
+          if (data?.success && data.emails) {
+            const unreadCount = data.emails.filter((e: EmailMessage) => e.unread).length;
+            setAccountUnreadCounts(prev => ({ ...prev, [account]: unreadCount }));
+          }
+        } catch (error) {
+          console.error(`Error fetching unread count for ${account}:`, error);
+        }
+      }
+    };
+    fetchUnreadCounts();
+  }, []);
 
   // Fetch comments for selected email
   const fetchComments = useCallback(async (email: EmailMessage) => {
@@ -1361,6 +1401,16 @@ export default function Email() {
                     <Mail className="h-4 w-4" />
                     <span className="truncate">Yousif Inbox</span>
                   </div>
+                  {accountUnreadCounts.yousif > 0 && (
+                    <span className={cn(
+                      "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+                      selectedAccount === 'yousif' 
+                        ? "bg-primary-foreground/20 text-primary-foreground" 
+                        : "bg-blue-500 text-white"
+                    )}>
+                      {accountUnreadCounts.yousif}
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => {
@@ -1377,6 +1427,16 @@ export default function Email() {
                     <Mail className="h-4 w-4" />
                     <span className="truncate">Scenarios Inbox</span>
                   </div>
+                  {accountUnreadCounts.scenarios > 0 && (
+                    <span className={cn(
+                      "text-xs px-1.5 py-0.5 rounded-full flex-shrink-0",
+                      selectedAccount === 'scenarios' 
+                        ? "bg-primary-foreground/20 text-primary-foreground" 
+                        : "bg-blue-500 text-white"
+                    )}>
+                      {accountUnreadCounts.scenarios}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
@@ -1483,6 +1543,10 @@ export default function Email() {
                   const pendingContactCount = emailLogId ? (contactSuggestionsCount.get(emailLogId) || 0) : 0;
                   
                   return <div className={cn("flex items-center gap-2 mb-1 w-full", showMultiSelect ? "pl-6" : "pl-4")}>
+                            {/* Unread indicator dot */}
+                            {email.unread && (
+                              <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                            )}
                             <span className={cn("text-sm truncate min-w-0 flex-1", email.unread ? "font-semibold" : "font-medium")}>
                               {email.from}
                             </span>
