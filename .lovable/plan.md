@@ -1,88 +1,125 @@
 
-# Plan: Fix Pre-Approval Letter Address Mapping
+# Plan: Fix Category Emails Not Showing (Account Isolation Issue)
 
 ## Problem
 
-When generating a pre-approval letter, the address shows "No Address Yet" even though the lead has a subject property address saved (e.g., "10531 36th Street North" for Elias Hachem).
+When clicking on a category like "Needs Attention" that shows a count of 3, no emails are displayed. This happens because:
 
-**Root Cause:** Field name mismatch between the data transformation and the modal component.
-
-| Component | Expected Field | Actual Field in Data |
-|-----------|---------------|---------------------|
-| `PreApprovalLetterModal.tsx` line 55 | `client.subjectAddress1` (camelCase) | `client.subject_address_1` (snake_case) |
-| `PreApprovalLetterModal.tsx` line 58 | `client.subjectCity` (camelCase) | `client.subject_city` (snake_case) |
-| `PreApprovalLetterModal.tsx` line 59 | `client.subjectState` (camelCase) | `client.subject_state` (snake_case) |
-| `PreApprovalLetterModal.tsx` line 60 | `client.subjectZip` (camelCase) | `client.subject_zip` (snake_case) |
-
-The `transformLeadToClient()` function in `clientTransform.ts` correctly populates the snake_case fields (lines 314-318), but the modal is looking for the camelCase versions which don't exist.
-
----
+1. **Category counts** are calculated from the global `email_categories` database table
+2. **The table is missing an `account` column** - it only stores `email_uid` and `email_folder`
+3. Email UIDs are **account-specific** (UID 4319 in Yousif's inbox is different from UID 4319 in Salma's inbox)
+4. All existing category assignments were made for Yousif's account
+5. When Salma views categories, the counts show 3, but her mailbox doesn't have emails with those UIDs
 
 ## Solution
 
-Update `PreApprovalLetterModal.tsx` to check for both field naming conventions, preferring the snake_case fields that are actually populated.
+Add an `account` column to the `email_categories` table and filter categories by the currently selected account.
 
-### File: `src/components/modals/PreApprovalLetterModal.tsx`
+### Database Change
 
-#### Change: Lines 53-62
+Add migration to add `account` column:
 
-**Current Code:**
-```typescript
-if (isOpen && client) {
-  let propertyAddress = "No Address Yet";
-  if (client.subjectAddress1) {
-    const parts = [
-      client.subjectAddress1,
-      client.subjectCity,
-      client.subjectState,
-      client.subjectZip
-    ].filter(Boolean);
-    propertyAddress = parts.join(", ");
-  }
+```sql
+-- Add account column to email_categories
+ALTER TABLE email_categories ADD COLUMN IF NOT EXISTS account VARCHAR(50) DEFAULT 'yousif';
+
+-- Update existing records to 'yousif' (since all were created before multi-account)
+UPDATE email_categories SET account = 'yousif' WHERE account IS NULL;
 ```
 
-**Updated Code:**
+### Code Changes
+
+#### 1. Update `fetchEmailCategories` to filter by account
+
+**File:** `src/pages/Email.tsx`
+
+Modify the `fetchEmailCategories` function to accept an account parameter and filter results:
+
 ```typescript
-if (isOpen && client) {
-  let propertyAddress = "No Address Yet";
-  // Check for snake_case fields (from transformLeadToClient) or camelCase fields
-  const address1 = (client as any).subject_address_1 || client.subjectAddress1;
-  const city = (client as any).subject_city || client.subjectCity;
-  const state = (client as any).subject_state || client.subjectState;
-  const zip = (client as any).subject_zip || client.subjectZip;
-  
-  if (address1) {
-    const parts = [
-      address1,
-      city,
-      state,
-      zip
-    ].filter(Boolean);
-    propertyAddress = parts.join(", ");
-  }
+// Current (lines 443-461):
+const fetchEmailCategories = useCallback(async () => {
+  const { data, error } = await supabase.from('email_categories').select('*');
+  // ...
+}, []);
+
+// Updated:
+const fetchEmailCategories = useCallback(async (account: string) => {
+  const { data, error } = await supabase
+    .from('email_categories')
+    .select('*')
+    .eq('account', account);
+  // ...
+}, []);
 ```
+
+#### 2. Update `useEffect` to call with selected account
+
+Update the effect that calls `fetchEmailCategories` to pass the account:
+
+```typescript
+// Current (lines 800-802):
+useEffect(() => {
+  fetchEmailCategories();
+}, [fetchEmailCategories]);
+
+// Updated:
+useEffect(() => {
+  if (selectedAccount) {
+    fetchEmailCategories(selectedAccount);
+  }
+}, [fetchEmailCategories, selectedAccount]);
+```
+
+#### 3. Update category insertion to include account
+
+Modify the `handleDragEnd` function to include account when saving categories:
+
+```typescript
+// Current insert (around line 1150):
+await supabase.from('email_categories').insert({
+  email_uid: email.uid,
+  email_folder: folder,
+  category: targetCategory
+});
+
+// Updated:
+await supabase.from('email_categories').insert({
+  email_uid: email.uid,
+  email_folder: folder,
+  category: targetCategory,
+  account: selectedAccount
+});
+```
+
+#### 4. Update bulk category moves to include account
+
+Similar update for bulk move operations.
 
 ---
 
-## Summary
+## Summary of Changes
 
-| File | Change |
-|------|--------|
-| `src/components/modals/PreApprovalLetterModal.tsx` | Update address field references to check both snake_case and camelCase field names |
+| Component | Change |
+|-----------|--------|
+| Database migration | Add `account` column to `email_categories` table |
+| `fetchEmailCategories` | Filter by selected account |
+| useEffect for categories | Pass selected account when fetching |
+| `handleDragEnd` | Include account when inserting category |
+| Bulk move functions | Include account when inserting categories |
 
 ---
 
 ## Expected Result
 
-- Pre-approval letter for Elias Hachem will correctly display "10531 36th Street North, [City], [State] [Zip]"
-- Works for all leads with subject property addresses populated
-- Backward-compatible with any data that uses camelCase naming
+- Category counts will only show emails from the currently selected account
+- Clicking a category will correctly display emails that belong to that account
+- New category assignments will be properly associated with the current account
+- Multi-account email management will work correctly with categories
 
 ---
 
 ## Technical Notes
 
-- The `CRMClient` type defines fields in camelCase (`subjectAddress1`, etc.)
-- The `transformLeadToClient()` function maps database fields to snake_case (`subject_address_1`, etc.)
-- Using `(client as any)` to access the snake_case fields avoids TypeScript errors without requiring a type update
-- Long-term, the transform function could be updated to also include camelCase mappings for consistency
+- Existing category records will default to 'yousif' since that was the original default account
+- This is a backwards-compatible change - old data continues to work for Yousif
+- Future consideration: Could add a unique constraint on (email_uid, email_folder, account)
