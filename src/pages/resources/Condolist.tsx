@@ -70,19 +70,6 @@ const createColumns = (
   onPreview: (url: string, fileName: string) => void
 ): ColumnDef<Condo>[] => [
   {
-    accessorKey: "is_duplicate",
-    header: "Status",
-    cell: ({ row }) => (
-      row.original.is_duplicate ? (
-        <Badge variant="outline" className="bg-orange-500/10 text-orange-700 border-orange-500/30 text-[10px] px-1.5">
-          <Copy className="h-3 w-3 mr-1" />
-          Duplicate
-        </Badge>
-      ) : null
-    ),
-    sortable: true,
-  },
-  {
     accessorKey: "condo_name",
     header: "Condo Name",
     cell: ({ row }) => (
@@ -101,7 +88,7 @@ const createColumns = (
       <Input
         value={row.original.street_address || ""}
         onChange={(e) => handleUpdate(row.original.id, "street_address", e.target.value)}
-        className="border-none bg-transparent p-1 h-8 w-40"
+        className="border-none bg-transparent p-1 h-8 w-full truncate"
       />
     ),
     sortable: true,
@@ -113,7 +100,7 @@ const createColumns = (
       <Input
         value={row.original.city || ""}
         onChange={(e) => handleUpdate(row.original.id, "city", e.target.value)}
-        className="border-none bg-transparent p-1 h-8 w-24"
+        className="border-none bg-transparent p-1 h-8 w-full truncate"
       />
     ),
     sortable: true,
@@ -125,7 +112,7 @@ const createColumns = (
       <Input
         value={row.original.state || ""}
         onChange={(e) => handleUpdate(row.original.id, "state", e.target.value)}
-        className="border-none bg-transparent p-1 h-8 w-16"
+        className="border-none bg-transparent p-1 h-8 w-full truncate"
       />
     ),
     sortable: true,
@@ -137,7 +124,7 @@ const createColumns = (
       <Input
         value={row.original.zip || ""}
         onChange={(e) => handleUpdate(row.original.id, "zip", e.target.value)}
-        className="border-none bg-transparent p-1 h-8 w-20"
+        className="border-none bg-transparent p-1 h-8 w-full truncate"
       />
     ),
     sortable: true,
@@ -334,6 +321,19 @@ const createColumns = (
         </Tooltip>
       );
     },
+    sortable: true,
+  },
+  {
+    accessorKey: "is_duplicate",
+    header: "Duplicate?",
+    cell: ({ row }) => (
+      row.original.is_duplicate ? (
+        <Badge variant="outline" className="bg-orange-500/10 text-orange-700 border-orange-500/30 text-[10px] px-1.5">
+          <Copy className="h-3 w-3 mr-1" />
+          Duplicate
+        </Badge>
+      ) : null
+    ),
     sortable: true,
   },
 ];
