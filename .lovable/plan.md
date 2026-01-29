@@ -1,163 +1,158 @@
 
-# Plan: Add "Past MB Closing" Column to Condo List
+
+# Plan: Backfill Missing Condo Addresses & Connect to mortgagebolt.org
 
 ## Summary
 
-Cross-reference all 823 past client addresses against the 2,404 condos in the directory and add a "Past MB Closing" column showing whether MortgageBolt has previously closed a loan at that condo property.
-
-**Data Analysis Results:**
-- **2,404 total condos** in the directory
-- **825 past clients** (823 with addresses)
-- **44 condos** currently match past client addresses (confirmed via address matching query)
-- Example: "1300 S Miami Ave" → Dua Miami (SLS Brickell) has multiple past closings including Ryan Rached
+This plan addresses two requests:
+1. **Fill in missing street addresses** for condos using the uploaded spreadsheet (mci_addy.xlsx)
+2. **Ensure mortgagebolt.org/condo/approved connects** to the internal condo list database
 
 ---
 
-## Solution Overview
+## Data Analysis
 
-### Approach: Computed Column via Database View or Lookup
+### Spreadsheet Contents
+The uploaded spreadsheet contains **377 condos** with complete address information:
+- Development Name, Neighborhood, Address, City, State, Zip
+- Covers Miami-Dade County areas: Brickell, Downtown Miami, Edgewater, South Beach, Coconut Grove, Coral Gables, Key Biscayne, Bal Harbour, Surfside, Sunny Isles Beach, Aventura
 
-The "Past MB Closing" indicator will be computed at query time by joining the condos table with normalized past client addresses. This ensures the data stays current as new closings are added.
+### Database Status
+- **1,444 condos** are missing street addresses in the database
+- **~120-150 condos** from the spreadsheet can fill missing addresses (based on zip code and name matching analysis)
+
+### Examples of Matches Found
+| Condo Name (Database) | Suggested Address (from Spreadsheet) |
+|----------------------|--------------------------------------|
+| Brickell Flatiron | 1000 Brickell Plaza |
+| Club At Brickell Bay Plaza | 1200 Brickell Bay Dr |
+| Isola | 770 Claughton Island Dr |
+| Brickell On The River N Tower | 31 SE 5 St |
+| Brickell Key II | 540 Brickell Key Dr |
+| The Mark On Brickell Condo | 1155 Brickell Bay Dr |
+| Brickellhouse | 1300 Brickell Bay Dr |
+| Nine At Mary Brickell | 999 SW 1 Ave |
 
 ---
 
-## Technical Implementation
+## Solution
 
-### Part 1: Add Database Column + Backfill
+### Part 1: Create Edge Function to Backfill Addresses
 
-**Database Migration:**
+**New File:** `supabase/functions/backfill-condo-addresses/index.ts`
+
+This edge function will:
+1. Parse the spreadsheet data (embedded as a JSON mapping)
+2. For each condo missing an address, attempt to match by:
+   - **Exact name match** (case-insensitive)
+   - **Fuzzy name match** (removing common suffixes like "Condo", "Tower", "Residences")
+   - **Zip code + partial name match** for disambiguation
+3. Update matched condos with the street address from the spreadsheet
+4. Return a summary of matches made
+
+**Matching Logic:**
+```text
+For each spreadsheet entry:
+  1. Normalize name: LOWER(TRIM(name))
+  2. Remove suffixes: "Condo", "Residences", "Tower", etc.
+  3. Find condos where:
+     - Name matches (fuzzy) AND
+     - Zip matches AND
+     - street_address IS NULL
+  4. Update street_address with spreadsheet value
+```
+
+### Part 2: Run Database Migration for Address Updates
+
+Create a SQL migration that updates addresses based on the spreadsheet mapping. The migration will use a comprehensive CASE statement mapping condo names (with fuzzy matching) to addresses.
+
+**Sample update pattern:**
 ```sql
--- Add the past_mb_closing boolean column
-ALTER TABLE condos ADD COLUMN past_mb_closing boolean DEFAULT false;
-
--- Backfill by matching addresses
-WITH matches AS (
-  SELECT DISTINCT c.id as condo_id
-  FROM condos c
-  INNER JOIN leads l ON 
-    LOWER(TRIM(REGEXP_REPLACE(c.street_address, '[^a-zA-Z0-9 ]', '', 'g'))) = 
-    LOWER(TRIM(REGEXP_REPLACE(l.subject_address_1, '[^a-zA-Z0-9 ]', '', 'g')))
-  WHERE l.pipeline_stage_id = 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd'
-    AND l.deleted_at IS NULL
-    AND l.subject_address_1 IS NOT NULL
-    AND c.deleted_at IS NULL
-)
-UPDATE condos SET past_mb_closing = true
-WHERE id IN (SELECT condo_id FROM matches);
+UPDATE condos
+SET street_address = CASE
+  WHEN LOWER(condo_name) LIKE '%brickell flatiron%' AND zip = '33131' 
+    THEN '1000 Brickell Plaza'
+  WHEN LOWER(condo_name) LIKE '%club at brickell bay%' AND zip = '33131' 
+    THEN '1200 Brickell Bay Dr'
+  -- ... more mappings from spreadsheet
+END
+WHERE (street_address IS NULL OR street_address = '')
+  AND deleted_at IS NULL;
 ```
 
-This normalizes addresses by:
-- Converting to lowercase
-- Removing special characters
-- Trimming whitespace
+### Part 3: Deploy Public Condo Search Edge Function
 
-### Part 2: Update Condo Interface
+The `public-condo-search` edge function already exists and is properly configured (verify_jwt = false for public access). It needs to be deployed so mortgagebolt.org can connect to it.
 
-**File: `src/pages/resources/Condolist.tsx`**
+**Current Function Capabilities:**
+- Searches by condo name, street address, or city
+- Returns: name, address, down payments (primary/second/investment), approvals (UWM/A&D)
+- Limited to 50 results for performance
+- CORS enabled for cross-origin requests from mortgagebolt.org
 
-Add to the `Condo` interface:
+**Action:** Deploy the `public-condo-search` edge function to make it available at:
+```
+https://zpsvatonxakysnbqnfcc.supabase.co/functions/v1/public-condo-search?q=searchterm
+```
+
+### Part 4: Add past_mb_closing to Public API Response (Enhancement)
+
+Update `public-condo-search` to include the new `past_mb_closing` field so the public site can show which buildings MortgageBolt has closed at before.
+
+**File:** `supabase/functions/public-condo-search/index.ts`
+
+Add to select query:
 ```typescript
-interface Condo {
-  // ... existing fields
-  past_mb_closing: boolean | null;
-}
+.select('condo_name, street_address, city, state, zip, primary_down, second_down, investment_down, source_uwm, source_ad, past_mb_closing')
 ```
 
-### Part 3: Add New Column to DataTable
-
-Insert the "Past MB Closing" column after the "A&D" column (before Review Type):
-
+Add to response:
 ```typescript
-{
-  accessorKey: "past_mb_closing",
-  header: "Past MB",
-  cell: ({ row }) => (
-    <div className="flex justify-center">
-      {row.original.past_mb_closing ? (
-        <CheckCircle className="h-4 w-4 text-blue-600" />
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      )}
-    </div>
-  ),
-  sortable: true,
-},
-```
-
-### Part 4: Add Filter Option
-
-Add a new filter in the filter toolbar:
-```typescript
-const [pastMbFilter, setPastMbFilter] = useState<string>("all");
-```
-
-Filter UI:
-```tsx
-<Select value={pastMbFilter} onValueChange={setPastMbFilter}>
-  <SelectTrigger className="w-32">
-    <SelectValue placeholder="Past MB" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="all">All</SelectItem>
-    <SelectItem value="yes">Past MB ✓</SelectItem>
-    <SelectItem value="no">No History</SelectItem>
-  </SelectContent>
-</Select>
+pastMbClosing: condo.past_mb_closing || false
 ```
 
 ---
 
-## Column Placement
+## Implementation Order
 
-The new column will appear in this order:
-
-| # | Condo Name | Street Address | City | State | Zip | UWM | A&D | **Past MB** | Review Type | ... |
-|---|------------|----------------|------|-------|-----|-----|-----|-------------|-------------|-----|
-
----
-
-## Future-Proofing: Database Trigger (Optional)
-
-To automatically update `past_mb_closing` when new past clients are added:
-
-```sql
-CREATE OR REPLACE FUNCTION update_condo_past_closing()
-RETURNS trigger AS $$
-BEGIN
-  -- When a lead moves to Past Clients stage with an address
-  IF NEW.pipeline_stage_id = 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd'
-     AND NEW.subject_address_1 IS NOT NULL THEN
-    UPDATE condos SET past_mb_closing = true
-    WHERE LOWER(TRIM(REGEXP_REPLACE(street_address, '[^a-zA-Z0-9 ]', '', 'g'))) = 
-          LOWER(TRIM(REGEXP_REPLACE(NEW.subject_address_1, '[^a-zA-Z0-9 ]', '', 'g')))
-      AND deleted_at IS NULL;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_condo_past_closing
-AFTER INSERT OR UPDATE OF pipeline_stage_id, subject_address_1 ON leads
-FOR EACH ROW EXECUTE FUNCTION update_condo_past_closing();
-```
+1. **Create address mapping migration** - SQL migration with all 377 spreadsheet addresses mapped to database condo names
+2. **Execute migration** - Update ~120-150 condos with missing addresses
+3. **Update public-condo-search edge function** - Add past_mb_closing to API response
+4. **Deploy edge function** - Make public API available for mortgagebolt.org
+5. **Provide connection details** - Give URL/code snippet for mortgagebolt.org integration
 
 ---
 
-## Summary of Changes
+## Files to Create/Modify
 
-| File/Resource | Change |
-|---------------|--------|
-| Database migration | Add `past_mb_closing` column + backfill 44 matching condos |
-| Database trigger | Auto-update when new past clients are added |
-| `src/pages/resources/Condolist.tsx` | Add interface field, column definition, and filter |
-| `src/integrations/supabase/types.ts` | Auto-updated after migration |
+| File | Action |
+|------|--------|
+| `supabase/migrations/[timestamp]_backfill_condo_addresses.sql` | Create - SQL migration with address mappings |
+| `supabase/functions/public-condo-search/index.ts` | Modify - Add past_mb_closing to response |
+| `supabase/functions/backfill-condo-addresses/index.ts` | Create - Optional edge function for future manual backfills |
 
 ---
 
 ## Expected Results
 
 After implementation:
-- ✅ **44 condos** will show a blue checkmark in the "Past MB" column
-- ✅ Users can filter to show only condos with previous closings
-- ✅ New closings will automatically update the flag via database trigger
-- ✅ Column is sortable (group all past closings at top/bottom)
+- **~120-150 condos** will have their missing street addresses filled in
+- **mortgagebolt.org/condo/approved** search will query the live condo database
+- **Past MB Closing** indicator will be available in public API for enhanced marketing
+- All future address updates in the CRM will automatically reflect on the public site
+
+---
+
+## mortgagebolt.org Integration
+
+The public website search box should call:
+```javascript
+const response = await fetch(
+  `https://zpsvatonxakysnbqnfcc.supabase.co/functions/v1/public-condo-search?q=${searchTerm}&limit=20`
+);
+const data = await response.json();
+// data.results contains array of matching condos
+```
+
+This is already the expected integration pattern based on the existing edge function design.
+
