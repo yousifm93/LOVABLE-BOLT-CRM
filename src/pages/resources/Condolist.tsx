@@ -28,6 +28,7 @@ interface Condo {
   zip: string | null;
   source_uwm: boolean | null;
   source_ad: boolean | null;
+  past_mb_closing: boolean | null;
   review_type: string | null;
   approval_expiration_date: string | null;
   primary_down: string | null;
@@ -147,6 +148,20 @@ const createColumns = (
       <div className="flex justify-center">
         {row.original.source_ad ? (
           <CheckCircle className="h-4 w-4 text-amber-600" />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "past_mb_closing",
+    header: "Past MB",
+    cell: ({ row }) => (
+      <div className="flex justify-center">
+        {row.original.past_mb_closing ? (
+          <CheckCircle className="h-4 w-4 text-blue-600" />
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
@@ -317,6 +332,7 @@ export default function Condolist() {
   const [reviewTypeFilter, setReviewTypeFilter] = useState<string>("all");
   const [uwmFilter, setUwmFilter] = useState<string>("all");
   const [adFilter, setAdFilter] = useState<string>("all");
+  const [pastMbFilter, setPastMbFilter] = useState<string>("all");
   const [selectedCondo, setSelectedCondo] = useState<Condo | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -589,6 +605,13 @@ export default function Condolist() {
       result = result.filter(condo => condo.source_ad !== true);
     }
     
+    // Past MB Closing filter
+    if (pastMbFilter === "yes") {
+      result = result.filter(condo => condo.past_mb_closing === true);
+    } else if (pastMbFilter === "no") {
+      result = result.filter(condo => condo.past_mb_closing !== true);
+    }
+    
     // Target Market filter (zip codes 33125-33181)
     if (targetMarketFilter === "target") {
       result = result.filter(condo => {
@@ -607,7 +630,7 @@ export default function Condolist() {
     return result.sort((a, b) => 
       new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
-  }, [condos, targetMarketFilter, reviewTypeFilter, uwmFilter, adFilter]);
+  }, [condos, targetMarketFilter, reviewTypeFilter, uwmFilter, adFilter, pastMbFilter]);
 
   const columns = createColumns(handleUpdate, handleDocUpdate, handlePreview);
 
@@ -615,7 +638,8 @@ export default function Condolist() {
     targetMarketFilter !== "all",
     reviewTypeFilter !== "all",
     uwmFilter !== "all",
-    adFilter !== "all"
+    adFilter !== "all",
+    pastMbFilter !== "all"
   ].filter(Boolean).length;
 
   if (loading) {
@@ -705,6 +729,17 @@ export default function Condolist() {
               </SelectContent>
             </Select>
 
+            <Select value={pastMbFilter} onValueChange={setPastMbFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Past MB" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Past MB</SelectItem>
+                <SelectItem value="yes">Past MB ✓</SelectItem>
+                <SelectItem value="no">No History</SelectItem>
+              </SelectContent>
+            </Select>
+
             {activeFiltersCount > 0 && (
               <Button 
                 variant="ghost" 
@@ -714,6 +749,7 @@ export default function Condolist() {
                   setReviewTypeFilter("all");
                   setUwmFilter("all");
                   setAdFilter("all");
+                  setPastMbFilter("all");
                 }}
               >
                 Clear filters

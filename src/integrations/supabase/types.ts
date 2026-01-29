@@ -947,6 +947,7 @@ export type Database = {
           mip_doc: string | null
           mip_doc_uploaded_at: string | null
           mip_doc_uploaded_by: string | null
+          past_mb_closing: boolean | null
           primary_down: string | null
           review_type: string | null
           second_down: string | null
@@ -976,6 +977,7 @@ export type Database = {
           mip_doc?: string | null
           mip_doc_uploaded_at?: string | null
           mip_doc_uploaded_by?: string | null
+          past_mb_closing?: boolean | null
           primary_down?: string | null
           review_type?: string | null
           second_down?: string | null
@@ -1005,6 +1007,7 @@ export type Database = {
           mip_doc?: string | null
           mip_doc_uploaded_at?: string | null
           mip_doc_uploaded_by?: string | null
+          past_mb_closing?: boolean | null
           primary_down?: string | null
           review_type?: string | null
           second_down?: string | null
