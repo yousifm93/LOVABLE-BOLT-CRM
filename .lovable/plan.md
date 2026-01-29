@@ -1,111 +1,102 @@
 
-# Plan: Move Duplicate Column & Fix Text Truncation
+# Plan: Improve Search Result Context Display
 
 ## Summary
 
-Two UI improvements to the Condo List page:
-1. Move the "Duplicate?" column from the beginning to between "Last Updated" and "Actions"
-2. Fix text truncation so city names and addresses show ellipsis when truncated and expand when columns are resized
+Update the sidebar search to show more useful context for each result:
+- **Leads/Borrowers**: Show the pipeline stage they're in (Leads, Pending App, Screening, Active, etc.) instead of email
+- **Contacts**: Show the contact type (Agent, Realtor, Lender, Other, etc.) instead of email
 
 ---
 
-## Current Issue
+## Current vs. New Behavior
 
-**Screenshot shows:**
-- City names like "Altamonte S..." cut off without ellipsis
-- Street addresses like "and Regency Po..." cut off without ellipsis
-- When column is resized, the text still doesn't show fully
-
-**Root cause:** The Input components have fixed widths (`w-24` for city, `w-40` for street address) that override the column width. The text should flow to fill the column width and truncate with ellipsis when needed.
+| Type | Current Subtext | New Subtext |
+|------|-----------------|-------------|
+| Lead | `serge.chestak@yahoo.com` | `Active` or `Screening` |
+| Agent | `Brokerage name` | `Brokerage name` (unchanged) |
+| Lender | `Account executive name` | `Account executive name` (unchanged) |
+| Contact | `Agent` or `email` | `Agent` or `Other` (type emphasized) |
 
 ---
 
 ## Changes
 
-### 1. Move Duplicate Column
+### 1. Add Pipeline Stage Name Mapping
 
-In `createColumns` function, move the `is_duplicate` column from position 1 (first column) to position 18 (after `updated_at`/Last Updated).
+Create a constant that maps pipeline stage IDs to human-readable names:
 
-**Current column order:**
-1. is_duplicate (Status)
-2. condo_name
-3. street_address
-4. city
-5. ... other columns ...
-17. cq_doc
-18. updated_at (Last Updated)
-19. [Actions - auto-generated]
-
-**New column order:**
-1. condo_name
-2. street_address
-3. city
-4. ... other columns ...
-17. cq_doc
-18. updated_at (Last Updated)
-19. is_duplicate (Duplicate?)
-20. [Actions - auto-generated]
-
-### 2. Rename Column Header
-
-Change header from `"Status"` to `"Duplicate?"`
-
-### 3. Fix Text Truncation in Input Fields
-
-Update the Input components for `street_address`, `city`, `state`, and `zip` columns:
-
-**Before:**
-```tsx
-<Input
-  value={row.original.city || ""}
-  onChange={(e) => handleUpdate(row.original.id, "city", e.target.value)}
-  className="border-none bg-transparent p-1 h-8 w-24"  // Fixed width!
-/>
+```typescript
+const PIPELINE_STAGE_NAMES: Record<string, string> = {
+  'c54f417b-3f67-43de-80f5-954cf260d571': 'Leads',
+  '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945': 'Pending App',
+  'a4e162e0-5421-4d17-8ad5-4b1195bbc995': 'Screening',
+  '09162eec-d2b2-48e5-86d0-9e66ee8b2af7': 'Pre-Qualified',
+  '3cbf38ff-752e-4163-a9a3-1757499b4945': 'Pre-Approved',
+  '76eb2e82-e1d9-4f2d-a57d-2120a25696db': 'Active',
+  'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd': 'Past Clients',
+  '5c3bd0b1-414b-4eb8-bad8-99c3b5ab8b0a': 'Idle',
+};
 ```
 
-**After:**
-```tsx
-<Input
-  value={row.original.city || ""}
-  onChange={(e) => handleUpdate(row.original.id, "city", e.target.value)}
-  className="border-none bg-transparent p-1 h-8 w-full truncate"  // Full width + truncate
-/>
+### 2. Update Lead Search Results
+
+Change the lead subtext from email to pipeline stage name:
+
+```typescript
+// Before
+subtext: l.email || undefined,
+
+// After
+subtext: PIPELINE_STAGE_NAMES[l.pipeline_stage_id] || 'Unknown Stage',
 ```
 
-This will:
-- Allow the Input to fill the entire column width
-- Show ellipsis when text is truncated
-- Reveal full text when column is resized wider
-- Keep the text truncated when column is narrow
+### 3. Update Contact Search Results
+
+Ensure contacts show their type clearly (already works but we'll make it consistent):
+
+```typescript
+// Before
+subtext: c.type || c.email || undefined,
+
+// After - prioritize type, fall back to "Contact" if no type
+subtext: c.type || 'Contact',
+```
+
+### 4. Add Contact Icon
+
+Add a missing icon for contacts in the search results:
+
+```typescript
+{result.type === 'contact' && <Users className="h-4 w-4 text-orange-500" />}
+```
+
+---
+
+## Visual Result
+
+After implementation, searching for "Serge" would show:
+
+```text
+🔵 Serge Chestak           [lead]
+   Active
+
+📞 Sergio Speian           [agent]
+   ABC Realty
+
+🟠 Sergio Gonzalez         [contact]
+   Agent
+```
+
+This provides immediate context about where the person is in the system.
 
 ---
 
 ## File Changes
 
-**File:** `src/pages/resources/Condolist.tsx`
-
-| Line | Change |
+| File | Change |
 |------|--------|
-| 73-84 | Move `is_duplicate` column definition to after `updated_at` column |
-| 74 | Change header from `"Status"` to `"Duplicate?"` |
-| 104 | Change `w-40` to `w-full truncate` for street_address Input |
-| 116 | Change `w-24` to `w-full truncate` for city Input |
-| 128 | Change `w-16` to `w-full truncate` for state Input |
-| 140 | Change `w-20` to `w-full truncate` for zip Input |
-
----
-
-## Expected Result
-
-**After changes:**
-- "Duplicate?" column appears between "Last Updated" and "Actions" columns
-- City names show as "Altamonte S..." with proper ellipsis
-- Street addresses show as "Grand Regency Po..." with proper ellipsis
-- When user drags column wider, full text becomes visible: "Altamonte Springs", "Grand Regency Pointe"
-- When column is narrow again, text truncates with ellipsis
-
----
-
-## Technical Note
-
-The DataTable component already handles column resizing via the `ResizeHandle` component. The issue is that the Input elements have fixed widths that don't respond to the column width. By using `w-full`, the Input will fill the cell and respect the column's dynamic width.
+| `src/components/AppSidebar.tsx` | Add `PIPELINE_STAGE_NAMES` constant |
+| `src/components/AppSidebar.tsx` | Update lead subtext to show stage name |
+| `src/components/AppSidebar.tsx` | Update contact subtext to prioritize type |
+| `src/components/AppSidebar.tsx` | Add icon for contact type in search results |
