@@ -16,6 +16,8 @@ interface ColumnVisibilityButtonProps {
   onSaveView?: (viewName: string) => void;
   onReorderColumns: (oldIndex: number, newIndex: number) => void;
   onViewSaved?: (viewName: string) => void;
+  skipDatabaseFields?: boolean;
+  customSections?: Record<string, string[]>;
 }
 
 export function ColumnVisibilityButton({
@@ -24,7 +26,9 @@ export function ColumnVisibilityButton({
   onToggleAll,
   onSaveView,
   onReorderColumns,
-  onViewSaved
+  onViewSaved,
+  skipDatabaseFields,
+  customSections
 }: ColumnVisibilityButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -52,6 +56,8 @@ export function ColumnVisibilityButton({
         onSaveView={onSaveView}
         onReorderColumns={onReorderColumns}
         onViewSaved={onViewSaved}
+        skipDatabaseFields={skipDatabaseFields}
+        customSections={customSections}
       />
     </>
   );

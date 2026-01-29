@@ -3913,6 +3913,8 @@ export type Database = {
           product_wvoe: string | null
           product_wvoe_family: string | null
           renewed_on: string | null
+          restrictions: string[] | null
+          special_features: string[] | null
           status: string | null
           title_clause: string | null
           updated_at: string
@@ -3997,6 +3999,8 @@ export type Database = {
           product_wvoe?: string | null
           product_wvoe_family?: string | null
           renewed_on?: string | null
+          restrictions?: string[] | null
+          special_features?: string[] | null
           status?: string | null
           title_clause?: string | null
           updated_at?: string
@@ -4081,6 +4085,8 @@ export type Database = {
           product_wvoe?: string | null
           product_wvoe_family?: string | null
           renewed_on?: string | null
+          restrictions?: string[] | null
+          special_features?: string[] | null
           status?: string | null
           title_clause?: string | null
           updated_at?: string

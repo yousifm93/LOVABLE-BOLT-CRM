@@ -40,6 +40,8 @@ interface ColumnVisibilityModalProps {
   onSaveView?: (viewName: string) => void;
   onReorderColumns: (oldIndex: number, newIndex: number) => void;
   onViewSaved?: (viewName: string) => void;
+  skipDatabaseFields?: boolean;
+  customSections?: Record<string, string[]>;
 }
 
 interface SortableColumnItemProps {
@@ -93,6 +95,32 @@ function SortableColumnItem({ column, onToggle }: SortableColumnItemProps) {
   );
 }
 
+// Default lender sections for skipDatabaseFields mode
+const LENDER_SECTIONS: Record<string, string[]> = {
+  'BASIC INFO': ['rowNumber', 'lender_name', 'lender_type', 'status'],
+  'CONTACT INFO': ['account_executive', 'ae_email', 'ae_phone', 'broker_portal_url', 'send_email'],
+  'LOAN LIMITS': ['min_loan_amount', 'max_loan_amount', 'initial_approval_date', 'renewed_on', 'epo_period'],
+  'PRODUCTS': [
+    'product_fha', 'product_va', 'product_conv', 'product_jumbo', 'product_bs_loan', 'product_wvoe',
+    'product_1099_program', 'product_pl_program', 'product_itin', 'product_dpa', 'product_heloc',
+    'product_inv_heloc', 'product_fn_heloc', 'product_nonqm_heloc', 'product_manufactured_homes',
+    'product_coop', 'product_condo_hotel', 'product_high_dti', 'product_low_fico', 'product_no_credit',
+    'product_dr_loan', 'product_fn', 'product_nwc', 'product_5_8_unit', 'product_9_plus_unit',
+    'product_commercial', 'product_construction', 'product_land_loan', 'product_fthb_dscr',
+    'product_no_income_primary', 'product_no_seasoning_cor', 'product_tbd_uw', 'product_condo_review_desk',
+    'product_condo_mip_issues', 'product_558', 'product_wvoe_family', 'product_1099_less_1yr',
+    'product_1099_no_biz', 'product_omit_student_loans', 'product_no_ratio_dscr'
+  ],
+  'LTV LIMITS': [
+    'max_ltv', 'conv_max_ltv', 'fha_max_ltv', 'jumbo_max_ltv', 'bs_loan_max_ltv', 'wvoe_max_ltv',
+    'dscr_max_ltv', 'ltv_1099', 'pl_max_ltv', 'fn_max_ltv', 'heloc_max_ltv', 'condo_inv_max_ltv'
+  ],
+  'NUMBERS': [
+    'min_fico', 'min_sqft', 'condotel_min_sqft', 'asset_dep_months', 'heloc_min_fico', 'heloc_min', 'max_cash_out_70_ltv'
+  ],
+  'OTHER': ['notes']
+};
+
 export function ColumnVisibilityModal({
   isOpen,
   onClose,
@@ -101,11 +129,13 @@ export function ColumnVisibilityModal({
   onToggleAll,
   onSaveView,
   onReorderColumns,
-  onViewSaved
+  onViewSaved,
+  skipDatabaseFields = false,
+  customSections
 }: ColumnVisibilityModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewName, setViewName] = useState("");
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['CONTACT INFO', 'LEAD INFO']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['BASIC INFO', 'CONTACT INFO']));
   const { allFields } = useFields();
 
   const sensors = useSensors(
@@ -116,7 +146,12 @@ export function ColumnVisibilityModal({
   );
 
   // Merge all database fields with provided columns to show all 140+ fields
+  // When skipDatabaseFields is true, only use the provided columns
   const allColumnsWithDbFields = useMemo(() => {
+    if (skipDatabaseFields) {
+      return columns;
+    }
+    
     const existingIds = new Set(columns.map(c => c.id));
     
     // Get all additional fields from database that aren't in columns
@@ -129,37 +164,63 @@ export function ColumnVisibilityModal({
       }));
     
     return [...columns, ...additionalFields];
-  }, [columns, allFields]);
+  }, [columns, allFields, skipDatabaseFields]);
 
   // Group columns by section
   const groupedColumns = useMemo(() => {
     const groups: Record<string, Column[]> = {};
+    const sections = customSections || (skipDatabaseFields ? LENDER_SECTIONS : null);
     
-    allColumnsWithDbFields.forEach(col => {
-      const field = allFields.find(f => f.field_name === col.id);
-      const section = field?.section || 'OTHER';
+    if (sections) {
+      // Use custom or lender sections
+      const columnMap = new Map(allColumnsWithDbFields.map(c => [c.id, c]));
       
-      if (!groups[section]) {
-        groups[section] = [];
+      Object.entries(sections).forEach(([section, fieldIds]) => {
+        const sectionCols = fieldIds
+          .map(id => columnMap.get(id))
+          .filter((c): c is Column => c !== undefined);
+        
+        if (sectionCols.length > 0) {
+          groups[section] = sectionCols;
+        }
+      });
+      
+      // Add any columns not in predefined sections to OTHER
+      const assignedIds = new Set(Object.values(sections).flat());
+      const unassigned = allColumnsWithDbFields.filter(c => !assignedIds.has(c.id));
+      if (unassigned.length > 0) {
+        groups['OTHER'] = [...(groups['OTHER'] || []), ...unassigned];
       }
-      groups[section].push(col);
-    });
+    } else {
+      // Use database fields for section grouping
+      allColumnsWithDbFields.forEach(col => {
+        const field = allFields.find(f => f.field_name === col.id);
+        const section = field?.section || 'OTHER';
+        
+        if (!groups[section]) {
+          groups[section] = [];
+        }
+        groups[section].push(col);
+      });
+    }
     
     // Sort sections by priority
-    const sectionOrder = [
-      'CONTACT INFO',
-      'BORROWER INFO',
-      'LEAD INFO',
-      'LOAN INFO',
-      'LOAN STATUS',
-      'ADDRESS',
-      'DATE',
-      'OBJECT',
-      'NOTES',
-      'FILE',
-      'TRACKING DATA',
-      'OTHER'
-    ];
+    const sectionOrder = skipDatabaseFields
+      ? ['BASIC INFO', 'CONTACT INFO', 'LOAN LIMITS', 'PRODUCTS', 'LTV LIMITS', 'NUMBERS', 'OTHER']
+      : [
+          'CONTACT INFO',
+          'BORROWER INFO',
+          'LEAD INFO',
+          'LOAN INFO',
+          'LOAN STATUS',
+          'ADDRESS',
+          'DATE',
+          'OBJECT',
+          'NOTES',
+          'FILE',
+          'TRACKING DATA',
+          'OTHER'
+        ];
     
     const sortedGroups: Record<string, Column[]> = {};
     sectionOrder.forEach(section => {
@@ -176,7 +237,7 @@ export function ColumnVisibilityModal({
     });
     
     return sortedGroups;
-  }, [allColumnsWithDbFields, allFields]);
+  }, [allColumnsWithDbFields, allFields, skipDatabaseFields, customSections]);
 
   // Filter columns by search term
   const filteredColumns = useMemo(() => {

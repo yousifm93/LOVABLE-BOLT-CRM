@@ -948,6 +948,110 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
             <Separator />
 
+            {/* Additional Info - Special Features & Restrictions */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Additional Info
+                </h3>
+              </div>
+              
+              {/* Special Features */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-muted-foreground font-medium">Special Features</label>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => {
+                      const feature = prompt('Enter special feature:');
+                      if (feature?.trim()) {
+                        const current = (lender as any).special_features || [];
+                        handleFieldUpdate('special_features', [...current, feature.trim()]);
+                      }
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {((lender as any).special_features || []).length === 0 ? (
+                    <span className="text-xs text-muted-foreground italic">No special features added</span>
+                  ) : (
+                    ((lender as any).special_features || []).map((feature: string, idx: number) => (
+                      <Badge 
+                        key={idx} 
+                        variant="secondary" 
+                        className="bg-green-500/15 text-green-700 dark:text-green-400 text-xs pr-1"
+                      >
+                        {feature}
+                        <button
+                          onClick={() => {
+                            const current = (lender as any).special_features || [];
+                            handleFieldUpdate('special_features', current.filter((_: any, i: number) => i !== idx));
+                          }}
+                          className="ml-1.5 hover:bg-green-500/20 rounded-full p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Restrictions */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-muted-foreground font-medium">Restrictions</label>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => {
+                      const restriction = prompt('Enter restriction:');
+                      if (restriction?.trim()) {
+                        const current = (lender as any).restrictions || [];
+                        handleFieldUpdate('restrictions', [...current, restriction.trim()]);
+                      }
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {((lender as any).restrictions || []).length === 0 ? (
+                    <span className="text-xs text-muted-foreground italic">No restrictions added</span>
+                  ) : (
+                    ((lender as any).restrictions || []).map((restriction: string, idx: number) => (
+                      <Badge 
+                        key={idx} 
+                        variant="secondary" 
+                        className="bg-orange-500/15 text-orange-700 dark:text-orange-400 text-xs pr-1"
+                      >
+                        {restriction}
+                        <button
+                          onClick={() => {
+                            const current = (lender as any).restrictions || [];
+                            handleFieldUpdate('restrictions', current.filter((_: any, i: number) => i !== idx));
+                          }}
+                          className="ml-1.5 hover:bg-orange-500/20 rounded-full p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Notes */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3">Notes</h3>
