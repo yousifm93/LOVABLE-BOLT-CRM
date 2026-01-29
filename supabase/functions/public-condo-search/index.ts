@@ -22,9 +22,13 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Build query - search by condo name or address
+    // Filter out duplicates and restricted condos for public view
     let query = supabase
       .from('condos')
       .select('condo_name, street_address, city, state, zip, primary_down, second_down, investment_down, source_uwm, source_ad, past_mb_closing')
+      .or('is_duplicate.is.null,is_duplicate.eq.false') // Only show unique/best records
+      .neq('review_type', 'Restricted') // Exclude non-financeable buildings
+      .is('deleted_at', null) // Respect soft deletes
       .limit(Math.min(limit, 50)); // Cap at 50 results for performance
 
     // Apply search filter if query provided

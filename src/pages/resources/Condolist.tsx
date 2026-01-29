@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Building, Plus, Search, Filter, CheckCircle, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Building, Plus, Search, Filter, CheckCircle, Clock, Copy } from "lucide-react";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
@@ -43,6 +44,7 @@ interface Condo {
   updated_at: string;
   updated_by: string | null;
   updated_by_name?: string | null;
+  is_duplicate: boolean | null;
 }
 
 const reviewTypeOptions = [
@@ -67,6 +69,19 @@ const createColumns = (
   handleDocUpdate: (id: string, field: string, path: string | null, uploadedAt?: string, uploadedBy?: string) => void,
   onPreview: (url: string, fileName: string) => void
 ): ColumnDef<Condo>[] => [
+  {
+    accessorKey: "is_duplicate",
+    header: "Status",
+    cell: ({ row }) => (
+      row.original.is_duplicate ? (
+        <Badge variant="outline" className="bg-orange-500/10 text-orange-700 border-orange-500/30 text-[10px] px-1.5">
+          <Copy className="h-3 w-3 mr-1" />
+          Duplicate
+        </Badge>
+      ) : null
+    ),
+    sortable: true,
+  },
   {
     accessorKey: "condo_name",
     header: "Condo Name",
@@ -333,6 +348,7 @@ export default function Condolist() {
   const [uwmFilter, setUwmFilter] = useState<string>("all");
   const [adFilter, setAdFilter] = useState<string>("all");
   const [pastMbFilter, setPastMbFilter] = useState<string>("all");
+  const [duplicateFilter, setDuplicateFilter] = useState<string>("unique");
   const [selectedCondo, setSelectedCondo] = useState<Condo | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -591,6 +607,14 @@ export default function Condolist() {
   const filteredCondos = useMemo(() => {
     let result = condos;
     
+    // Duplicate filter - default to showing unique only
+    if (duplicateFilter === "unique") {
+      result = result.filter(condo => condo.is_duplicate !== true);
+    } else if (duplicateFilter === "duplicates") {
+      result = result.filter(condo => condo.is_duplicate === true);
+    }
+    // "all" shows everything
+    
     // UWM filter
     if (uwmFilter === "yes") {
       result = result.filter(condo => condo.source_uwm === true);
@@ -630,7 +654,7 @@ export default function Condolist() {
     return result.sort((a, b) => 
       new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
-  }, [condos, targetMarketFilter, reviewTypeFilter, uwmFilter, adFilter, pastMbFilter]);
+  }, [condos, targetMarketFilter, reviewTypeFilter, uwmFilter, adFilter, pastMbFilter, duplicateFilter]);
 
   const columns = createColumns(handleUpdate, handleDocUpdate, handlePreview);
 
@@ -639,7 +663,8 @@ export default function Condolist() {
     reviewTypeFilter !== "all",
     uwmFilter !== "all",
     adFilter !== "all",
-    pastMbFilter !== "all"
+    pastMbFilter !== "all",
+    duplicateFilter !== "unique"
   ].filter(Boolean).length;
 
   if (loading) {
@@ -740,6 +765,17 @@ export default function Condolist() {
               </SelectContent>
             </Select>
 
+            <Select value={duplicateFilter} onValueChange={setDuplicateFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Duplicates" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unique">Unique Only</SelectItem>
+                <SelectItem value="all">All Records</SelectItem>
+                <SelectItem value="duplicates">Duplicates Only</SelectItem>
+              </SelectContent>
+            </Select>
+
             {activeFiltersCount > 0 && (
               <Button 
                 variant="ghost" 
@@ -750,6 +786,7 @@ export default function Condolist() {
                   setUwmFilter("all");
                   setAdFilter("all");
                   setPastMbFilter("all");
+                  setDuplicateFilter("unique");
                 }}
               >
                 Clear filters

@@ -944,6 +944,7 @@ export type Database = {
           deleted_by: string | null
           id: string
           investment_down: string | null
+          is_duplicate: boolean | null
           mip_doc: string | null
           mip_doc_uploaded_at: string | null
           mip_doc_uploaded_by: string | null
@@ -974,6 +975,7 @@ export type Database = {
           deleted_by?: string | null
           id?: string
           investment_down?: string | null
+          is_duplicate?: boolean | null
           mip_doc?: string | null
           mip_doc_uploaded_at?: string | null
           mip_doc_uploaded_by?: string | null
@@ -1004,6 +1006,7 @@ export type Database = {
           deleted_by?: string | null
           id?: string
           investment_down?: string | null
+          is_duplicate?: boolean | null
           mip_doc?: string | null
           mip_doc_uploaded_at?: string | null
           mip_doc_uploaded_by?: string | null
