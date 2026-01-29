@@ -24,7 +24,7 @@ serve(async (req) => {
     // Build query - search by condo name or address
     let query = supabase
       .from('condos')
-      .select('condo_name, street_address, city, state, zip, primary_down, second_down, investment_down, source_uwm, source_ad')
+      .select('condo_name, street_address, city, state, zip, primary_down, second_down, investment_down, source_uwm, source_ad, past_mb_closing')
       .limit(Math.min(limit, 50)); // Cap at 50 results for performance
 
     // Apply search filter if query provided
@@ -53,7 +53,8 @@ serve(async (req) => {
       approvals: {
         uwm: condo.source_uwm || false,
         ad: condo.source_ad || false,
-      }
+      },
+      pastMbClosing: condo.past_mb_closing || false,
     }));
 
     return new Response(
