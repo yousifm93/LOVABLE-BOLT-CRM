@@ -1,158 +1,138 @@
 
 
-# Plan: Backfill Missing Condo Addresses & Connect to mortgagebolt.org
+# Plan: Improve Past MB Closing Matching
 
-## Summary
+## Current Status
+- **44 condos** currently marked with past closings
+- **825 past clients** in the system (623 with unique addresses)
+- Many matches are being missed due to address formatting differences
 
-This plan addresses two requests:
-1. **Fill in missing street addresses** for condos using the uploaded spreadsheet (mci_addy.xlsx)
-2. **Ensure mortgagebolt.org/condo/approved connects** to the internal condo list database
+## Root Cause Analysis
 
----
+### 1. Address Format Mismatches (Primary Issue)
+The current matching is too strict and fails on common abbreviations:
 
-## Data Analysis
+| Condo Address | Past Client Address | Should Match? |
+|--------------|---------------------|---------------|
+| 1200 Brickell Bay Dr | 1200 Brickell Bay Drive | Yes - but fails |
+| 1000 Brickell Plaza | 1000 Brickell Plz | Yes - but fails |
+| 100 Lincoln Rd | 100 Lincoln Road | Yes - but fails |
+| 10275 Collins Ave | 10275 Collins Avenue | Yes - but fails |
 
-### Spreadsheet Contents
-The uploaded spreadsheet contains **377 condos** with complete address information:
-- Development Name, Neighborhood, Address, City, State, Zip
-- Covers Miami-Dade County areas: Brickell, Downtown Miami, Edgewater, South Beach, Coconut Grove, Coral Gables, Key Biscayne, Bal Harbour, Surfside, Sunny Isles Beach, Aventura
+With improved normalization, we can match **62 condos** instead of 44 (+18 more).
 
-### Database Status
-- **1,444 condos** are missing street addresses in the database
-- **~120-150 condos** from the spreadsheet can fill missing addresses (based on zip code and name matching analysis)
+### 2. Many Past Closings Are Not Condos
+Of 823 past clients, approximately **674 are at single-family homes or townhouses** that don't exist in the condo list. Only ~149 appear to be condo closings based on address patterns.
 
-### Examples of Matches Found
-| Condo Name (Database) | Suggested Address (from Spreadsheet) |
-|----------------------|--------------------------------------|
-| Brickell Flatiron | 1000 Brickell Plaza |
-| Club At Brickell Bay Plaza | 1200 Brickell Bay Dr |
-| Isola | 770 Claughton Island Dr |
-| Brickell On The River N Tower | 31 SE 5 St |
-| Brickell Key II | 540 Brickell Key Dr |
-| The Mark On Brickell Condo | 1155 Brickell Bay Dr |
-| Brickellhouse | 1300 Brickell Bay Dr |
-| Nine At Mary Brickell | 999 SW 1 Ave |
+### 3. Missing Condo Addresses
+1,413 condos have no street address, preventing any match even if a past client closed there.
 
 ---
 
-## Solution
+## Solution Part 1: Improve Address Matching
 
-### Part 1: Create Edge Function to Backfill Addresses
+Update the matching logic to normalize common abbreviations before comparing:
 
-**New File:** `supabase/functions/backfill-condo-addresses/index.ts`
+**Normalizations to apply:**
+- Dr → Drive, Drive → Dr → normalized to "dr"
+- Ave → Avenue → normalized to "ave"  
+- St → Street → normalized to "st"
+- Rd → Road → normalized to "rd"
+- Blvd → Boulevard → normalized to "blvd"
+- Ct → Court → normalized to "ct"
+- Plz → Plaza → normalized to "plz"
+- Remove periods, extra spaces, and case differences
 
-This edge function will:
-1. Parse the spreadsheet data (embedded as a JSON mapping)
-2. For each condo missing an address, attempt to match by:
-   - **Exact name match** (case-insensitive)
-   - **Fuzzy name match** (removing common suffixes like "Condo", "Tower", "Residences")
-   - **Zip code + partial name match** for disambiguation
-3. Update matched condos with the street address from the spreadsheet
-4. Return a summary of matches made
+**Database changes:**
+1. Create a PostgreSQL function `normalize_address(text)` for consistent normalization
+2. Update the trigger to use this function
+3. Re-run the backfill with improved matching
 
-**Matching Logic:**
-```text
-For each spreadsheet entry:
-  1. Normalize name: LOWER(TRIM(name))
-  2. Remove suffixes: "Condo", "Residences", "Tower", etc.
-  3. Find condos where:
-     - Name matches (fuzzy) AND
-     - Zip matches AND
-     - street_address IS NULL
-  4. Update street_address with spreadsheet value
-```
+**Expected result:** Match **62 condos** (up from 44)
 
-### Part 2: Run Database Migration for Address Updates
+---
 
-Create a SQL migration that updates addresses based on the spreadsheet mapping. The migration will use a comprehensive CASE statement mapping condo names (with fuzzy matching) to addresses.
+## Solution Part 2: Find Missing Condo Addresses Online
 
-**Sample update pattern:**
+For condos missing addresses, I can search online to find them. Priority condos (Miami-area high-rises):
+
+| Condo Name | City | ZIP | Status |
+|------------|------|-----|--------|
+| Echo Condo | Aventura | 33180 | Can find |
+| Aventi At Aventura | Aventura | 33180 | Can find |
+| Turnberry Isle North/South | Aventura | 33180 | Can find |
+| Mystic Pointe Tower 600 | Aventura | 33180 | Can find |
+| Plus 163 Miami condos missing addresses | Miami | varies | Searchable |
+
+**Approach:**
+1. Search for well-known buildings using web search
+2. Create a migration to update addresses for found buildings
+3. This will enable more past_mb_closing matches
+
+---
+
+## Implementation Steps
+
+### Step 1: Create Address Normalization Function
 ```sql
-UPDATE condos
-SET street_address = CASE
-  WHEN LOWER(condo_name) LIKE '%brickell flatiron%' AND zip = '33131' 
-    THEN '1000 Brickell Plaza'
-  WHEN LOWER(condo_name) LIKE '%club at brickell bay%' AND zip = '33131' 
-    THEN '1200 Brickell Bay Dr'
-  -- ... more mappings from spreadsheet
-END
-WHERE (street_address IS NULL OR street_address = '')
-  AND deleted_at IS NULL;
+CREATE OR REPLACE FUNCTION normalize_address(addr text)
+RETURNS text AS $$
+BEGIN
+  RETURN LOWER(TRIM(
+    REGEXP_REPLACE(
+      REGEXP_REPLACE(
+        REGEXP_REPLACE(
+          REGEXP_REPLACE(
+            REGEXP_REPLACE(
+              REGEXP_REPLACE(addr, 
+                ' (Drive|Dr)\.?$', ' dr', 'gi'),
+              ' (Avenue|Ave)\.?$', ' ave', 'gi'),
+            ' (Street|St)\.?$', ' st', 'gi'),
+          ' (Road|Rd)\.?$', ' rd', 'gi'),
+        ' (Boulevard|Blvd)\.?$', ' blvd', 'gi'),
+      '[^a-zA-Z0-9 ]', '', 'g')
+  ));
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
 ```
 
-### Part 3: Deploy Public Condo Search Edge Function
+### Step 2: Update Trigger to Use Normalization
+Modify the `update_condo_past_closing()` trigger to use the new function.
 
-The `public-condo-search` edge function already exists and is properly configured (verify_jwt = false for public access). It needs to be deployed so mortgagebolt.org can connect to it.
-
-**Current Function Capabilities:**
-- Searches by condo name, street address, or city
-- Returns: name, address, down payments (primary/second/investment), approvals (UWM/A&D)
-- Limited to 50 results for performance
-- CORS enabled for cross-origin requests from mortgagebolt.org
-
-**Action:** Deploy the `public-condo-search` edge function to make it available at:
-```
-https://zpsvatonxakysnbqnfcc.supabase.co/functions/v1/public-condo-search?q=searchterm
-```
-
-### Part 4: Add past_mb_closing to Public API Response (Enhancement)
-
-Update `public-condo-search` to include the new `past_mb_closing` field so the public site can show which buildings MortgageBolt has closed at before.
-
-**File:** `supabase/functions/public-condo-search/index.ts`
-
-Add to select query:
-```typescript
-.select('condo_name, street_address, city, state, zip, primary_down, second_down, investment_down, source_uwm, source_ad, past_mb_closing')
+### Step 3: Re-run Backfill with Better Matching
+```sql
+UPDATE condos SET past_mb_closing = true
+WHERE id IN (
+  SELECT DISTINCT c.id
+  FROM condos c
+  INNER JOIN leads l ON normalize_address(c.street_address) = normalize_address(l.subject_address_1)
+  WHERE l.pipeline_stage_id = 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd'
+    AND l.deleted_at IS NULL
+    AND c.deleted_at IS NULL
+);
 ```
 
-Add to response:
-```typescript
-pastMbClosing: condo.past_mb_closing || false
-```
+### Step 4: Search Online for Missing Addresses
+I'll search for addresses of well-known Miami/Aventura/Fort Lauderdale condos and add them via migration.
 
 ---
 
-## Implementation Order
+## Expected Results After Implementation
 
-1. **Create address mapping migration** - SQL migration with all 377 spreadsheet addresses mapped to database condo names
-2. **Execute migration** - Update ~120-150 condos with missing addresses
-3. **Update public-condo-search edge function** - Add past_mb_closing to API response
-4. **Deploy edge function** - Make public API available for mortgagebolt.org
-5. **Provide connection details** - Give URL/code snippet for mortgagebolt.org integration
+| Metric | Before | After |
+|--------|--------|-------|
+| Condos with past_mb_closing | 44 | ~62-70 |
+| Condos with addresses | 991 | ~1,050+ |
+| Matching accuracy | Low (strict) | High (normalized) |
 
 ---
 
 ## Files to Create/Modify
 
-| File | Action |
+| File | Change |
 |------|--------|
-| `supabase/migrations/[timestamp]_backfill_condo_addresses.sql` | Create - SQL migration with address mappings |
-| `supabase/functions/public-condo-search/index.ts` | Modify - Add past_mb_closing to response |
-| `supabase/functions/backfill-condo-addresses/index.ts` | Create - Optional edge function for future manual backfills |
-
----
-
-## Expected Results
-
-After implementation:
-- **~120-150 condos** will have their missing street addresses filled in
-- **mortgagebolt.org/condo/approved** search will query the live condo database
-- **Past MB Closing** indicator will be available in public API for enhanced marketing
-- All future address updates in the CRM will automatically reflect on the public site
-
----
-
-## mortgagebolt.org Integration
-
-The public website search box should call:
-```javascript
-const response = await fetch(
-  `https://zpsvatonxakysnbqnfcc.supabase.co/functions/v1/public-condo-search?q=${searchTerm}&limit=20`
-);
-const data = await response.json();
-// data.results contains array of matching condos
-```
-
-This is already the expected integration pattern based on the existing edge function design.
+| Database migration | Create `normalize_address()` function |
+| Database migration | Update trigger to use normalization |
+| Database migration | Re-run backfill with improved matching |
+| Database migration | Add discovered addresses for missing condos |
 
