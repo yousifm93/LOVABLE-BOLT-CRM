@@ -59,6 +59,18 @@ interface SearchResult {
   pipelineStageId?: string;
 }
 
+// Map pipeline_stage_id to human-readable names for search results
+const PIPELINE_STAGE_NAMES: Record<string, string> = {
+  'c54f417b-3f67-43de-80f5-954cf260d571': 'Leads',
+  '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945': 'Pending App',
+  'a4e162e0-5421-4d17-8ad5-4b1195bbc995': 'Screening',
+  '09162eec-d2b2-48e5-86d0-9e66ee8b2af7': 'Pre-Qualified',
+  '3cbf38ff-752e-4163-a9a3-1757499b4945': 'Pre-Approved',
+  '76eb2e82-e1d9-4f2d-a57d-2120a25696db': 'Active',
+  'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd': 'Past Clients',
+  '5c3bd0b1-414b-4eb8-bad8-99c3b5ab8b0a': 'Idle',
+};
+
 // Map pipeline_stage_id to route path
 const getPipelineRoute = (pipelineStageId: string | undefined): string => {
   const routeMap: Record<string, string> = {
@@ -179,7 +191,7 @@ export function AppSidebar() {
           id: l.id,
           type: 'lead' as const,
           name: `${l.first_name || ''} ${l.last_name || ''}`.trim() || 'Unknown',
-          subtext: l.email || undefined,
+          subtext: l.pipeline_stage_id ? PIPELINE_STAGE_NAMES[l.pipeline_stage_id] || 'Unknown Stage' : 'Lead',
           pipelineStageId: l.pipeline_stage_id,
         })));
       }
@@ -229,7 +241,7 @@ export function AppSidebar() {
           id: c.id,
           type: 'contact' as const,
           name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
-          subtext: c.type || c.email || undefined,
+          subtext: c.type || 'Contact',
         })));
       }
       
