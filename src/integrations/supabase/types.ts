@@ -6114,6 +6114,7 @@ export type Database = {
       get_user_account_id: { Args: { user_uuid: string }; Returns: string }
       has_admin_access: { Args: never; Returns: boolean }
       is_team_member: { Args: { user_uuid: string }; Returns: boolean }
+      normalize_address: { Args: { addr: string }; Returns: string }
       search_blog_posts: {
         Args: { search_query: string }
         Returns: {
