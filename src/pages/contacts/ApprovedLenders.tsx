@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Filter, Phone, Mail, Building, Users, Upload, Eye, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { Search, Filter, Phone, Mail, Building, Users, Upload, Eye, ChevronDown, ChevronRight, Plus, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { CreateLenderModal } from "@/components/modals/CreateLenderModal";
 import { LenderDetailDialog } from "@/components/LenderDetailDialog";
 import { SendLenderEmailModal } from "@/components/modals/SendLenderEmailModal";
 import { BulkLenderEmailModal } from "@/components/modals/BulkLenderEmailModal";
+import { AILenderSearchModal } from "@/components/modals/AILenderSearchModal";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
 import { toLenderTitleCase } from "@/lib/utils";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
@@ -331,6 +332,7 @@ export default function ApprovedLenders() {
   // Filter state
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isAISearchOpen, setIsAISearchOpen] = useState(false);
   
   const { toast } = useToast();
 
@@ -826,7 +828,15 @@ export default function ApprovedLenders() {
               onToggleAll={toggleAll}
               onSaveView={saveView}
               onReorderColumns={reorderColumns}
+              skipDatabaseFields={true}
             />
+            <Button 
+              variant="outline" 
+              onClick={() => setIsAISearchOpen(true)}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              AI Search
+            </Button>
             <Button 
               variant="outline" 
               onClick={handleImportLenders}
@@ -1012,6 +1022,22 @@ export default function ApprovedLenders() {
         title="Delete Lender"
         description={`Are you sure you want to delete "${lenderToDelete?.lender_name}"? This action cannot be undone.`}
         isLoading={isDeleting}
+      />
+
+      <AILenderSearchModal
+        isOpen={isAISearchOpen}
+        onClose={() => setIsAISearchOpen(false)}
+        onViewLender={(lenderId) => {
+          const lender = lenders.find(l => l.id === lenderId);
+          if (lender) {
+            setSelectedLender(lender);
+            setIsDrawerOpen(true);
+          }
+        }}
+        onSelectLenders={(lenderIds) => {
+          setSelectedIds(new Set(lenderIds));
+          setIsBulkEmailModalOpen(true);
+        }}
       />
     </div>
   );

@@ -233,3 +233,6 @@ verify_jwt = false
 
 [functions.reprocess-lender-suggestions]
 verify_jwt = false
+
+[functions.ai-lender-search]
+verify_jwt = true
