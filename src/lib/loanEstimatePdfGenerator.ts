@@ -1,4 +1,5 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -208,9 +209,14 @@ export const generateLoanEstimatePDF = async (
       height: height,
     });
 
-    // Embed Helvetica fonts (regular and bold)
-    const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    // Register fontkit for custom fonts
+    pdfDoc.registerFontkit(fontkit);
+    
+    // Fetch and embed Open Sans fonts
+    const regularFontBytes = await fetch('/fonts/OpenSans-Regular.ttf').then(r => r.arrayBuffer());
+    const boldFontBytes = await fetch('/fonts/OpenSans-Bold.ttf').then(r => r.arrayBuffer());
+    const regularFont = await pdfDoc.embedFont(regularFontBytes);
+    const boldFont = await pdfDoc.embedFont(boldFontBytes);
     
     const black = rgb(0, 0, 0);
 
