@@ -18,6 +18,7 @@ interface ActiveFileDocumentsProps {
 // Define all active file document fields
 const FILE_FIELDS = [
   { key: 'le_file', label: 'Loan Estimate' },
+  { key: 'aus_approval_file', label: 'AUS Approval' },
   { key: 'contract_file', label: 'Contract' },
   { key: 'initial_approval_file', label: 'Initial Approval' },
   { key: 'disc_file', label: 'Disclosures' },
@@ -27,7 +28,6 @@ const FILE_FIELDS = [
   { key: 'fcp_file', label: 'Final Closing Package' },
   { key: 'inspection_file', label: 'Inspection Report' },
   { key: 'title_file', label: 'Title Work' },
-  { key: 'aus_approval_file', label: 'AUS Approval' },
   { key: 'rate_lock_file', label: 'Rate Lock Confirmation' },
 ];
 
@@ -484,6 +484,17 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
       } else if (fieldKey === 'initial_approval_file') {
         await parseInitialApproval(uploadData.path);
         // onLeadUpdate will be called after confirmation modal closes
+      } else if (fieldKey === 'appraisal_file') {
+        // Auto-flip appraisal status to Received when appraisal file is uploaded
+        await databaseService.updateLead(leadId, { 
+          appraisal_status: 'Received',
+          appraisal_received_on: new Date().toISOString().split('T')[0]
+        });
+        toast({
+          title: "Appraisal Status Updated",
+          description: "Appraisal status has been set to 'Received'"
+        });
+        onLeadUpdate();
       } else {
         // For non-parsed files, refresh immediately
         onLeadUpdate();

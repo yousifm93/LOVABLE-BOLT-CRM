@@ -44,7 +44,7 @@ serve(async (req) => {
         assignee_id: automation.assigned_to_user_id,
         priority: automation.task_priority,
         due_date: new Date(Date.now() + (automation.due_date_offset_days || 0) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: 'Working on it',
+        status: 'To Do',
         created_by: automation.created_by,
       })
       .select()

@@ -39,6 +39,7 @@ import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSect
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService } from "@/services/database";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePipelineView } from "@/hooks/usePipelineView";
 import { ActivityLogModal } from "@/components/modals/ActivityLogModal";
@@ -1206,6 +1207,26 @@ export default function Active() {
   const handleUpdate = async (id: string, field: string, value: any) => {
     try {
       const updateData: any = { [field]: value };
+      
+      // Block appraisal_status = 'Received' if no appraisal_file exists
+      if (field === 'appraisal_status' && value === 'Received') {
+        const currentLoan = activeLoans.find(loan => loan.id === id);
+        // Check if lead has appraisal file by fetching fresh data
+        const { data: leadData } = await supabase
+          .from('leads')
+          .select('appraisal_file')
+          .eq('id', id)
+          .single();
+        
+        if (!leadData?.appraisal_file) {
+          toast({
+            title: "Appraisal Report Required",
+            description: "You cannot set appraisal status to 'Received' until an appraisal report is uploaded.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
       
       // Automation: When SUB, AWC, or CTC, move from Incoming to Live
       if (field === 'loan_status' && ['SUB', 'AWC', 'CTC'].includes(value?.toUpperCase())) {
