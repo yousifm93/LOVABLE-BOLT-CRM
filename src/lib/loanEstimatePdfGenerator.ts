@@ -73,11 +73,11 @@ export interface FieldPosition {
 
 // LOCKED DEFAULT POSITIONS - calibrated to match the Bolt Estimate template (from user screenshot)
 export const DEFAULT_FIELD_POSITIONS: Record<string, FieldPosition> = {
-  // Top info section - LEFT column (font size 8)
-  borrowerName: { x: 232, y: 121, fontSize: 8 },
-  lenderLoanNumber: { x: 248, y: 132, fontSize: 8 },
-  zipState: { x: 245, y: 143, fontSize: 8 },
-  date: { x: 244, y: 154, fontSize: 8 },
+  // Top info section - LEFT column (right-aligned, font size 8)
+  borrowerName: { x: 251, y: 121, rightAlign: true, fontSize: 8 },
+  lenderLoanNumber: { x: 251, y: 132, rightAlign: true, fontSize: 8 },
+  zipState: { x: 248, y: 143, rightAlign: true, fontSize: 8 },
+  date: { x: 251, y: 154, rightAlign: true, fontSize: 8 },
   
   // Top info section - RIGHT column (right-aligned, font size 8)
   purchasePrice: { x: 555, y: 121, rightAlign: true, fontSize: 8 },
