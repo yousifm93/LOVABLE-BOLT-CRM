@@ -149,6 +149,7 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
     priority: "medium",
     due_date: "",
     notes: "",
+    needed_from: "Borrower",
   });
 
   // Bulk conditions data
@@ -159,6 +160,7 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
     due_date: string;
     priority: string;
     notes: string;
+    needed_from: string;
   }>>([]);
 
   useEffect(() => {
@@ -245,6 +247,7 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
         priority: condition.priority || "medium",
         due_date: condition.due_date || "",
         notes: condition.notes || "",
+        needed_from: condition.needed_from || "Borrower",
       });
     } else {
       setEditingCondition(null);
@@ -255,6 +258,7 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
         priority: "medium",
         due_date: "",
         notes: "",
+        needed_from: "Borrower",
       });
     }
     setIsBulkMode(false);
@@ -285,6 +289,7 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
       due_date: "",
       priority: "medium",
       notes: "",
+      needed_from: "Borrower",
     }]);
     setIsDialogOpen(true);
   };
@@ -1236,6 +1241,29 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
                     </div>
 
                     <div>
+                      <label className="text-sm font-medium">Needed From</label>
+                      <Select
+                        value={condition.needed_from}
+                        onValueChange={(value) => {
+                          const newConditions = [...bulkConditions];
+                          newConditions[index].needed_from = value;
+                          setBulkConditions(newConditions);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {NEEDED_FROM_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
                       <label className="text-sm font-medium">Due Date</label>
                       <Input
                         type="date"
@@ -1247,8 +1275,6 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
                         }}
                       />
                     </div>
-
-                    <div></div>
 
                     <div className="col-span-2">
                       <label className="text-sm font-medium">Notes</label>
@@ -1277,6 +1303,7 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
                   due_date: "",
                   priority: "medium",
                   notes: "",
+                  needed_from: "Borrower",
                 }])}
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -1360,7 +1387,24 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
                 />
               </div>
 
-              <div></div>
+              <div>
+                <label className="text-sm font-medium">Needed From</label>
+                <Select
+                  value={formData.needed_from}
+                  onValueChange={(value) => setFormData({ ...formData, needed_from: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NEEDED_FROM_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="col-span-2">
                 <label className="text-sm font-medium">Notes</label>
@@ -1391,6 +1435,7 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
                         due_date: "",
                         priority: "medium",
                         notes: "",
+                        needed_from: "Borrower",
                       }
                     ]);
                   } else {
@@ -1401,6 +1446,7 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
                       due_date: "",
                       priority: "medium",
                       notes: "",
+                      needed_from: "Borrower",
                     }]);
                   }
                 }}

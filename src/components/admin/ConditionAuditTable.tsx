@@ -163,9 +163,9 @@ export function ConditionAuditTable() {
     {
       accessorKey: 'description',
       header: 'Condition',
-      width: 250,
+      width: 400,
       cell: ({ row }) => (
-        <div className="text-sm font-medium truncate max-w-[230px]" title={row.original.description}>
+        <div className="text-sm font-medium whitespace-normal" title={row.original.description}>
           {row.original.description}
         </div>
       )

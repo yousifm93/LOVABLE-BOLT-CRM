@@ -43,6 +43,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePipelineView } from "@/hooks/usePipelineView";
 import { ActivityLogModal } from "@/components/modals/ActivityLogModal";
+import { StatusChangeRequirementModal } from "@/components/modals/StatusChangeRequirementModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -933,6 +934,7 @@ export default function Active() {
   const [isEditMainViewOpen, setIsEditMainViewOpen] = useState(false);
   const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
   const [isReviewMode, setIsReviewMode] = useState(false);
+  const [showAppraisalValidationModal, setShowAppraisalValidationModal] = useState(false);
   
   const { toast } = useToast();
 
@@ -1219,11 +1221,7 @@ export default function Active() {
           .single();
         
         if (!leadData?.appraisal_file) {
-          toast({
-            title: "Appraisal Report Required",
-            description: "You cannot set appraisal status to 'Received' until an appraisal report is uploaded.",
-            variant: "destructive"
-          });
+          setShowAppraisalValidationModal(true);
           return;
         }
       }
@@ -1992,6 +1990,19 @@ export default function Active() {
         onClose={() => setIsActivityLogOpen(false)}
         pipelineStage="Active"
         title="Activity Log"
+      />
+
+      <StatusChangeRequirementModal
+        open={showAppraisalValidationModal}
+        onOpenChange={setShowAppraisalValidationModal}
+        rule={{
+          requires: 'appraisal_file',
+          message: 'You cannot set appraisal status to "Received" until an appraisal report is uploaded.',
+          actionLabel: 'Upload Appraisal Report',
+          actionType: 'upload_file'
+        }}
+        fieldLabel="Appraisal Status"
+        newValue="Received"
       />
     </div>
   );

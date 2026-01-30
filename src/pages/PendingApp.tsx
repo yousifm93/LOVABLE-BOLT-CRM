@@ -435,7 +435,8 @@ const allAvailableColumns = useMemo(() => {
     }
     
     // Automation: When App Complete, move to Screening board
-    if (field === 'converted' && value === 'App Complete') {
+    const isMovingToScreening = field === 'converted' && value === 'App Complete';
+    if (isMovingToScreening) {
       updateData.pipeline_stage_id = 'a4e162e0-5421-4d17-8ad5-4b1195bbc995'; // Screening
       updateData.app_complete_at = new Date().toISOString(); // Set timestamp
       updateData.converted = 'Just Applied'; // Set status to "Just Applied"
@@ -446,6 +447,11 @@ const allAvailableColumns = useMemo(() => {
     }
     
     await databaseService.updateLead(id, updateData);
+    
+    // Refresh data after status changes that move leads to other stages
+    if (isMovingToScreening) {
+      await fetchLeads();
+    }
   };
 
   const handleBulkDelete = async () => {
