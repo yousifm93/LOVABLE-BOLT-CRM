@@ -1,44 +1,66 @@
 
 
-# Plan: Restore Original Positions + Keep Right-Align Behavior
+# Plan: Update Default Positions and Reduce Section Total Font Sizes
 
-## What I'll Do
+## Changes Overview
 
-Revert the X coordinates back to the **original values** but **keep `rightAlign: true`** so the right-align logic works when you calibrate positions yourself.
+1. **Set all top-left info fields to X: 280** - Unify `borrowerName`, `lenderLoanNumber`, `zipState`, and `date` to have X coordinate of 280
+
+2. **Reduce section total font sizes from 9 to 8** - Make the totals for Sections A, B, C, and D slightly smaller
+
+---
 
 ## Code Changes
 
 ### File: `src/lib/loanEstimatePdfGenerator.ts`
 
-**Current (my changes):**
+**Lines 77-80 - Update top-left info section X values to 280:**
+
+| Field | Current X | New X |
+|-------|-----------|-------|
+| `borrowerName` | 232 | 280 |
+| `lenderLoanNumber` | 248 | 280 |
+| `zipState` | 245 | 280 |
+| `date` | 244 | 280 |
+
+**Lines 89, 94, 102, 108 - Reduce section total font sizes:**
+
+| Field | Current fontSize | New fontSize |
+|-------|------------------|--------------|
+| `sectionATotal` | 9 | 8 |
+| `sectionBTotal` | 9 | 8 |
+| `sectionCTotal` | 9 | 8 |
+| `sectionDTotal` | 9 | 8 |
+
+---
+
+## Updated Code
+
 ```typescript
-borrowerName: { x: 251, y: 121, rightAlign: true, fontSize: 8 },
-lenderLoanNumber: { x: 251, y: 132, rightAlign: true, fontSize: 8 },
-zipState: { x: 248, y: 143, rightAlign: true, fontSize: 8 },
-date: { x: 251, y: 154, rightAlign: true, fontSize: 8 },
+// Top info section - LEFT column (right-aligned, font size 8)
+borrowerName: { x: 280, y: 121, rightAlign: true, fontSize: 8 },
+lenderLoanNumber: { x: 280, y: 132, rightAlign: true, fontSize: 8 },
+zipState: { x: 280, y: 143, rightAlign: true, fontSize: 8 },
+date: { x: 280, y: 154, rightAlign: true, fontSize: 8 },
+
+// Section A: Lender Fees (items 7, total 8 - reduced from 9)
+sectionATotal: { x: 280, y: 192, rightAlign: true, fontSize: 8 },
+
+// Section B: Third Party Fees (items 7, total 8 - reduced from 9)
+sectionBTotal: { x: 280, y: 275, rightAlign: true, fontSize: 8 },
+
+// Section C: Taxes & Government Fees (items 7, total 8 - reduced from 9)
+sectionCTotal: { x: 555, y: 192, rightAlign: true, fontSize: 8 },
+
+// Section D: Prepaids & Escrow (items 7, total 8 - reduced from 9)
+sectionDTotal: { x: 555, y: 275, rightAlign: true, fontSize: 8 },
 ```
 
-**Restored (original X values + rightAlign enabled):**
-```typescript
-borrowerName: { x: 232, y: 121, rightAlign: true, fontSize: 8 },
-lenderLoanNumber: { x: 248, y: 132, rightAlign: true, fontSize: 8 },
-zipState: { x: 245, y: 143, rightAlign: true, fontSize: 8 },
-date: { x: 244, y: 154, rightAlign: true, fontSize: 8 },
-```
-
-## How Right-Align Works for You
-
-With `rightAlign: true` enabled, when you use the Calibrate Positions panel:
-
-- The X value you set = where the **right edge** of the text will be
-- Short text like "1187878" will end at that X position
-- Long text like "11878781234567" will ALSO end at that same X position, extending leftward
-
-This means you can calibrate once using any text length, and it will work for all lengths.
+---
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/lib/loanEstimatePdfGenerator.ts` | Restore original X coordinates while keeping rightAlign: true |
+| `src/lib/loanEstimatePdfGenerator.ts` | Update DEFAULT_FIELD_POSITIONS with X: 280 for all top-left fields and fontSize: 8 for section totals |
 
