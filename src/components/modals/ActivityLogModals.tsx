@@ -784,8 +784,16 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
     const leadName = leadData ? `${leadData.first_name} ${leadData.last_name}` : 'Unknown Lead';
     const mentionerName = crmUser ? `${crmUser.first_name} ${crmUser.last_name}` : 'A team member';
 
-    // Get content preview (first 100 chars, strip HTML)
-    const contentPreview = noteBody.replace(/<[^>]*>/g, '').substring(0, 100);
+    // Get content preview (strip HTML, decode entities, remove @mentions)
+    const plainText = noteBody
+      .replace(/<[^>]*>/g, '')  // Remove HTML tags
+      .replace(/&nbsp;/g, ' ')  // Decode nbsp
+      .replace(/&amp;/g, '&')   // Decode ampersand
+      .replace(/&lt;/g, '<')    // Decode less than
+      .replace(/&gt;/g, '>')    // Decode greater than
+      .replace(/@[A-Za-z]+\s+[A-Za-z]+/g, '')  // Remove @FirstName LastName patterns
+      .trim();
+    const contentPreview = plainText.substring(0, 100);
 
     for (const member of mentionedMembers) {
       try {

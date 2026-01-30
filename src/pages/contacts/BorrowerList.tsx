@@ -61,7 +61,9 @@ const getContactTypeCategory = (contact: any): string => {
 const CONTACT_TYPE_OPTIONS = [
   { value: 'Borrower', label: 'Borrower' },
   { value: 'Real Estate Agent', label: 'Real Estate Agent' },
-  { value: 'Lender', label: 'Lender' },
+  { value: 'Agent', label: 'Agent' },
+  { value: 'Third Party', label: 'Third Party' },
+  { value: 'Prospect', label: 'Prospect' },
   { value: 'Other', label: 'Other' },
 ];
 
@@ -184,6 +186,39 @@ const getColumns = (
             <div className="font-medium">{fullName}</div>
             <div className="text-sm text-muted-foreground">{subtitle}</div>
           </div>
+        );
+      },
+      sortable: true,
+    });
+    
+    // Contact Type - editable for contacts table
+    columns.push({
+      accessorKey: "contact_type",
+      header: "Contact Type",
+      cell: ({ row }) => {
+        const contact = row.original;
+        const contactType = getContactTypeCategory(contact);
+        const isContactsTable = contact.source === 'contacts';
+        
+        if (isContactsTable && onUpdateType) {
+          return (
+            <div onClick={(e) => e.stopPropagation()}>
+              <InlineEditSelect
+                value={contact.type || contactType}
+                options={CONTACT_TYPE_OPTIONS}
+                onValueChange={(value) => {
+                  if (value) onUpdateType(contact.source_id, value);
+                }}
+                showClearOption={false}
+              />
+            </div>
+          );
+        }
+        
+        return (
+          <Badge variant="outline" className="text-xs">
+            {contactType}
+          </Badge>
         );
       },
       sortable: true,
@@ -324,20 +359,34 @@ const getColumns = (
       ),
     });
     
-    // Notes (user_notes)
+    // Notes (user_notes) - editable
     columns.push({
       accessorKey: "user_notes",
       header: "Notes",
-      cell: ({ row }) => (
-        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-          {row.original.user_notes ? (
-            <span className="flex items-center gap-1">
-              <FileText className="h-3 w-3 flex-shrink-0" />
-              <span className="truncate">{row.original.user_notes}</span>
-            </span>
-          ) : "—"}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const contact = row.original;
+        const isContactsTable = contact.source === 'contacts';
+        const notes = contact.user_notes || '';
+        
+        if (isContactsTable && onUpdateNotes) {
+          return (
+            <div onClick={(e) => e.stopPropagation()} className="max-w-[200px]">
+              <InlineEditNotes
+                value={notes}
+                onValueChange={(value) => onUpdateNotes(contact.source_id, value)}
+                placeholder="Add notes..."
+                maxLength={500}
+              />
+            </div>
+          );
+        }
+        
+        return (
+          <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+            {notes || "—"}
+          </div>
+        );
+      },
     });
     
     // Source Email (at end)
@@ -534,7 +583,7 @@ const getColumns = (
       cell: ({ row }) => {
         const contact = row.original;
         const isContactsTable = contact.source === 'contacts';
-        const notes = contact.user_notes || contact.notes || '';
+        const notes = contact.user_notes || '';
         
         // Only allow editing for contacts table entries
         if (isContactsTable && onUpdateNotes) {
