@@ -1,60 +1,87 @@
 
-# Plan: Update Pre-Approval Letter Font to Match Canva Template
+# Plan: Fix Right-Alignment for Top-Left Info Section
 
-## The Challenge
+## Problem Identified
 
-**Canva Sans is a proprietary font** owned by Canva that cannot be exported or used outside of the Canva platform. There is no TTF/OTF file available for download.
+The top-left info section fields (`borrowerName`, `lenderLoanNumber`, `zipState`, `date`) are currently **left-aligned** - they do NOT have `rightAlign: true`. This means longer text extends to the right, breaking alignment.
 
-## Recommended Solution
+The `rightAlign` logic in the code is correct (it calculates text width and subtracts from X), but it's simply not enabled for these fields.
 
-Since your Pre-Approval Letter template already has the static Canva Sans text baked into the background image, we should use **Open Sans** (which you already have in your project) for the dynamic overlay text. Open Sans is visually very similar to Canva Sans - both are clean, modern sans-serif fonts with similar letter proportions.
+## Solution
 
----
-
-## Current State
-
-The Pre-Approval Letter generator (`src/lib/pdfGenerator.ts`) currently uses:
-
-```typescript
-const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
-```
+Add `rightAlign: true` to all four top-left fields and set them to the same X coordinate based on your calibration findings:
+- Loan Number: **x: 251** (your calibrated value)
+- Zip/State: **x: 248** (your calibrated value)
+- Date: Keep as reference point (appears to be around **x: 251** based on current visual)
+- Borrower Name: Match date alignment at **x: 251**
 
 ---
 
-## Changes to Make
+## Code Changes
 
-### File: `src/lib/pdfGenerator.ts`
+### File: `src/lib/loanEstimatePdfGenerator.ts`
 
-1. **Import fontkit** to enable custom font embedding
-2. **Register fontkit** with the PDF document
-3. **Fetch and embed Open Sans fonts** (already in `/public/fonts/`)
-4. **Update template field positions** to use the new fonts
+Update `DEFAULT_FIELD_POSITIONS` (lines 77-80):
 
-### Code Changes
-
-**Add import:**
+**Current:**
 ```typescript
-import { PDFDocument, rgb } from 'pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+// Top info section - LEFT column (font size 8)
+borrowerName: { x: 232, y: 121, fontSize: 8 },
+lenderLoanNumber: { x: 248, y: 132, fontSize: 8 },
+zipState: { x: 245, y: 143, fontSize: 8 },
+date: { x: 244, y: 154, fontSize: 8 },
 ```
 
-**Replace font embedding (lines 20-24):**
+**Updated:**
 ```typescript
-// Register fontkit for custom fonts
-pdfDoc.registerFontkit(fontkit);
-
-// Fetch and embed Open Sans fonts
-const regularFontBytes = await fetch('/fonts/OpenSans-Regular.ttf').then(r => r.arrayBuffer());
-const boldFontBytes = await fetch('/fonts/OpenSans-Bold.ttf').then(r => r.arrayBuffer());
-const regularFont = await pdfDoc.embedFont(regularFontBytes);
-const boldFont = await pdfDoc.embedFont(boldFontBytes);
-
-// For italic, we'll use regular with slight styling or keep Helvetica Oblique as fallback
-const italicFont = regularFont; // Open Sans Regular works for the expiration date
-const black = rgb(0, 0, 0);
+// Top info section - LEFT column (right-aligned, font size 8)
+borrowerName: { x: 251, y: 121, rightAlign: true, fontSize: 8 },
+lenderLoanNumber: { x: 251, y: 132, rightAlign: true, fontSize: 8 },
+zipState: { x: 248, y: 143, rightAlign: true, fontSize: 8 },
+date: { x: 251, y: 154, rightAlign: true, fontSize: 8 },
 ```
+
+---
+
+## How Right-Align Works
+
+With `rightAlign: true`, the X coordinate represents where the **right edge** of the text will be positioned:
+
+```text
+Without rightAlign (current - LEFT aligned):
+X=232
+ |
+ v
+ Rakesh Lakkimsetty
+ 1187878
+ 33132/FL
+ 1/30/2026
+ 
+Different lengths = ragged right edge ❌
+
+
+With rightAlign: true (proposed - RIGHT aligned):
+                   X=251
+                     |
+                     v
+    Rakesh Lakkimsetty|
+               1187878|
+             33132/FL |
+            1/30/2026 |
+            
+All right edges aligned at X=251 ✓
+```
+
+---
+
+## Fine-Tuning Notes
+
+Based on your testing:
+- **Loan Number** at X: 251 aligns with the date's right edge
+- **Zip/State** at X: 248 looks correct (slightly narrower box width on template)
+- **Date** is your reference point for the right indent
+
+If further tweaks are needed, you can use the Calibrate Positions panel to adjust individual X values - but now all four fields will have their **right edges** anchored to their X positions, so longer/shorter text won't break alignment.
 
 ---
 
@@ -62,22 +89,4 @@ const black = rgb(0, 0, 0);
 
 | File | Change |
 |------|--------|
-| `src/lib/pdfGenerator.ts` | Import fontkit, register it, embed Open Sans fonts |
-
-## No New Files Needed
-
-The Open Sans font files (`OpenSans-Regular.ttf` and `OpenSans-Bold.ttf`) are already in your `public/fonts/` directory from the Loan Estimate change.
-
----
-
-## Alternative: True Canva Sans Match
-
-If you absolutely need the exact Canva Sans font, the only options would be:
-1. Bake ALL text into your Canva template image (no dynamic overlay)
-2. Find a different font in Canva that has an open-source equivalent
-
----
-
-## Expected Result
-
-After this change, the Pre-Approval Letter's dynamic text (borrower name, loan amount, dates, etc.) will render in **Open Sans**, which closely matches the Canva Sans text already in your template image. This provides a consistent, professional appearance.
+| `src/lib/loanEstimatePdfGenerator.ts` | Add `rightAlign: true` to borrowerName, lenderLoanNumber, zipState, date and update X coordinates |
