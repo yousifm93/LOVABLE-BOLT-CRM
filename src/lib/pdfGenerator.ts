@@ -1,4 +1,5 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,10 +18,15 @@ export const generatePreApprovalPDF = async (data: PreApprovalData, shouldDownlo
     const page = pdfDoc.addPage([612, 792]); // Standard letter size
     const { width, height } = page.getSize();
 
-    // Embed fonts for overlaying data
-    const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+    // Register fontkit for custom fonts
+    pdfDoc.registerFontkit(fontkit);
+
+    // Fetch and embed Open Sans fonts
+    const regularFontBytes = await fetch('/fonts/OpenSans-Regular.ttf').then(r => r.arrayBuffer());
+    const boldFontBytes = await fetch('/fonts/OpenSans-Bold.ttf').then(r => r.arrayBuffer());
+    const regularFont = await pdfDoc.embedFont(regularFontBytes);
+    const boldFont = await pdfDoc.embedFont(boldFontBytes);
+    const italicFont = regularFont; // Use regular for italic since Open Sans Italic isn't included
     const black = rgb(0, 0, 0);
 
     // Template field positioning configuration - easily adjustable coordinates
