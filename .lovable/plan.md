@@ -1,164 +1,111 @@
 
-# Plan: Fix CRM Issues - Appraisal Status, Column Width, and @ Mentions
+# Plan: Fix Appraisal Status Update & @ Mentions in Log Call Modal
 
-## Summary of Issues Found
+## Summary of Issues
 
 | # | Issue | Root Cause | Fix |
 |---|-------|------------|-----|
-| 1 | Appraisal status change to "Received" fails | Database trigger uses invalid `'Open'` task status enum value | Fix 3 database triggers to use `'To Do'` instead of `'Open'` |
-| 2 | Condition Audit "Audit Notes" column too wide | Column width set to 200px but InlineEditNotes expands | Reduce column width and constrain the notes component |
-| 3 | @ mention not showing team members | TipTap rich text editor doesn't expose keystroke events to wrapper | Need to integrate mention detection directly into TipTap |
+| 1 | Appraisal status "Received" update fails | Database trigger inserts into non-existent `task_created` column | Fix trigger to use correct columns (`task_id`, `success`) |
+| 2 | @ mentions not working in Log Call modal | Popover z-index blocked by modal, and position clipped | Fix popover z-index and positioning |
+| 3 | Appraisal upload doesn't auto-set status to "Received" | Auto-flip logic exists in AppraisalTab but may not execute | Ensure all upload paths trigger the status flip |
 
 ---
 
-## Issue 1: Appraisal Status Change Fails
+## Issue 1: Database Trigger Column Error
 
-### Root Cause Analysis
+### Problem
+The error message shows: `column "task_created" of relation "task_automation_executions" does not exist`
 
-When the appraisal status changes (e.g., to "Received"), a database trigger `execute_appraisal_status_changed_automations` fires. This trigger creates tasks with `status = 'Open'`, but **'Open' is not a valid task_status enum value**.
+The previous migration still uses `task_created` column which doesn't exist. The actual columns are:
+- `task_id` (uuid) - the ID of the created task
+- `success` (boolean) - whether the automation succeeded
 
-**Valid task_status values:**
-- `'To Do'`
-- `'In Progress'`  
-- `'Done'`
-- `'Working on it'`
-- `'Need help'`
-
-**Database error:**
+### Current Broken Code (lines 53-63 in migration)
+```sql
+INSERT INTO task_automation_executions (
+  automation_id,
+  lead_id,
+  task_created,  -- WRONG: Column doesn't exist!
+  executed_at
+) VALUES (...)
 ```
-invalid input value for enum task_status: "Open"
-```
-
-### Affected Triggers
-
-Three database functions use the invalid `'Open'` status:
-1. `execute_appraisal_status_changed_automations`
-2. `execute_package_status_changed_automations`
-3. `execute_disclosure_status_changed_automations`
 
 ### Fix
-
-Create a migration to update all three functions to use `'To Do'` instead of `'Open'`:
+Create a new migration to fix all three trigger functions to use the correct columns:
 
 ```sql
--- Fix execute_appraisal_status_changed_automations
-CREATE OR REPLACE FUNCTION public.execute_appraisal_status_changed_automations()
--- ... change status = 'Open' to status = 'To Do'
+INSERT INTO task_automation_executions (
+  automation_id,
+  lead_id,
+  task_id,      -- CORRECT: Reference to created task
+  executed_at,
+  success       -- CORRECT: Boolean success indicator
+) VALUES (
+  automation.id,
+  NEW.id,
+  new_task_id,  -- Need to capture task ID from the INSERT
+  NOW(),
+  true
+);
+```
 
--- Fix execute_package_status_changed_automations  
-CREATE OR REPLACE FUNCTION public.execute_package_status_changed_automations()
--- ... change status = 'Open' to status = 'To Do'
+The trigger functions need to:
+1. Capture the new task ID using `RETURNING id INTO new_task_id`
+2. Insert into correct columns (`task_id`, `success`)
 
--- Fix execute_disclosure_status_changed_automations
-CREATE OR REPLACE FUNCTION public.execute_disclosure_status_changed_automations()
--- ... change status = 'Open' to status = 'To Do'
+---
+
+## Issue 2: @ Mentions Not Working in Log Call Modal
+
+### Root Cause
+The mention dropdown popover has `z-50` but the dialog modal uses higher z-index. Additionally, the popover is positioned `bottom-full` which may be clipped by the modal's overflow settings.
+
+### Fix
+1. Increase z-index of mention popover to `z-[9999]` to appear above modal
+2. Change positioning from `bottom-full` to fixed positioning or use a portal
+
+### Code Change in `mentionable-rich-text-editor.tsx`
+```typescript
+// Current
+<div className="absolute bottom-full left-0 mb-1 z-50 w-64 ...">
+
+// Fixed
+<div className="absolute bottom-full left-0 mb-1 z-[9999] w-64 ...">
+```
+
+If z-index alone doesn't fix it (due to modal clipping), we may need to position the dropdown below the cursor instead of above:
+```typescript
+<div className="absolute top-full left-0 mt-1 z-[9999] w-64 ...">
 ```
 
 ---
 
-## Issue 2: Condition Audit "Audit Notes" Column Too Wide
+## Issue 3: Appraisal Status Auto-Flip
 
 ### Current State
-
-The "Audit Notes" column uses `InlineEditNotes` which expands to fill available space. Even with `width: 200` set, the component stretches beyond that.
-
-### Fix
-
-1. **Reduce column width** from 200px to 180px
-2. **Add max-width constraint** to the notes component wrapper
-3. **Add wrapper div** with explicit width control
-
-### Code Change in `ConditionAuditTable.tsx`
-
+The `AppraisalTab.tsx` correctly sets status to "Received" on upload (lines 112-114):
 ```typescript
-{
-  accessorKey: 'notes',
-  header: 'Audit Notes',
-  width: 180,  // Reduced from 200
-  cell: ({ row }) => (
-    <div onClick={(e) => e.stopPropagation()} className="max-w-[180px]">
-      <InlineEditNotes
-        value={row.original.notes}
-        onValueChange={(value) => handleNotesUpdate(row.original.id, value)}
-        placeholder="Add note..."
-        className="text-xs"  // Smaller text
-      />
-    </div>
-  )
-}
+await onUpdate('appraisal_status', 'Received');
+await onUpdate('appraisal_received_on', new Date().toISOString().split('T')[0]);
 ```
 
----
-
-## Issue 3: @ Mention Not Showing Team Members
-
-### Root Cause Analysis
-
-The `MentionableRichTextEditor` component wraps TipTap's `RichTextEditor` and tries to detect `@` symbols by parsing the HTML content. However, the detection logic has a flaw:
-
-```typescript
-// Current detection - checks if ANY data-user-id exists
-const hasCompletedMention = newValue.includes('data-user-id');
-
-if (isTypingMention && !hasCompletedMention && afterAt.length < 20) {
-  setShowMentionPopover(true);  // This never runs if there's any prior mention
-}
-```
-
-**Problem**: Once any mention is completed (has `data-user-id`), subsequent `@` symbols are ignored because `hasCompletedMention` is always true.
+However, this only runs if the AI parsing succeeds. If parsing fails, the status isn't updated.
 
 ### Fix
-
-Update the detection logic to:
-1. Check if the CURRENT `@` is part of a completed mention
-2. Not use a global check for `data-user-id`
-3. Properly detect the @ symbol position in the HTML
-
-### Updated Logic for `MentionableRichTextEditor.tsx`
+Ensure status is set to "Received" regardless of parsing success/failure:
 
 ```typescript
-const handleContentChange = useCallback((newValue: string) => {
-  onChange(newValue);
+// Move status update outside the try block OR add in finally
+onUpdate('appraisal_file', storagePath);
+onUpdate('appraisal_status', 'Received');
+onUpdate('appraisal_received_on', new Date().toISOString().split('T')[0]);
 
-  // Strip HTML tags to get plain text for @ detection
-  const plainText = newValue.replace(/<[^>]*>/g, '');
-  const lastAtIndex = plainText.lastIndexOf('@');
-  
-  if (lastAtIndex !== -1) {
-    const afterAt = plainText.substring(lastAtIndex + 1);
-    // Check if we're in the middle of typing a mention (no space after @)
-    const spaceIndex = afterAt.indexOf(' ');
-    const newlineIndex = afterAt.indexOf('\n');
-    const firstBreak = Math.min(
-      spaceIndex === -1 ? Infinity : spaceIndex,
-      newlineIndex === -1 ? Infinity : newlineIndex
-    );
-    
-    // Check if there are characters between @ and the break (or end)
-    const searchText = afterAt.substring(0, firstBreak === Infinity ? afterAt.length : firstBreak);
-    
-    // Only show popover if we're actively typing after @ and text is short
-    if (searchText.length < 20 && (firstBreak === Infinity || searchText.length > 0)) {
-      // Check if this specific @ is NOT already inside a completed mention span
-      // by looking for the pattern in HTML
-      const atPositionInHtml = newValue.lastIndexOf('@');
-      const precedingHtml = newValue.substring(Math.max(0, atPositionInHtml - 100), atPositionInHtml);
-      const isInsideMentionSpan = precedingHtml.includes('<span class="mention"') && 
-                                   !precedingHtml.includes('</span>');
-      
-      if (!isInsideMentionSpan) {
-        setMentionSearch(searchText.trim());
-        setShowMentionPopover(true);
-      } else {
-        setShowMentionPopover(false);
-      }
-    } else {
-      setShowMentionPopover(false);
-    }
-  } else {
-    setShowMentionPopover(false);
-  }
-}, [onChange]);
+// Then try to parse and auto-fill the value
+try {
+  // AI parsing...
+} catch {
+  // Show manual entry toast
+}
 ```
 
 ---
@@ -167,16 +114,16 @@ const handleContentChange = useCallback((newValue: string) => {
 
 | File | Changes |
 |------|---------|
-| `supabase/migrations/[new].sql` | Fix 3 trigger functions to use valid task status enum |
-| `src/components/admin/ConditionAuditTable.tsx` | Reduce Audit Notes column width, add max-width constraint |
-| `src/components/ui/mentionable-rich-text-editor.tsx` | Fix @ detection logic to work with multiple mentions |
+| New SQL migration | Fix 3 trigger functions to use correct columns |
+| `src/components/ui/mentionable-rich-text-editor.tsx` | Fix popover z-index for modal context |
+| `src/components/lead-details/AppraisalTab.tsx` | Ensure status updates before/regardless of parsing |
 
 ---
 
-## Migration SQL
+## Database Migration SQL
 
 ```sql
--- Fix trigger functions using invalid 'Open' task status
+-- Fix trigger functions with correct task_automation_executions columns
 
 -- 1. Fix execute_appraisal_status_changed_automations
 CREATE OR REPLACE FUNCTION public.execute_appraisal_status_changed_automations()
@@ -187,6 +134,7 @@ AS $$
 DECLARE
   automation RECORD;
   v_user_id uuid;
+  v_new_task_id uuid;
 BEGIN
   IF OLD.appraisal_status IS DISTINCT FROM NEW.appraisal_status THEN
     BEGIN
@@ -223,21 +171,24 @@ BEGIN
           THEN CURRENT_DATE + automation.due_date_offset_days 
           ELSE NULL 
         END,
-        'To Do',  -- Fixed: was 'Open'
+        'To Do',
         v_user_id,
         automation.id
-      );
+      )
+      RETURNING id INTO v_new_task_id;
 
       INSERT INTO task_automation_executions (
         automation_id,
         lead_id,
-        task_created,
-        executed_at
+        task_id,
+        executed_at,
+        success
       ) VALUES (
         automation.id,
         NEW.id,
-        true,
-        NOW()
+        v_new_task_id,
+        NOW(),
+        true
       );
     END LOOP;
   END IF;
@@ -246,7 +197,7 @@ BEGIN
 END;
 $$;
 
--- 2. Fix execute_package_status_changed_automations
+-- 2. Fix execute_package_status_changed_automations  
 CREATE OR REPLACE FUNCTION public.execute_package_status_changed_automations()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -255,6 +206,7 @@ AS $$
 DECLARE
   automation RECORD;
   v_user_id uuid;
+  v_new_task_id uuid;
 BEGIN
   IF OLD.package_status IS DISTINCT FROM NEW.package_status THEN
     BEGIN
@@ -271,7 +223,7 @@ BEGIN
         AND ta.trigger_config->>'target_status' = NEW.package_status::text
     LOOP
       INSERT INTO tasks (
-        lead_id,
+        borrower_id,
         title,
         description,
         assignee_id,
@@ -290,21 +242,24 @@ BEGIN
           THEN CURRENT_DATE + automation.due_date_offset_days 
           ELSE NULL 
         END,
-        'To Do',  -- Fixed: was 'Open'
+        'To Do',
         v_user_id,
         automation.id
-      );
+      )
+      RETURNING id INTO v_new_task_id;
 
       INSERT INTO task_automation_executions (
         automation_id,
         lead_id,
-        task_created,
-        executed_at
+        task_id,
+        executed_at,
+        success
       ) VALUES (
         automation.id,
         NEW.id,
-        true,
-        NOW()
+        v_new_task_id,
+        NOW(),
+        true
       );
     END LOOP;
   END IF;
@@ -322,6 +277,7 @@ AS $$
 DECLARE
   automation RECORD;
   v_user_id uuid;
+  v_new_task_id uuid;
 BEGIN
   IF OLD.disclosure_status IS DISTINCT FROM NEW.disclosure_status THEN
     BEGIN
@@ -338,7 +294,7 @@ BEGIN
         AND ta.trigger_config->>'target_status' = NEW.disclosure_status::text
     LOOP
       INSERT INTO tasks (
-        lead_id,
+        borrower_id,
         title,
         description,
         assignee_id,
@@ -357,21 +313,24 @@ BEGIN
           THEN CURRENT_DATE + automation.due_date_offset_days 
           ELSE NULL 
         END,
-        'To Do',  -- Fixed: was 'Open'
+        'To Do',
         v_user_id,
         automation.id
-      );
+      )
+      RETURNING id INTO v_new_task_id;
 
       INSERT INTO task_automation_executions (
         automation_id,
         lead_id,
-        task_created,
-        executed_at
+        task_id,
+        executed_at,
+        success
       ) VALUES (
         automation.id,
         NEW.id,
-        true,
-        NOW()
+        v_new_task_id,
+        NOW(),
+        true
       );
     END LOOP;
   END IF;
@@ -385,6 +344,6 @@ $$;
 
 ## Expected Results After Fix
 
-1. **Appraisal Status**: Changing to "Received" will work without errors - automation tasks will be created with valid `'To Do'` status
-2. **Condition Audit Notes**: Column will be narrower and more readable
-3. **@ Mentions**: Typing `@herman` will show the team member dropdown for selection
+1. **Appraisal Status**: Changing to "Received" will work - no more database column errors
+2. **@ Mentions**: Team member dropdown will appear above the modal when typing `@` in Log Call modal
+3. **Auto-Status Update**: Uploading appraisal will reliably set status to "Received"
