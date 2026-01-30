@@ -5672,6 +5672,78 @@ export type Database = {
         }
         Relationships: []
       }
+      user_mentions: {
+        Row: {
+          comment_id: string | null
+          content_preview: string | null
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          lead_id: string
+          mentioned_user_id: string
+          mentioner_user_id: string
+          note_id: string | null
+        }
+        Insert: {
+          comment_id?: string | null
+          content_preview?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          lead_id: string
+          mentioned_user_id: string
+          mentioner_user_id: string
+          note_id?: string | null
+        }
+        Update: {
+          comment_id?: string | null
+          content_preview?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          lead_id?: string
+          mentioned_user_id?: string
+          mentioner_user_id?: string
+          note_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_mentions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "activity_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_mentions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_mentions_mentioned_user_id_fkey"
+            columns: ["mentioned_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_mentions_mentioner_user_id_fkey"
+            columns: ["mentioner_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_mentions_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_permissions: {
         Row: {
           admin: string

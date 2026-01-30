@@ -772,7 +772,7 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
     return uuidRegex.test(uuid);
   };
 
-  // Send mention notifications
+  // Send mention notifications and save to database
   const sendMentionNotifications = async (noteId: string, mentionedMembers: TeamMember[]) => {
     // Get lead name for notification
     const { data: leadData } = await supabase
@@ -784,8 +784,21 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
     const leadName = leadData ? `${leadData.first_name} ${leadData.last_name}` : 'Unknown Lead';
     const mentionerName = crmUser ? `${crmUser.first_name} ${crmUser.last_name}` : 'A team member';
 
+    // Get content preview (first 100 chars, strip HTML)
+    const contentPreview = noteBody.replace(/<[^>]*>/g, '').substring(0, 100);
+
     for (const member of mentionedMembers) {
       try {
+        // Save mention to database for notification badge
+        await supabase.from('user_mentions').insert({
+          mentioned_user_id: member.id,
+          mentioner_user_id: crmUser?.id,
+          lead_id: leadId,
+          note_id: noteId,
+          content_preview: contentPreview,
+        });
+
+        // Send email notification
         await supabase.functions.invoke('send-mention-notification', {
           body: {
             mentionedUserId: member.id,
@@ -893,7 +906,7 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add Note</DialogTitle>
         </DialogHeader>
@@ -925,7 +938,7 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
                 <VoiceButton isRecording={isRecording} isTranscribing={isTranscribing} onClick={handleVoiceClick} />
               </div>
             </div>
-            <div className="max-h-[300px] overflow-y-auto border rounded-md">
+            <div className="max-h-[500px] overflow-y-auto border rounded-md">
               <MentionableRichTextEditor
                 value={noteBody}
                 onChange={setNoteBody}
