@@ -55,10 +55,14 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
     const formattedDate = `${today.getMonth() + 1}.${today.getDate()}.${String(today.getFullYear()).slice(-2)}`;
     const customTitle = `Appraisal Report-${borrowerLastName}-${formattedDate}`;
     
+    // Update the file field with storage path
+    onUpdate('appraisal_file', storagePath);
+    
+    // Always set status to Received and received date when appraisal is uploaded
+    onUpdate('appraisal_status', 'Received');
+    onUpdate('appraisal_received_on', new Date().toISOString().split('T')[0]);
+    
     try {
-      // Update the file field with storage path
-      onUpdate('appraisal_file', storagePath);
-      
       // Delete any existing appraisal documents for this lead to prevent duplicates
       await supabase
         .from('documents')
@@ -67,7 +71,6 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
         .ilike('file_name', 'Appraisal Report%');
       
       // Add new document to documents table
-      const { data: userData } = await supabase.auth.getUser();
       await databaseService.createDocumentFromStoragePath(
         leadId,
         storagePath,
@@ -108,10 +111,6 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
       if (functionData?.success && functionData?.appraised_value) {
         // Auto-fill appraised value
         await onUpdate('appraisal_value', functionData.appraised_value);
-        // Set status to Received
-        await onUpdate('appraisal_status', 'Received');
-        // Set received date to today
-        await onUpdate('appraisal_received_on', new Date().toISOString().split('T')[0]);
         
         toast({
           title: "Appraisal Parsed Successfully",

@@ -143,7 +143,7 @@ export function MentionableRichTextEditor({
       
       {/* Mention Dropdown */}
       {showMentionPopover && (
-        <div className="absolute bottom-full left-0 mb-1 z-50 w-64 bg-popover border rounded-md shadow-md">
+        <div className="absolute top-full left-0 mt-1 z-[9999] w-64 bg-popover border rounded-md shadow-md">
           <Command>
             <CommandList>
               <CommandEmpty>No team members found.</CommandEmpty>
