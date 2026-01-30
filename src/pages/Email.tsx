@@ -626,7 +626,7 @@ export default function Email() {
       console.error('Error fetching email tags:', error);
     }
   }, []);
-  const fetchEmails = useCallback(async (folder: string, offset: number = 0, append: boolean = false, account: 'yousif' | 'scenarios' | 'salma' | 'herman' = 'yousif') => {
+  const fetchEmails = useCallback(async (folder: string, offset: number = 0, append: boolean = false, account: 'yousif' | 'scenarios' | 'salma' | 'herman' | 'ashley' = 'yousif') => {
     if (append) {
       setIsLoadingMore(true);
     } else {
