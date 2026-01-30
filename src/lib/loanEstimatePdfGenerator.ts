@@ -117,14 +117,14 @@ export const DEFAULT_FIELD_POSITIONS: Record<string, FieldPosition> = {
   homeownersInsurance: { x: 280, y: 462, rightAlign: true, fontSize: 7 },
   mortgageInsurance: { x: 280, y: 474, rightAlign: true, fontSize: 7 },
   hoaDues: { x: 280, y: 486, rightAlign: true, fontSize: 7 },
-  totalMonthlyPayment: { x: 280, y: 523, rightAlign: true, bold: true, fontSize: 9 },
+  totalMonthlyPayment: { x: 280, y: 523, rightAlign: true, bold: true, fontSize: 8 },
   
   // Estimated Cash to Close (items 7, bold 9)
   downPayment: { x: 555, y: 439, rightAlign: true, fontSize: 7 },
   closingCosts: { x: 555, y: 450, rightAlign: true, fontSize: 7 },
   prepaidsEscrow: { x: 555, y: 461, rightAlign: true, fontSize: 7 },
   adjustmentsCredits: { x: 555, y: 480, rightAlign: true, fontSize: 7 },
-  totalCashToClose: { x: 555, y: 523, rightAlign: true, bold: true, fontSize: 9 },
+  totalCashToClose: { x: 555, y: 523, rightAlign: true, bold: true, fontSize: 8 },
 };
 
 // Calculate totals
