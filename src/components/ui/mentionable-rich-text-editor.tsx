@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -135,22 +134,17 @@ export function MentionableRichTextEditor({
 
   return (
     <div ref={editorRef} className="relative">
-      <Popover open={showMentionPopover} onOpenChange={setShowMentionPopover}>
-        <PopoverAnchor asChild>
-          <div>
-            <RichTextEditor
-              value={value}
-              onChange={handleContentChange}
-              placeholder={placeholder}
-            />
-          </div>
-        </PopoverAnchor>
-        <PopoverContent 
-          className="w-64 p-0" 
-          side="bottom" 
-          align="start"
-          sideOffset={4}
-          onOpenAutoFocus={(e) => e.preventDefault()}
+      <RichTextEditor
+        value={value}
+        onChange={handleContentChange}
+        placeholder={placeholder}
+      />
+      
+      {/* Mention dropdown - positioned below toolbar area */}
+      {showMentionPopover && (
+        <div 
+          className="absolute left-2 z-[9999] w-64 bg-popover border border-border rounded-md shadow-lg"
+          style={{ top: '50px' }}
         >
           <Command>
             <CommandList>
@@ -181,8 +175,8 @@ export function MentionableRichTextEditor({
               </CommandGroup>
             </CommandList>
           </Command>
-        </PopoverContent>
-      </Popover>
+        </div>
+      )}
     </div>
   );
 }
