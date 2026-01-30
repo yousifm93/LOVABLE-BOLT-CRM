@@ -4563,6 +4563,8 @@ export type Database = {
           error_message: string | null
           id: string
           lead_id: string | null
+          max_retries: number | null
+          queued_at: string | null
           results_json: Json | null
           retry_count: number | null
           scenario_json: Json
@@ -4583,6 +4585,8 @@ export type Database = {
           error_message?: string | null
           id?: string
           lead_id?: string | null
+          max_retries?: number | null
+          queued_at?: string | null
           results_json?: Json | null
           retry_count?: number | null
           scenario_json?: Json
@@ -4603,6 +4607,8 @@ export type Database = {
           error_message?: string | null
           id?: string
           lead_id?: string | null
+          max_retries?: number | null
+          queued_at?: string | null
           results_json?: Json | null
           retry_count?: number | null
           scenario_json?: Json
