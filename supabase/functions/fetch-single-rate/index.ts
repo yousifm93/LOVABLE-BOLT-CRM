@@ -300,7 +300,62 @@ serve(async (req) => {
 
     console.log(`Created pricing run for ${scenario_type}:`, pricingRun.id);
 
+    // === LOCKING CHECK: Prevent overlapping Axiom runs ===
+    // Check if another run is currently active (running status)
+    const { data: activeRun, error: activeCheckError } = await supabase
+      .from('pricing_runs')
+      .select('id, created_at, scenario_type')
+      .eq('status', 'running')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
+    if (activeCheckError) {
+      console.error('Error checking for active runs:', activeCheckError);
+    }
+
+    if (activeRun) {
+      // Check if the active run has been running too long (>3 minutes = likely stuck)
+      const runningFor = Date.now() - new Date(activeRun.created_at).getTime();
+      const THREE_MINUTES = 180000;
+
+      if (runningFor > THREE_MINUTES) {
+        // Mark the stuck run as failed
+        console.log(`Marking stuck run ${activeRun.id} as failed (running for ${Math.round(runningFor / 1000)}s)`);
+        await supabase
+          .from('pricing_runs')
+          .update({ 
+            status: 'failed', 
+            error_message: `Timed out after ${Math.round(runningFor / 1000)} seconds` 
+          })
+          .eq('id', activeRun.id);
+      } else {
+        // Another run is actively running - queue this one for later
+        console.log(`Axiom busy with run ${activeRun.id} (${activeRun.scenario_type}), queueing ${scenario_type}`);
+        
+        await supabase
+          .from('pricing_runs')
+          .update({ 
+            status: 'queued', 
+            queued_at: new Date().toISOString() 
+          })
+          .eq('id', pricingRun.id);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            queued: true,
+            message: `Run queued - Axiom busy with ${activeRun.scenario_type}`,
+            pricing_run_id: pricingRun.id,
+            scenario_type: scenario_type,
+            active_run_id: activeRun.id
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // No active run or we just cleared a stuck one - proceed with triggering Axiom
     console.log(`Triggering loan-pricer-axiom for ${scenario_type}:`, {
       run_id: pricingRun.id,
       income_type: scenarioConfig.income_type,
