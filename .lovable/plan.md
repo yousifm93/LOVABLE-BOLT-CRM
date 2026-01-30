@@ -1,82 +1,38 @@
 
-# Plan: Change BOLT Estimate PDF Font to Open Sans
+# Plan: Update Pre-Approval Letter Font to Match Canva Template
 
-## Summary
+## The Challenge
 
-Currently, the Loan Estimate PDF generator uses **Helvetica** (a standard PDF font), but your template was designed with **Open Sans** from Canva. To make the dynamically-placed numbers match the template text, we'll embed the Open Sans font into the PDF generation process using the `@pdf-lib/fontkit` package (which is already installed in your project).
+**Canva Sans is a proprietary font** owned by Canva that cannot be exported or used outside of the Canva platform. There is no TTF/OTF file available for download.
+
+## Recommended Solution
+
+Since your Pre-Approval Letter template already has the static Canva Sans text baked into the background image, we should use **Open Sans** (which you already have in your project) for the dynamic overlay text. Open Sans is visually very similar to Canva Sans - both are clean, modern sans-serif fonts with similar letter proportions.
 
 ---
 
 ## Current State
 
-The PDF generator at `src/lib/loanEstimatePdfGenerator.ts` uses:
+The Pre-Approval Letter generator (`src/lib/pdfGenerator.ts`) currently uses:
 
 ```typescript
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-
-// ...
 const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-```
-
-This embeds the built-in Helvetica font, which doesn't match your Open Sans template.
-
----
-
-## Solution
-
-### Step 1: Add Open Sans Font Files to the Project
-
-Download the Open Sans font files (TTF format) and place them in the `public/fonts/` directory:
-
-| File | Purpose |
-|------|---------|
-| `OpenSans-Regular.ttf` | Regular weight text |
-| `OpenSans-Bold.ttf` | Bold text (for totals) |
-
-You can download these from [Google Fonts - Open Sans](https://fonts.google.com/specimen/Open+Sans).
-
-### Step 2: Update the PDF Generator
-
-Modify `src/lib/loanEstimatePdfGenerator.ts` to:
-
-1. Import `fontkit` from `@pdf-lib/fontkit`
-2. Register fontkit with the PDF document
-3. Fetch and embed the Open Sans font files
-4. Use the custom fonts instead of StandardFonts.Helvetica
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ Current Flow                                                │
-│                                                             │
-│  PDFDocument.create()                                       │
-│       ↓                                                     │
-│  embedFont(StandardFonts.Helvetica)                        │
-│       ↓                                                     │
-│  Draw text with Helvetica                                   │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│ New Flow                                                    │
-│                                                             │
-│  PDFDocument.create()                                       │
-│       ↓                                                     │
-│  pdfDoc.registerFontkit(fontkit)                           │
-│       ↓                                                     │
-│  Fetch /fonts/OpenSans-Regular.ttf                         │
-│  Fetch /fonts/OpenSans-Bold.ttf                            │
-│       ↓                                                     │
-│  embedFont(fontBytes) for each                             │
-│       ↓                                                     │
-│  Draw text with Open Sans                                   │
-└─────────────────────────────────────────────────────────────┘
+const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
 ```
 
 ---
 
-## Technical Details
+## Changes to Make
 
-### File: `src/lib/loanEstimatePdfGenerator.ts`
+### File: `src/lib/pdfGenerator.ts`
+
+1. **Import fontkit** to enable custom font embedding
+2. **Register fontkit** with the PDF document
+3. **Fetch and embed Open Sans fonts** (already in `/public/fonts/`)
+4. **Update template field positions** to use the new fonts
+
+### Code Changes
 
 **Add import:**
 ```typescript
@@ -84,35 +40,21 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 ```
 
-**Update font embedding (lines 211-213):**
+**Replace font embedding (lines 20-24):**
 ```typescript
 // Register fontkit for custom fonts
 pdfDoc.registerFontkit(fontkit);
 
-// Fetch Open Sans font files
+// Fetch and embed Open Sans fonts
 const regularFontBytes = await fetch('/fonts/OpenSans-Regular.ttf').then(r => r.arrayBuffer());
 const boldFontBytes = await fetch('/fonts/OpenSans-Bold.ttf').then(r => r.arrayBuffer());
-
-// Embed custom fonts
 const regularFont = await pdfDoc.embedFont(regularFontBytes);
 const boldFont = await pdfDoc.embedFont(boldFontBytes);
+
+// For italic, we'll use regular with slight styling or keep Helvetica Oblique as fallback
+const italicFont = regularFont; // Open Sans Regular works for the expiration date
+const black = rgb(0, 0, 0);
 ```
-
-### Directory: `public/fonts/`
-
-Create this folder and add:
-- `OpenSans-Regular.ttf`
-- `OpenSans-Bold.ttf`
-
----
-
-## Font Acquisition
-
-You'll need to provide the Open Sans TTF font files. Options:
-
-1. **Download from Google Fonts**: Visit https://fonts.google.com/specimen/Open+Sans and download the font family
-2. **Export from Canva**: If Canva allows font export for your plan
-3. **Use a CDN** (alternative): Fetch directly from Google Fonts CDN, though local files are more reliable
 
 ---
 
@@ -120,12 +62,22 @@ You'll need to provide the Open Sans TTF font files. Options:
 
 | File | Change |
 |------|--------|
-| `src/lib/loanEstimatePdfGenerator.ts` | Import fontkit, register it, fetch and embed Open Sans TTF files |
-| `public/fonts/OpenSans-Regular.ttf` | New file (you provide) |
-| `public/fonts/OpenSans-Bold.ttf` | New file (you provide) |
+| `src/lib/pdfGenerator.ts` | Import fontkit, register it, embed Open Sans fonts |
+
+## No New Files Needed
+
+The Open Sans font files (`OpenSans-Regular.ttf` and `OpenSans-Bold.ttf`) are already in your `public/fonts/` directory from the Loan Estimate change.
+
+---
+
+## Alternative: True Canva Sans Match
+
+If you absolutely need the exact Canva Sans font, the only options would be:
+1. Bake ALL text into your Canva template image (no dynamic overlay)
+2. Find a different font in Canva that has an open-source equivalent
 
 ---
 
 ## Expected Result
 
-After this change, all dynamically-placed text on the BOLT Estimate PDF (borrower name, loan amounts, fees, totals) will render in Open Sans, matching the text already baked into your Canva template image.
+After this change, the Pre-Approval Letter's dynamic text (borrower name, loan amount, dates, etc.) will render in **Open Sans**, which closely matches the Canva Sans text already in your template image. This provides a consistent, professional appearance.
