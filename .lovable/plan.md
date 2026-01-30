@@ -1,137 +1,135 @@
 
-# Plan: Fix Ashley's Email Configuration, Notification Badge, and Verify Contact List Changes
+# Plan: Fix Mention Preview, Pending Approval Columns, and Contact Type Update
 
 ## Summary
 
-This plan addresses all reported issues with Ashley's email access, the notification badge popover, and confirms the master contact list changes.
+This plan addresses four issues:
+1. Mention notification preview shows HTML entities (`&nbsp;`) instead of clean text
+2. Pending Approval section missing editable Contact Type and Notes columns  
+3. "Failed to update contact" error when changing contact type
+4. Need separate empty Notes field (user_notes) distinct from auto-extracted description
 
 ---
 
-## Issue 1: Master Contact List Changes Not Appearing
+## Issue 1: Mention Preview Showing HTML Entities
+
+### Problem
+The notification shows `"@Ashley Merizio&nbsp;test"` instead of just the clean text `"This is a test."` 
+
+The mention span is being included in the content preview. Looking at the code:
+```typescript
+const contentPreview = noteBody.replace(/<[^>]*>/g, '').substring(0, 100);
+```
+
+This regex removes HTML tags but leaves the `&nbsp;` entity and the mention text itself.
+
+### Solution
+Improve the content preview extraction to:
+1. Decode HTML entities (`&nbsp;` → space)
+2. Remove the `@Name` mention patterns from the preview text
+
+**Files to modify:**
+- `src/components/modals/ActivityLogModals.tsx` (line 788)
+- `src/components/lead-details/ActivityCommentSection.tsx` (line 75)
+
+**Updated code:**
+```typescript
+// Get content preview (strip HTML, decode entities, remove @mentions)
+const plainText = noteBody
+  .replace(/<[^>]*>/g, '')  // Remove HTML tags
+  .replace(/&nbsp;/g, ' ')  // Decode nbsp
+  .replace(/&amp;/g, '&')   // Decode ampersand
+  .replace(/&lt;/g, '<')    // Decode less than
+  .replace(/&gt;/g, '>')    // Decode greater than
+  .replace(/@[A-Za-z]+\s+[A-Za-z]+/g, '')  // Remove @FirstName LastName patterns
+  .trim();
+const contentPreview = plainText.substring(0, 100);
+```
+
+---
+
+## Issue 2: Pending Approval Section Missing Editable Columns
+
+### Problem
+The Pending Approval tab has its own column definition (lines 134-354) that doesn't include:
+- Editable Contact Type column with `InlineEditSelect`
+- Editable Notes column with `InlineEditNotes`
+
+Currently it only has a read-only Notes column showing `user_notes` at lines 327-341.
+
+### Solution
+Add Contact Type column with inline editing after the Contact Name column, and replace the read-only Notes column with an editable version using `InlineEditNotes`.
+
+**Files to modify:**
+- `src/pages/contacts/BorrowerList.tsx`
+
+**Changes:**
+1. Add Contact Type column after Contact Name (around line 191) in the Pending Approval columns
+2. Replace the read-only user_notes column (lines 327-341) with an editable `InlineEditNotes` component
+
+---
+
+## Issue 3: "Failed to update contact type" Error
+
+### Problem
+The `handleUpdateType` function at line 711-737 attempts to update with values like "Real Estate Agent" or "Lender", but the database enum `contact_type` has specific allowed values:
+- Agent, Realtor, Borrower, Other, Real Estate Agent, Prospect, Third Party
+
+The value "Lender" is NOT in the enum, causing the database update to fail.
+
+### Solution
+Update `CONTACT_TYPE_OPTIONS` to only use values that exist in the database enum:
+
+**Current (incorrect):**
+```typescript
+const CONTACT_TYPE_OPTIONS = [
+  { value: 'Borrower', label: 'Borrower' },
+  { value: 'Real Estate Agent', label: 'Real Estate Agent' },
+  { value: 'Lender', label: 'Lender' },      // NOT IN ENUM!
+  { value: 'Other', label: 'Other' },
+];
+```
+
+**Fixed:**
+```typescript
+const CONTACT_TYPE_OPTIONS = [
+  { value: 'Borrower', label: 'Borrower' },
+  { value: 'Real Estate Agent', label: 'Real Estate Agent' },
+  { value: 'Agent', label: 'Agent' },
+  { value: 'Third Party', label: 'Third Party' },
+  { value: 'Prospect', label: 'Prospect' },
+  { value: 'Other', label: 'Other' },
+];
+```
+
+Also update `getContactTypeCategory` function to map database values properly for display.
+
+---
+
+## Issue 4: Notes Column Should Be Empty for User Input
+
+### Problem
+The notes column is showing auto-extracted data (from email parsing like "Extracted from email...") instead of being an empty field for custom user notes.
 
 ### Analysis
-After reviewing `src/pages/contacts/BorrowerList.tsx`, the changes **have been implemented**:
-- **Contact Type column**: Lines 379-411 with `InlineEditSelect`
-- **Editable Notes**: Lines 532-564 with `InlineEditNotes`
-- **Last Updated column**: Lines 567-587 with `formatDistanceToNow`
-- **Updated By column**: Lines 589-604 with user lookup
+The contacts table has two relevant columns:
+- `description`: Auto-extracted info from email parsing
+- `user_notes`: Manual team notes (should be empty by default)
 
-### Likely Cause
-The preview may not have refreshed with the latest build. A hard refresh should display these columns.
-
-### Verification
-No code changes needed - these columns are already implemented. User should:
-1. Hard refresh the page (Ctrl+Shift+R or Cmd+Shift+R)
-2. Check if the new columns appear
-
----
-
-## Issue 2: Ashley's Email - Wrong Email Address
-
-### Problem
-The edge function is configured with:
-- `processing@mortgagevault.org`
-
-But the correct email is:
-- `processor@mortgagebolt.org`
-
-This is a different domain (mortgagebolt.org vs mortgagevault.org) AND a different username (processor vs processing).
-
-### Fix
-Update `supabase/functions/fetch-emails-imap/index.ts` line 32:
-
+The current Notes column code at line 537 does:
 ```typescript
-ashley: {
-  user: "processor@mortgagebolt.org",  // Changed from processing@mortgagevault.org
-  passwordEnvVar: "ASHLEY_EMAIL_PASSWORD",
-},
+const notes = contact.user_notes || contact.notes || '';
 ```
 
-### Required Action
-The `ASHLEY_EMAIL_PASSWORD` secret needs to be updated with the correct password for `processor@mortgagebolt.org`.
+This fallback to `contact.notes` (which may contain auto-data) is incorrect.
 
----
-
-## Issue 3: Hide Scenarios Inbox for Ashley
-
-### Problem
-The current code shows Scenarios Inbox for all users in `USER_ACCOUNT_MAP`. Ashley should only see her own inbox.
-
-### Fix
-Update `src/pages/Email.tsx` around lines 1525-1553 to conditionally hide Scenarios for Ashley:
-
+### Solution
+Change the Notes column to only show `user_notes` without fallback:
 ```typescript
-{/* Scenarios Inbox - Hide for Ashley, show for other known users */}
-{currentUserConfig && currentUserConfig.primary !== 'ashley' && (
-  <button onClick={() => { ... }}>
-    Scenarios Inbox
-  </button>
-)}
+const notes = contact.user_notes || '';
 ```
 
-Also update the `allowedAccounts` logic at lines 218-220 to exclude scenarios for Ashley:
-
-```typescript
-const allowedAccounts = currentUserConfig 
-  ? (currentUserConfig.primary === 'ashley' 
-      ? [currentUserConfig.primary] as const
-      : [currentUserConfig.primary, 'scenarios'] as const)
-  : ['yousif', 'scenarios', 'salma', 'herman'] as const;
-```
-
----
-
-## Issue 4: Notification Badge Popover Not Opening
-
-### Problem
-Looking at `MentionNotificationBadge.tsx`, the current structure is:
-
-```tsx
-<PopoverTrigger asChild>
-  <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-    <Badge>...</Badge>
-  </div>
-</PopoverTrigger>
-```
-
-The `stopPropagation()` on the div prevents the click from reaching the `PopoverTrigger`, so `onOpenChange` is never called.
-
-### Fix
-Change the approach - manually toggle the popover state in the onClick handler:
-
-```tsx
-<PopoverTrigger asChild>
-  <div
-    onClick={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setOpen(!open);  // Manually toggle
-    }}
-  >
-    <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs cursor-pointer ml-1">
-      {unreadCount}
-    </Badge>
-  </div>
-</PopoverTrigger>
-```
-
----
-
-## Issue 5: Account Unread Counts Missing Ashley
-
-### Problem
-In `src/pages/Email.tsx` at line 891, the `newCounts` object doesn't include `ashley`:
-
-```typescript
-const newCounts = { yousif: 0, scenarios: 0, salma: 0, herman: 0 };  // Missing ashley!
-```
-
-### Fix
-Add ashley to the counts object:
-
-```typescript
-const newCounts = { yousif: 0, scenarios: 0, salma: 0, herman: 0, ashley: 0 };
-```
+This ensures the editable Notes column is empty for new contacts and only shows user-entered notes.
 
 ---
 
@@ -139,22 +137,93 @@ const newCounts = { yousif: 0, scenarios: 0, salma: 0, herman: 0, ashley: 0 };
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/fetch-emails-imap/index.ts` | Fix email address: `processor@mortgagebolt.org` |
-| `src/pages/Email.tsx` | Hide Scenarios for Ashley, add ashley to unread counts |
-| `src/components/MentionNotificationBadge.tsx` | Add manual toggle in onClick handler |
+| `src/pages/contacts/BorrowerList.tsx` | Add Contact Type + editable Notes to Pending Approval columns; fix CONTACT_TYPE_OPTIONS enum values; fix notes fallback |
+| `src/components/modals/ActivityLogModals.tsx` | Clean HTML entities and @mentions from content_preview |
+| `src/components/lead-details/ActivityCommentSection.tsx` | Clean HTML entities and @mentions from content_preview |
 
 ---
 
-## Secrets Update Required
+## Technical Details
 
-The `ASHLEY_EMAIL_PASSWORD` secret needs to be updated with the IONOS password for `processor@mortgagebolt.org`.
+### Pending Approval Contact Type Column Addition
+Insert this after the Contact Name column (around line 191):
+
+```typescript
+// Contact Type - editable for contacts table
+columns.push({
+  accessorKey: "contact_type",
+  header: "Contact Type",
+  cell: ({ row }) => {
+    const contact = row.original;
+    const contactType = getContactTypeCategory(contact);
+    const isContactsTable = contact.source === 'contacts';
+    
+    if (isContactsTable && onUpdateType) {
+      return (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={contactType}
+            options={CONTACT_TYPE_OPTIONS}
+            onValueChange={(value) => {
+              if (value) onUpdateType(contact.source_id, value);
+            }}
+            showClearOption={false}
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <Badge variant="outline" className="text-xs">
+        {contactType}
+      </Badge>
+    );
+  },
+  sortable: true,
+});
+```
+
+### Pending Approval Notes Column Replacement
+Replace lines 327-341 with:
+
+```typescript
+// Notes (user_notes) - editable
+columns.push({
+  accessorKey: "user_notes",
+  header: "Notes",
+  cell: ({ row }) => {
+    const contact = row.original;
+    const isContactsTable = contact.source === 'contacts';
+    const notes = contact.user_notes || '';
+    
+    if (isContactsTable && onUpdateNotes) {
+      return (
+        <div onClick={(e) => e.stopPropagation()} className="max-w-[200px]">
+          <InlineEditNotes
+            value={notes}
+            onValueChange={(value) => onUpdateNotes(contact.source_id, value)}
+            placeholder="Add notes..."
+            maxLength={500}
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+        {notes || "—"}
+      </div>
+    );
+  },
+});
+```
 
 ---
 
 ## Expected Results
 
-1. **Master Contact List**: New columns visible after page refresh
-2. **Ashley's Email**: Connects to `processor@mortgagebolt.org` and loads emails
-3. **Scenarios Inbox**: Hidden for Ashley, only her inbox appears
-4. **Notification Badge**: Clicking the red "2" opens the popover with mentions list
-5. **Mention Navigation**: Clicking "View in CRM" navigates directly to the lead file
+1. **Mention notifications**: Will show clean text like `"This is a test."` without HTML entities or @mentions
+2. **Pending Approval Contact Type**: Editable dropdown will appear after contact name
+3. **Pending Approval Notes**: Editable text field will appear, initially empty for new contacts
+4. **Contact Type updates**: Will save successfully using valid enum values
+5. **Notes field**: Will be empty for user input, separate from auto-extracted description
