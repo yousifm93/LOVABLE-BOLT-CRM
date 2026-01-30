@@ -213,10 +213,12 @@ export default function Email() {
     crmUser
   } = useAuth();
   
-  // Get current user's allowed accounts (their own + scenarios)
+  // Get current user's allowed accounts (their own + scenarios, except Ashley who only sees her own)
   const currentUserConfig = crmUser?.id ? USER_ACCOUNT_MAP[crmUser.id] : null;
   const allowedAccounts = currentUserConfig 
-    ? [currentUserConfig.primary, 'scenarios'] as const
+    ? (currentUserConfig.primary === 'ashley' 
+        ? [currentUserConfig.primary] as const
+        : [currentUserConfig.primary, 'scenarios'] as const)
     : ['yousif', 'scenarios', 'salma', 'herman'] as const; // Fallback for unknown users
   
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
@@ -888,7 +890,7 @@ export default function Email() {
         )
       );
 
-      const newCounts = { yousif: 0, scenarios: 0, salma: 0, herman: 0 };
+      const newCounts = { yousif: 0, scenarios: 0, salma: 0, herman: 0, ashley: 0 };
       results.forEach((result, index) => {
         if (result.status === 'fulfilled' && result.value.data?.success && result.value.data.emails) {
           const account = allowedAccounts[index];
@@ -1522,8 +1524,8 @@ export default function Email() {
                   </button>
                 )}
                 
-                {/* Scenarios Inbox - Always visible for known users */}
-                {currentUserConfig && (
+                {/* Scenarios Inbox - Hide for Ashley, show for other known users */}
+                {currentUserConfig && currentUserConfig.primary !== 'ashley' && (
                   <button
                     onClick={() => {
                       setSelectedAccount('scenarios');

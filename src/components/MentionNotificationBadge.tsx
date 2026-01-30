@@ -158,6 +158,7 @@ export function MentionNotificationBadge() {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            setOpen(!open);
           }}
         >
           <Badge 
