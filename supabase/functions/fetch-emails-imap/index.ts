@@ -29,7 +29,7 @@ const ACCOUNTS: Record<string, { user: string; passwordEnvVar: string }> = {
     passwordEnvVar: "HERMAN_EMAIL_PASSWORD",
   },
   ashley: {
-    user: "processing@mortgagevault.org",
+    user: "processor@mortgagebolt.org",
     passwordEnvVar: "ASHLEY_EMAIL_PASSWORD",
   },
 };
