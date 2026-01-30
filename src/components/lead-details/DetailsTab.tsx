@@ -41,7 +41,8 @@ import {
   Hash,
   Target,
   Star,
-  ArrowLeft
+  ArrowLeft,
+  Pause
 } from "lucide-react";
 import {
   AlertDialog,
@@ -91,6 +92,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMovingBack, setIsMovingBack] = useState(false);
   const [isMovingToIdle, setIsMovingToIdle] = useState(false);
+  const [isMovingToOnHold, setIsMovingToOnHold] = useState(false);
   const [idleDialogStep, setIdleDialogStep] = useState<'confirm' | 'form' | null>(null);
   const [idleReason, setIdleReason] = useState('');
   const [idleHasFutureSteps, setIdleHasFutureSteps] = useState<boolean | null>(null);
@@ -589,7 +591,34 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     }
   };
 
-  // ============================================
+  const handleMoveToOnHold = async () => {
+    if (!leadId) return;
+    setIsMovingToOnHold(true);
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ pipeline_section: 'On Hold' })
+        .eq('id', leadId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Lead moved to On Hold",
+      });
+      
+      if (onLeadUpdated) onLeadUpdated();
+    } catch (error) {
+      console.error("Error moving lead to on hold:", error);
+      toast({
+        title: "Error",
+        description: "Failed to move lead to On Hold",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMovingToOnHold(false);
+    }
+  };
   // BORROWER INFORMATION DATA (Horizontal flow: 3 columns)
   // ============================================
   // BORROWER INFORMATION - 4 Column Layout
@@ -1844,6 +1873,35 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                     }
                   }}>
                     Move to Pre-Approved
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          {/* On Hold button - only show when in Active stage */}
+          {client.pipeline_stage_id === ACTIVE_STAGE_ID && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="outline"
+                  disabled={isMovingToOnHold}
+                >
+                  <Pause className="h-4 w-4 mr-1" />
+                  {isMovingToOnHold ? "Moving..." : "On Hold"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Put Lead On Hold?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will move the lead to the On Hold section of the Active pipeline.
+                    The lead can be moved back to Incoming or Live later.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleMoveToOnHold}>
+                    Move to On Hold
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
