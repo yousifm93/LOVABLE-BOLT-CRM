@@ -1,10 +1,14 @@
 
 
-# Plan: Revert Font Sizes and Remove Spaced Dollar Sign
+# Plan: Reduce Font Size for Final Totals
 
 ## Summary
 
-Revert the font size changes (back to 8 for top info fields, 7 for fee items) and remove the spaced dollar sign formatting so totals display as `$1,234.56` instead of `$ 1,234.56`.
+1. **Confirm current defaults are saved** - The current `DEFAULT_FIELD_POSITIONS` already has all the positions you've calibrated (x: 280 for left column fields, x: 555 for right column fields) - these are permanently saved in the code.
+
+2. **Reduce font size for final totals** - Change `totalMonthlyPayment` and `totalCashToClose` from fontSize 9 to fontSize 8 (slightly smaller).
+
+3. **About the bold weight** - The fonts available are OpenSans-Regular and OpenSans-Bold. Unfortunately there's no semi-bold option, so we'll keep them as `bold: true` but the smaller size (8 vs 9) will make them appear less prominent overall.
 
 ---
 
@@ -12,48 +16,37 @@ Revert the font size changes (back to 8 for top info fields, 7 for fee items) an
 
 ### File: `src/lib/loanEstimatePdfGenerator.ts`
 
-#### Change 1: Revert Top Info Fields Back to fontSize 8 (Lines 77-86)
+**Line 120 - Update totalMonthlyPayment:**
+```typescript
+// Before
+totalMonthlyPayment: { x: 280, y: 523, rightAlign: true, bold: true, fontSize: 9 },
 
-| Field | Current | Revert To |
-|-------|---------|-----------|
-| `borrowerName` | 7.5 | 8 |
-| `lenderLoanNumber` | 7.5 | 8 |
-| `zipState` | 7.5 | 8 |
-| `date` | 7.5 | 8 |
-| `purchasePrice` | 7.5 | 8 |
-| `loanAmount` | 7.5 | 8 |
-| `rateApr` | 7.5 | 8 |
-| `loanTerm` | 7.5 | 8 |
+// After
+totalMonthlyPayment: { x: 280, y: 523, rightAlign: true, bold: true, fontSize: 8 },
+```
 
-#### Change 2: Revert Fee Line Items Back to fontSize 7 (Lines 90-127)
+**Line 127 - Update totalCashToClose:**
+```typescript
+// Before
+totalCashToClose: { x: 555, y: 523, rightAlign: true, bold: true, fontSize: 9 },
 
-All individual fee fields revert from 7.5 back to 7:
-- `discountPoints`, `underwritingFee`, `appraisalFee`, `creditReportFee`, `processingFee`, `lendersTitleInsurance`, `titleClosingFee`, `intangibleTax`, `transferTax`, `recordingFees`, `prepaidHoi`, `prepaidInterest`, `escrowHoi`, `escrowTaxes`, `principalInterest`, `propertyTaxes`, `homeownersInsurance`, `mortgageInsurance`, `hoaDues`, `downPayment`, `closingCosts`, `prepaidsEscrow`, `adjustmentsCredits`
-
-#### Change 3: Remove Spaced Dollar Sign Formatter (Lines 176-187)
-
-Delete the `formatCurrencySpaced` function entirely.
-
-#### Change 4: Update Total Fields to Use Regular formatCurrency (Lines 282-321)
-
-Change these 6 calls from `formatCurrencySpaced` back to `formatCurrency`:
-- Line 282: `sectionATotal`
-- Line 287: `sectionBTotal`
-- Line 295: `sectionCTotal`
-- Line 301: `sectionDTotal`
-- Line 313: `totalMonthlyPayment`
-- Line 321: `totalCashToClose`
+// After
+totalCashToClose: { x: 555, y: 523, rightAlign: true, bold: true, fontSize: 8 },
+```
 
 ---
 
 ## Result
 
-After reverting:
-- Top info fields: **fontSize 8** (borrowerName, loanNumber, etc.)
-- Fee line items: **fontSize 7**
-- Section totals A/B/C/D: fontSize 8
-- Final totals: fontSize 9 bold
-- All currency displays as `$1,234.56` (no space after dollar sign)
+| Field | Current | After |
+|-------|---------|-------|
+| `totalMonthlyPayment` | fontSize: 9, bold | fontSize: 8, bold |
+| `totalCashToClose` | fontSize: 9, bold | fontSize: 8, bold |
+
+All other defaults remain unchanged:
+- Top info fields: fontSize 8
+- Fee line items: fontSize 7
+- Section totals (A/B/C/D): fontSize 8
 
 ---
 
@@ -61,5 +54,5 @@ After reverting:
 
 | File | Change |
 |------|--------|
-| `src/lib/loanEstimatePdfGenerator.ts` | Revert all fontSize values and remove formatCurrencySpaced |
+| `src/lib/loanEstimatePdfGenerator.ts` | Reduce fontSize from 9 to 8 for totalMonthlyPayment and totalCashToClose |
 
