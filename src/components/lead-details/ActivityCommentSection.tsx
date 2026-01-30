@@ -60,7 +60,7 @@ export function ActivityCommentSection({
     }
   }, [isAdding]);
 
-  // Send mention notifications
+  // Send mention notifications and save to database
   const sendMentionNotifications = async (commentId: string, mentionedMembers: TeamMember[]) => {
     const { data: leadData } = await supabase
       .from('leads')
@@ -71,8 +71,21 @@ export function ActivityCommentSection({
     const leadName = leadData ? `${leadData.first_name} ${leadData.last_name}` : 'Unknown Lead';
     const mentionerName = crmUser ? `${crmUser.first_name} ${crmUser.last_name}` : 'A team member';
 
+    // Get content preview (first 100 chars, strip HTML)
+    const contentPreview = commentBody.replace(/<[^>]*>/g, '').substring(0, 100);
+
     for (const member of mentionedMembers) {
       try {
+        // Save mention to database for notification badge
+        await supabase.from('user_mentions').insert({
+          mentioned_user_id: member.id,
+          mentioner_user_id: crmUser?.id,
+          lead_id: leadId,
+          comment_id: commentId,
+          content_preview: contentPreview,
+        });
+
+        // Send email notification
         await supabase.functions.invoke('send-mention-notification', {
           body: {
             mentionedUserId: member.id,

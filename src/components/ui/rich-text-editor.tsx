@@ -39,7 +39,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[200px] px-3 py-2',
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[300px] px-3 py-2',
       },
     },
   });

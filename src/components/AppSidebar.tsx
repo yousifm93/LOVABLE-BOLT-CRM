@@ -48,6 +48,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EmailFieldSuggestionsModal } from "@/components/modals/EmailFieldSuggestionsModal";
 import { EmailAutomationQueueModal } from "@/components/modals/EmailAutomationQueueModal";
 import { LenderMarketingSuggestionsModal } from "@/components/modals/LenderMarketingSuggestionsModal";
+import { MentionNotificationBadge } from "@/components/MentionNotificationBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions, UserPermissions } from "@/hooks/usePermissions";
 
@@ -535,6 +536,16 @@ export function AppSidebar() {
                                   {pendingEmailQueueCount}
                                 </Badge>
                               )}
+                            </span>
+                          )}
+                        </NavLink>
+                      ) : item.title === "Home" ? (
+                        <NavLink to={item.url} className={getNavClassName}>
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {!collapsed && (
+                            <span className="flex items-center gap-2">
+                              {item.title}
+                              <MentionNotificationBadge />
                             </span>
                           )}
                         </NavLink>
