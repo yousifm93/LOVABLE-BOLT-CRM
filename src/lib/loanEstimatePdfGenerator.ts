@@ -73,57 +73,57 @@ export interface FieldPosition {
 
 // LOCKED DEFAULT POSITIONS - calibrated to match the Bolt Estimate template (from user screenshot)
 export const DEFAULT_FIELD_POSITIONS: Record<string, FieldPosition> = {
-  // Top info section - LEFT column (right-aligned, font size 7.5)
-  borrowerName: { x: 280, y: 121, rightAlign: true, fontSize: 7.5 },
-  lenderLoanNumber: { x: 280, y: 132, rightAlign: true, fontSize: 7.5 },
-  zipState: { x: 280, y: 143, rightAlign: true, fontSize: 7.5 },
-  date: { x: 280, y: 154, rightAlign: true, fontSize: 7.5 },
+  // Top info section - LEFT column (right-aligned, font size 8)
+  borrowerName: { x: 280, y: 121, rightAlign: true, fontSize: 8 },
+  lenderLoanNumber: { x: 280, y: 132, rightAlign: true, fontSize: 8 },
+  zipState: { x: 280, y: 143, rightAlign: true, fontSize: 8 },
+  date: { x: 280, y: 154, rightAlign: true, fontSize: 8 },
   
-  // Top info section - RIGHT column (right-aligned, font size 7.5)
-  purchasePrice: { x: 555, y: 121, rightAlign: true, fontSize: 7.5 },
-  loanAmount: { x: 555, y: 132, rightAlign: true, fontSize: 7.5 },
-  rateApr: { x: 555, y: 143, rightAlign: true, fontSize: 7.5 },
-  loanTerm: { x: 555, y: 153, rightAlign: true, fontSize: 7.5 },
+  // Top info section - RIGHT column (right-aligned, font size 8)
+  purchasePrice: { x: 555, y: 121, rightAlign: true, fontSize: 8 },
+  loanAmount: { x: 555, y: 132, rightAlign: true, fontSize: 8 },
+  rateApr: { x: 555, y: 143, rightAlign: true, fontSize: 8 },
+  loanTerm: { x: 555, y: 153, rightAlign: true, fontSize: 8 },
   
-  // Section A: Lender Fees (items 7.5, total 8 - NOT bold)
+  // Section A: Lender Fees (items 7, total 8 - NOT bold)
   sectionATotal: { x: 280, y: 192, rightAlign: true, fontSize: 8 },
-  discountPoints: { x: 280, y: 216, rightAlign: true, fontSize: 7.5 },
-  underwritingFee: { x: 280, y: 227, rightAlign: true, fontSize: 7.5 },
+  discountPoints: { x: 280, y: 216, rightAlign: true, fontSize: 7 },
+  underwritingFee: { x: 280, y: 227, rightAlign: true, fontSize: 7 },
   
-  // Section B: Third Party Fees (items 7.5, total 8 - NOT bold)
+  // Section B: Third Party Fees (items 7, total 8 - NOT bold)
   sectionBTotal: { x: 280, y: 275, rightAlign: true, fontSize: 8 },
-  appraisalFee: { x: 280, y: 308, rightAlign: true, fontSize: 7.5 },
-  creditReportFee: { x: 280, y: 320, rightAlign: true, fontSize: 7.5 },
-  processingFee: { x: 280, y: 331, rightAlign: true, fontSize: 7.5 },
-  lendersTitleInsurance: { x: 280, y: 362, rightAlign: true, fontSize: 7.5 },
-  titleClosingFee: { x: 280, y: 373, rightAlign: true, fontSize: 7.5 },
+  appraisalFee: { x: 280, y: 308, rightAlign: true, fontSize: 7 },
+  creditReportFee: { x: 280, y: 320, rightAlign: true, fontSize: 7 },
+  processingFee: { x: 280, y: 331, rightAlign: true, fontSize: 7 },
+  lendersTitleInsurance: { x: 280, y: 362, rightAlign: true, fontSize: 7 },
+  titleClosingFee: { x: 280, y: 373, rightAlign: true, fontSize: 7 },
   
-  // Section C: Taxes & Government Fees (items 7.5, total 8 - NOT bold)
+  // Section C: Taxes & Government Fees (items 7, total 8 - NOT bold)
   sectionCTotal: { x: 555, y: 192, rightAlign: true, fontSize: 8 },
-  intangibleTax: { x: 555, y: 213, rightAlign: true, fontSize: 7.5 },
-  transferTax: { x: 555, y: 222, rightAlign: true, fontSize: 7.5 },
-  recordingFees: { x: 555, y: 232, rightAlign: true, fontSize: 7.5 },
+  intangibleTax: { x: 555, y: 213, rightAlign: true, fontSize: 7 },
+  transferTax: { x: 555, y: 222, rightAlign: true, fontSize: 7 },
+  recordingFees: { x: 555, y: 232, rightAlign: true, fontSize: 7 },
   
-  // Section D: Prepaids & Escrow (items 7.5, total 8 - NOT bold)
+  // Section D: Prepaids & Escrow (items 7, total 8 - NOT bold)
   sectionDTotal: { x: 555, y: 275, rightAlign: true, fontSize: 8 },
-  prepaidHoi: { x: 555, y: 311, rightAlign: true, fontSize: 7.5 },
-  prepaidInterest: { x: 555, y: 322, rightAlign: true, fontSize: 7.5 },
-  escrowHoi: { x: 555, y: 355, rightAlign: true, fontSize: 7.5 },
-  escrowTaxes: { x: 555, y: 366, rightAlign: true, fontSize: 7.5 },
+  prepaidHoi: { x: 555, y: 311, rightAlign: true, fontSize: 7 },
+  prepaidInterest: { x: 555, y: 322, rightAlign: true, fontSize: 7 },
+  escrowHoi: { x: 555, y: 355, rightAlign: true, fontSize: 7 },
+  escrowTaxes: { x: 555, y: 366, rightAlign: true, fontSize: 7 },
   
-  // Estimated Monthly Payment (items 7.5, bold 9)
-  principalInterest: { x: 280, y: 439, rightAlign: true, fontSize: 7.5 },
-  propertyTaxes: { x: 280, y: 450, rightAlign: true, fontSize: 7.5 },
-  homeownersInsurance: { x: 280, y: 462, rightAlign: true, fontSize: 7.5 },
-  mortgageInsurance: { x: 280, y: 474, rightAlign: true, fontSize: 7.5 },
-  hoaDues: { x: 280, y: 486, rightAlign: true, fontSize: 7.5 },
+  // Estimated Monthly Payment (items 7, bold 9)
+  principalInterest: { x: 280, y: 439, rightAlign: true, fontSize: 7 },
+  propertyTaxes: { x: 280, y: 450, rightAlign: true, fontSize: 7 },
+  homeownersInsurance: { x: 280, y: 462, rightAlign: true, fontSize: 7 },
+  mortgageInsurance: { x: 280, y: 474, rightAlign: true, fontSize: 7 },
+  hoaDues: { x: 280, y: 486, rightAlign: true, fontSize: 7 },
   totalMonthlyPayment: { x: 280, y: 523, rightAlign: true, bold: true, fontSize: 9 },
   
-  // Estimated Cash to Close (items 7.5, bold 9)
-  downPayment: { x: 555, y: 439, rightAlign: true, fontSize: 7.5 },
-  closingCosts: { x: 555, y: 450, rightAlign: true, fontSize: 7.5 },
-  prepaidsEscrow: { x: 555, y: 461, rightAlign: true, fontSize: 7.5 },
-  adjustmentsCredits: { x: 555, y: 480, rightAlign: true, fontSize: 7.5 },
+  // Estimated Cash to Close (items 7, bold 9)
+  downPayment: { x: 555, y: 439, rightAlign: true, fontSize: 7 },
+  closingCosts: { x: 555, y: 450, rightAlign: true, fontSize: 7 },
+  prepaidsEscrow: { x: 555, y: 461, rightAlign: true, fontSize: 7 },
+  adjustmentsCredits: { x: 555, y: 480, rightAlign: true, fontSize: 7 },
   totalCashToClose: { x: 555, y: 523, rightAlign: true, bold: true, fontSize: 9 },
 };
 
@@ -173,18 +173,6 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-// Format currency with spaced dollar sign (for totals)
-const formatCurrencySpaced = (value: number): string => {
-  if (value === 0 || isNaN(value)) return '$ 0.00';
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(value);
-  // Add space after dollar sign: "$1,234.56" → "$ 1,234.56"
-  return formatted.replace('$', '$ ');
-};
 
 export const generateLoanEstimatePDF = async (
   data: LoanEstimateData, 
@@ -279,12 +267,12 @@ export const generateLoanEstimatePDF = async (
     // SECTION A: Lender Fees
     // Convert discount points from percentage to dollar amount for display
     const discountPointsDollar = ((data.discountPoints || 0) / 100) * (data.loanAmount || 0);
-    drawField('sectionATotal', formatCurrencySpaced(totals.sectionA));
+    drawField('sectionATotal', formatCurrency(totals.sectionA));
     drawField('discountPoints', formatCurrency(discountPointsDollar));
     drawField('underwritingFee', formatCurrency(data.underwritingFee));
 
     // SECTION B: Third Party Fees
-    drawField('sectionBTotal', formatCurrencySpaced(totals.sectionB));
+    drawField('sectionBTotal', formatCurrency(totals.sectionB));
     drawField('appraisalFee', formatCurrency(data.appraisalFee));
     drawField('creditReportFee', formatCurrency(data.creditReportFee));
     drawField('processingFee', formatCurrency(data.processingFee));
@@ -292,13 +280,13 @@ export const generateLoanEstimatePDF = async (
     drawField('titleClosingFee', formatCurrency(data.titleClosingFee));
 
     // SECTION C: Taxes & Government Fees
-    drawField('sectionCTotal', formatCurrencySpaced(totals.sectionC));
+    drawField('sectionCTotal', formatCurrency(totals.sectionC));
     drawField('intangibleTax', formatCurrency(data.intangibleTax));
     drawField('transferTax', formatCurrency(data.transferTax));
     drawField('recordingFees', formatCurrency(data.recordingFees));
 
     // SECTION D: Prepaids & Escrow
-    drawField('sectionDTotal', formatCurrencySpaced(totals.sectionD));
+    drawField('sectionDTotal', formatCurrency(totals.sectionD));
     drawField('prepaidHoi', formatCurrency(data.prepaidHoi));
     drawField('prepaidInterest', formatCurrency(data.prepaidInterest));
     drawField('escrowHoi', formatCurrency(data.escrowHoi));
@@ -310,7 +298,7 @@ export const generateLoanEstimatePDF = async (
     drawField('homeownersInsurance', formatCurrency(data.homeownersInsurance));
     drawField('mortgageInsurance', formatCurrency(data.mortgageInsurance));
     drawField('hoaDues', formatCurrency(data.hoaDues));
-    drawField('totalMonthlyPayment', formatCurrencySpaced(totals.totalMonthlyPayment));
+    drawField('totalMonthlyPayment', formatCurrency(totals.totalMonthlyPayment));
 
     // Estimated Cash to Close
     const totalCredits = (data.adjustmentsCredits || 0) + (data.credits || 0);
@@ -318,7 +306,7 @@ export const generateLoanEstimatePDF = async (
     drawField('closingCosts', formatCurrency(totals.closingCosts));
     drawField('prepaidsEscrow', formatCurrency(totals.prepaidsEscrow));
     drawField('adjustmentsCredits', totalCredits > 0 ? `-${formatCurrency(totalCredits)}` : formatCurrency(0));
-    drawField('totalCashToClose', formatCurrencySpaced(totals.totalCashToClose));
+    drawField('totalCashToClose', formatCurrency(totals.totalCashToClose));
 
     // Generate PDF bytes
     const pdfBytes = await pdfDoc.save();
