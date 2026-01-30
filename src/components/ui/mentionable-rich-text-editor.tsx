@@ -30,6 +30,7 @@ export function MentionableRichTextEditor({
   const [filteredMembers, setFilteredMembers] = useState<TeamMember[]>([]);
   const [mentions, setMentions] = useState<TeamMember[]>([]);
   const editorRef = useRef<HTMLDivElement>(null);
+  const justInsertedRef = useRef(false);
 
   // Load team members on mount
   useEffect(() => {
@@ -93,7 +94,7 @@ export function MentionableRichTextEditor({
           const isInsideMentionSpan = precedingHtml.includes('<span class="mention"') && 
                                        !precedingHtml.includes('</span>');
           
-          if (!isInsideMentionSpan) {
+          if (!isInsideMentionSpan && !justInsertedRef.current) {
             setMentionSearch(searchText.trim());
             setShowMentionPopover(true);
           } else {
@@ -111,6 +112,8 @@ export function MentionableRichTextEditor({
   }, [onChange]);
 
   const insertMention = (member: TeamMember) => {
+    justInsertedRef.current = true;
+    
     // Find the last @ and replace it with the mention
     const lastAtIndex = value.lastIndexOf('@');
     if (lastAtIndex !== -1) {
@@ -126,6 +129,11 @@ export function MentionableRichTextEditor({
     }
     setShowMentionPopover(false);
     setMentionSearch('');
+    
+    // Reset flag after brief delay to allow content change to process
+    setTimeout(() => {
+      justInsertedRef.current = false;
+    }, 150);
   };
 
   const getInitials = (firstName: string, lastName: string) => {
@@ -144,7 +152,7 @@ export function MentionableRichTextEditor({
       {showMentionPopover && (
         <div 
           className="absolute left-2 z-[9999] w-64 bg-popover border border-border rounded-md shadow-lg"
-          style={{ top: '50px' }}
+          style={{ top: '80px' }}
         >
           <Command>
             <CommandList>
