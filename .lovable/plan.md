@@ -1,243 +1,147 @@
 
-# Plan: Loan Pricer Sequential Queue with Locking and Auto-Retry
+# Plan: Remove 90% LTV from 15-Year Fixed and 70% LTV from 30-Year Fixed
 
-## Problem Summary
+## Summary
 
-Your daily rate pricing runs fail ~50% of the time because multiple Axiom jobs overlap. When a cron job triggers at 5:30 AM while the 5:00 AM job is still running, Axiom gets confused and fails with "couldn't find content during run on step 20".
+Remove two pricing scenarios that are no longer needed:
+1. **15-Year Fixed @ 90% LTV** (`15yr_fixed_90ltv`)
+2. **30-Year Fixed @ 70% LTV** (`30yr_fixed_70ltv`)
 
-## Solution: Sequential Locking + Auto-Retry
-
-We'll implement a system where:
-1. Only ONE pricing run can be in `running` status at a time
-2. If Axiom is busy, the run is marked `queued` instead of triggering immediately
-3. A "retry queue processor" runs every 5 minutes to process queued/failed runs
-4. The edge function checks for lock before triggering Axiom
+This reduces the total number of daily automated pricing runs, improving reliability and reducing Axiom API load.
 
 ---
 
-## Technical Changes
+## Changes Overview
 
-### 1. Database Migration - Add Queue Status and Retry Columns
-
-Add new columns to `pricing_runs` table:
-- `retry_count` (integer) - track how many times we've retried
-- `max_retries` (integer, default 3) - maximum retry attempts
-- `queued_at` (timestamp) - when the run was queued for retry
-
-Also add `queued` to the status check constraint.
-
-### 2. New Edge Function: `process-pricing-queue`
-
-This function runs every 5 minutes via cron and:
-- Finds the oldest `queued` or `failed` run that hasn't exceeded max retries
-- Checks if any run is currently `running`
-- If no run is running, triggers the next queued run
-- Updates retry count on each attempt
-
-### 3. Update `fetch-single-rate` Edge Function
-
-Before triggering Axiom:
-1. Check if any pricing_run has `status = 'running'`
-2. If YES → set this run to `status = 'queued'` instead of triggering
-3. If NO → proceed with triggering Axiom
-4. Add a 90-second timeout check to auto-fail stuck runs
-
-### 4. New Cron Job: `process-pricing-queue`
-
-Runs every 5 minutes to retry queued/failed runs sequentially.
-
-### 5. UI: Add "Retry Failed Runs" Button (Optional)
-
-Add a button to the Loan Pricer page to manually trigger queue processing.
+| Location | What to Remove |
+|----------|----------------|
+| `fetch-daily-rates` edge function | Both scenario definitions from the `scenarios` array |
+| `fetch-single-rate` edge function | Both scenario configs from `scenarioConfigs` object |
+| `MarketRatesCard.tsx` UI | Both rate cards from the dashboard display |
+| Supabase cron jobs | Unschedule the cron jobs for these two scenarios (manual step) |
 
 ---
 
-## Detailed Code Changes
+## File Changes
 
-### File 1: Database Migration
+### 1. `supabase/functions/fetch-daily-rates/index.ts`
+
+**Remove Lines 222-230** - Delete the `15yr_fixed_90ltv` scenario:
+```typescript
+// Remove this block (around line 222-230):
+{
+  ...baseScenario90LTV,
+  loan_type: 'Conventional',
+  income_type: 'Full Doc - 24M',
+  dscr_ratio: '',
+  scenario_type: '15yr_fixed_90ltv',
+  loan_term: 15
+},
+```
+
+**Remove Lines 169-177** - Delete the `30yr_fixed_70ltv` scenario:
+```typescript
+// Remove this block (around line 169-177):
+{
+  ...baseScenario70LTV,
+  loan_type: 'Conventional',
+  income_type: 'Full Doc - 24M',
+  dscr_ratio: '',
+  scenario_type: '30yr_fixed_70ltv',
+  loan_term: 30
+},
+```
+
+### 2. `supabase/functions/fetch-single-rate/index.ts`
+
+**Remove Lines 214-220** - Delete the `15yr_fixed_90ltv` config:
+```typescript
+// Remove this block:
+'15yr_fixed_90ltv': {
+  ...baseScenario90LTV,
+  loan_type: 'Conventional',
+  income_type: 'Full Doc - 24M',
+  dscr_ratio: '',
+  loan_term: 15,
+},
+```
+
+**Remove Lines 167-173** - Delete the `30yr_fixed_70ltv` config:
+```typescript
+// Remove this block:
+'30yr_fixed_70ltv': {
+  ...baseScenario70LTV,
+  loan_type: 'Conventional',
+  income_type: 'Full Doc - 24M',
+  dscr_ratio: '',
+  loan_term: 30,
+},
+```
+
+### 3. `src/components/dashboard/MarketRatesCard.tsx`
+
+**Remove Lines 633-642** - Delete the 90% LTV card from 15-Year Fixed column:
+```typescript
+// Remove this RateCard:
+<RateCard 
+  label="90% LTV" 
+  rate={marketData?.rate_15yr_fixed_90ltv ?? null} 
+  points={marketData?.points_15yr_fixed_90ltv ?? null}
+  onClick={() => handleRateCardClick('15yr_fixed_90ltv')}
+  onRefresh={() => handleRefreshSingle('15yr_fixed_90ltv')}
+  isRefreshing={refreshingTypes.has('15yr_fixed_90ltv')}
+  lastUpdated={lastUpdatedByScenario['15yr_fixed_90ltv']}
+  disabled={isDisabled && !refreshingTypes.has('15yr_fixed_90ltv')}
+/>
+```
+
+**Remove Lines 670-679** - Delete the 70% LTV card from 30-Year Fixed column:
+```typescript
+// Remove this RateCard:
+<RateCard 
+  label="70% LTV" 
+  rate={marketData?.rate_30yr_fixed_70ltv ?? null} 
+  points={marketData?.points_30yr_fixed_70ltv ?? null}
+  onClick={() => handleRateCardClick('30yr_fixed_70ltv')}
+  onRefresh={() => handleRefreshSingle('30yr_fixed_70ltv')}
+  isRefreshing={refreshingTypes.has('30yr_fixed_70ltv')}
+  lastUpdated={lastUpdatedByScenario['30yr_fixed_70ltv']}
+  disabled={isDisabled && !refreshingTypes.has('30yr_fixed_70ltv')}
+/>
+```
+
+---
+
+## Manual Step: Unschedule Cron Jobs
+
+After the code changes, you'll need to unschedule the cron jobs in Supabase for these two scenarios. Run this SQL in the Supabase SQL Editor:
 
 ```sql
--- Add retry tracking columns
-ALTER TABLE pricing_runs 
-ADD COLUMN IF NOT EXISTS retry_count INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS max_retries INTEGER DEFAULT 3,
-ADD COLUMN IF NOT EXISTS queued_at TIMESTAMPTZ;
+-- View existing cron jobs to find the exact names
+SELECT * FROM cron.job WHERE jobname LIKE '%15yr_fixed_90ltv%' OR jobname LIKE '%30yr_fixed_70ltv%';
 
--- Update status constraint to include 'queued'
-ALTER TABLE pricing_runs 
-DROP CONSTRAINT IF EXISTS pricing_runs_status_check;
-
-ALTER TABLE pricing_runs 
-ADD CONSTRAINT pricing_runs_status_check 
-CHECK (status IN ('pending', 'queued', 'running', 'completed', 'failed', 'cancelled'));
-
--- Index for queue processing
-CREATE INDEX IF NOT EXISTS idx_pricing_runs_queued 
-ON pricing_runs(status, queued_at) 
-WHERE status IN ('queued', 'failed');
-```
-
-### File 2: `supabase/functions/fetch-single-rate/index.ts`
-
-Add locking check before triggering Axiom:
-
-```typescript
-// Check if another run is currently active
-const { data: activeRun } = await supabase
-  .from('pricing_runs')
-  .select('id, created_at')
-  .eq('status', 'running')
-  .order('created_at', { ascending: false })
-  .limit(1)
-  .maybeSingle();
-
-if (activeRun) {
-  // Another run is active - queue this one for later
-  console.log(`Axiom busy with run ${activeRun.id}, queueing ${scenario_type}`);
-  
-  await supabase
-    .from('pricing_runs')
-    .update({ 
-      status: 'queued', 
-      queued_at: new Date().toISOString() 
-    })
-    .eq('id', pricingRun.id);
-  
-  return new Response(JSON.stringify({
-    success: true,
-    queued: true,
-    message: `Run queued - Axiom busy with another run`
-  }), { headers: corsHeaders });
-}
-```
-
-### File 3: New Edge Function `supabase/functions/process-pricing-queue/index.ts`
-
-Processes the queue sequentially:
-
-```typescript
-// Find oldest queued or failed run eligible for retry
-const { data: nextRun } = await supabase
-  .from('pricing_runs')
-  .select('*')
-  .in('status', ['queued', 'failed'])
-  .lt('retry_count', 3)
-  .order('queued_at', { ascending: true, nullsFirst: false })
-  .order('created_at', { ascending: true })
-  .limit(1)
-  .maybeSingle();
-
-// Check if any run is currently active
-const { data: activeRun } = await supabase
-  .from('pricing_runs')
-  .select('id, created_at')
-  .eq('status', 'running')
-  .maybeSingle();
-
-if (activeRun) {
-  // Check if it's been running too long (>3 minutes = likely stuck)
-  const runningFor = Date.now() - new Date(activeRun.created_at).getTime();
-  if (runningFor > 180000) {
-    // Mark as failed and proceed
-    await supabase
-      .from('pricing_runs')
-      .update({ status: 'failed', error_message: 'Timed out after 3 minutes' })
-      .eq('id', activeRun.id);
-  } else {
-    return { message: 'Another run still active' };
-  }
-}
-
-if (nextRun) {
-  // Trigger via loan-pricer-axiom
-  await supabase.functions.invoke('loan-pricer-axiom', {
-    body: { run_id: nextRun.id }
-  });
-  
-  // Update retry count
-  await supabase
-    .from('pricing_runs')
-    .update({ 
-      retry_count: (nextRun.retry_count || 0) + 1,
-      status: 'running'
-    })
-    .eq('id', nextRun.id);
-}
-```
-
-### File 4: Cron Job Setup (via SQL)
-
-```sql
-SELECT cron.schedule(
-  'process-pricing-queue',
-  '*/5 * * * *',  -- Every 5 minutes
-  $$
-  SELECT net.http_post(
-    url:='https://zpsvatonxakysnbqnfcc.supabase.co/functions/v1/process-pricing-queue',
-    headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_ANON_KEY"}'::jsonb,
-    body:='{}'::jsonb
-  ) as request_id;
-  $$
-);
+-- Then unschedule them (replace with actual job names from query above)
+-- SELECT cron.unschedule('job-name-for-15yr_fixed_90ltv');
+-- SELECT cron.unschedule('job-name-for-30yr_fixed_70ltv');
 ```
 
 ---
 
-## Expected Outcome
+## Result After Changes
 
-| Before | After |
-|--------|-------|
-| ~50% failure rate | ~95%+ success rate |
-| Runs overlap and collide | Runs execute sequentially |
-| Failed runs stay failed | Failed runs auto-retry up to 3x |
-| Manual monitoring needed | Self-healing queue system |
+| Column | Before | After |
+|--------|--------|-------|
+| **15yr Fixed** | 80%, 90%, 95%, 97% | 80%, 95%, 97% |
+| **30yr Fixed** | 70%, 80%, 95%, 97% | 80%, 95%, 97% |
+
+Total daily scenarios: Reduced by 2 (fewer API calls, less overlap risk)
 
 ---
 
-## Files to Create/Modify
+## Files to Modify
 
 | File | Action |
 |------|--------|
-| Migration SQL | Add `queued` status and retry columns |
-| `supabase/functions/fetch-single-rate/index.ts` | Add locking check |
-| `supabase/functions/process-pricing-queue/index.ts` | Create new queue processor |
-| `supabase/config.toml` | Add config for new function |
-| Cron job SQL | Schedule queue processor |
-
----
-
-## Flow Diagram
-
-```text
-Cron triggers at 5:30 AM
-         │
-         ▼
-  fetch-single-rate
-         │
-         ▼
-   ┌─────────────────────┐
-   │ Is another run      │
-   │ currently 'running'?│
-   └─────────────────────┘
-         │
-    ┌────┴────┐
-   YES        NO
-    │          │
-    ▼          ▼
- Queue run   Trigger Axiom
- for retry   immediately
-    │          │
-    ▼          ▼
- Set status  Set status
- = 'queued'  = 'running'
-    │          │
-    └────┬─────┘
-         │
-         ▼
- process-pricing-queue
- (runs every 5 minutes)
-         │
-         ▼
- Process oldest queued run
- if no active run exists
-```
+| `supabase/functions/fetch-daily-rates/index.ts` | Remove 2 scenario objects |
+| `supabase/functions/fetch-single-rate/index.ts` | Remove 2 scenario configs |
+| `src/components/dashboard/MarketRatesCard.tsx` | Remove 2 RateCard components |
