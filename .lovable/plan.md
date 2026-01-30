@@ -1,147 +1,142 @@
 
-# Plan: Remove 90% LTV from 15-Year Fixed and 70% LTV from 30-Year Fixed
+
+# Plan: Add "On Hold" Button to Lead Details
 
 ## Summary
 
-Remove two pricing scenarios that are no longer needed:
-1. **15-Year Fixed @ 90% LTV** (`15yr_fixed_90ltv`)
-2. **30-Year Fixed @ 70% LTV** (`30yr_fixed_70ltv`)
-
-This reduces the total number of daily automated pricing runs, improving reliability and reducing Axiom API load.
+Add an "On Hold" button between "Mark as Closed" and "Idle" in the Loan & Property tab. When clicked, this button will move the lead from Incoming or Live to the On Hold section within the Active pipeline.
 
 ---
 
-## Changes Overview
+## How It Works
 
-| Location | What to Remove |
-|----------|----------------|
-| `fetch-daily-rates` edge function | Both scenario definitions from the `scenarios` array |
-| `fetch-single-rate` edge function | Both scenario configs from `scenarioConfigs` object |
-| `MarketRatesCard.tsx` UI | Both rate cards from the dashboard display |
-| Supabase cron jobs | Unschedule the cron jobs for these two scenarios (manual step) |
+The Active pipeline uses the `pipeline_section` field to categorize leads:
+- **Incoming** = `pipeline_section: 'Incoming'` or `null`
+- **Live** = `pipeline_section: 'Live'`
+- **On Hold** = `pipeline_section: 'On Hold'`
 
----
-
-## File Changes
-
-### 1. `supabase/functions/fetch-daily-rates/index.ts`
-
-**Remove Lines 222-230** - Delete the `15yr_fixed_90ltv` scenario:
-```typescript
-// Remove this block (around line 222-230):
-{
-  ...baseScenario90LTV,
-  loan_type: 'Conventional',
-  income_type: 'Full Doc - 24M',
-  dscr_ratio: '',
-  scenario_type: '15yr_fixed_90ltv',
-  loan_term: 15
-},
-```
-
-**Remove Lines 169-177** - Delete the `30yr_fixed_70ltv` scenario:
-```typescript
-// Remove this block (around line 169-177):
-{
-  ...baseScenario70LTV,
-  loan_type: 'Conventional',
-  income_type: 'Full Doc - 24M',
-  dscr_ratio: '',
-  scenario_type: '30yr_fixed_70ltv',
-  loan_term: 30
-},
-```
-
-### 2. `supabase/functions/fetch-single-rate/index.ts`
-
-**Remove Lines 214-220** - Delete the `15yr_fixed_90ltv` config:
-```typescript
-// Remove this block:
-'15yr_fixed_90ltv': {
-  ...baseScenario90LTV,
-  loan_type: 'Conventional',
-  income_type: 'Full Doc - 24M',
-  dscr_ratio: '',
-  loan_term: 15,
-},
-```
-
-**Remove Lines 167-173** - Delete the `30yr_fixed_70ltv` config:
-```typescript
-// Remove this block:
-'30yr_fixed_70ltv': {
-  ...baseScenario70LTV,
-  loan_type: 'Conventional',
-  income_type: 'Full Doc - 24M',
-  dscr_ratio: '',
-  loan_term: 30,
-},
-```
-
-### 3. `src/components/dashboard/MarketRatesCard.tsx`
-
-**Remove Lines 633-642** - Delete the 90% LTV card from 15-Year Fixed column:
-```typescript
-// Remove this RateCard:
-<RateCard 
-  label="90% LTV" 
-  rate={marketData?.rate_15yr_fixed_90ltv ?? null} 
-  points={marketData?.points_15yr_fixed_90ltv ?? null}
-  onClick={() => handleRateCardClick('15yr_fixed_90ltv')}
-  onRefresh={() => handleRefreshSingle('15yr_fixed_90ltv')}
-  isRefreshing={refreshingTypes.has('15yr_fixed_90ltv')}
-  lastUpdated={lastUpdatedByScenario['15yr_fixed_90ltv']}
-  disabled={isDisabled && !refreshingTypes.has('15yr_fixed_90ltv')}
-/>
-```
-
-**Remove Lines 670-679** - Delete the 70% LTV card from 30-Year Fixed column:
-```typescript
-// Remove this RateCard:
-<RateCard 
-  label="70% LTV" 
-  rate={marketData?.rate_30yr_fixed_70ltv ?? null} 
-  points={marketData?.points_30yr_fixed_70ltv ?? null}
-  onClick={() => handleRateCardClick('30yr_fixed_70ltv')}
-  onRefresh={() => handleRefreshSingle('30yr_fixed_70ltv')}
-  isRefreshing={refreshingTypes.has('30yr_fixed_70ltv')}
-  lastUpdated={lastUpdatedByScenario['30yr_fixed_70ltv']}
-  disabled={isDisabled && !refreshingTypes.has('30yr_fixed_70ltv')}
-/>
-```
+The new button will:
+1. Show a confirmation dialog asking if you want to put the lead on hold
+2. When confirmed, update `pipeline_section` to `'On Hold'`
+3. Show a success toast
+4. Refresh the drawer to reflect the change
 
 ---
 
-## Manual Step: Unschedule Cron Jobs
+## Technical Changes
 
-After the code changes, you'll need to unschedule the cron jobs in Supabase for these two scenarios. Run this SQL in the Supabase SQL Editor:
+### File: `src/components/lead-details/DetailsTab.tsx`
 
-```sql
--- View existing cron jobs to find the exact names
-SELECT * FROM cron.job WHERE jobname LIKE '%15yr_fixed_90ltv%' OR jobname LIKE '%30yr_fixed_70ltv%';
+**1. Add new state variable for loading state** (around line 93):
+```typescript
+const [isMovingToOnHold, setIsMovingToOnHold] = useState(false);
+```
 
--- Then unschedule them (replace with actual job names from query above)
--- SELECT cron.unschedule('job-name-for-15yr_fixed_90ltv');
--- SELECT cron.unschedule('job-name-for-30yr_fixed_70ltv');
+**2. Add "On Hold" button with AlertDialog** (between "Mark as Closed" button and "Idle" button, around line 2007):
+
+The button order will be:
+1. Delete Lead (red)
+2. Back to Pre-Approved (secondary)  
+3. **On Hold** (new - outline style with pause icon)
+4. Idle (outline)
+5. Mark as Closed (yellow)
+
+```typescript
+{/* On Hold button - only show when in Active stage */}
+{client.pipeline_stage_id === ACTIVE_STAGE_ID && (
+  <AlertDialog>
+    <AlertDialogTrigger asChild>
+      <Button 
+        variant="outline"
+        disabled={isMovingToOnHold}
+      >
+        <Pause className="h-4 w-4 mr-1" />
+        {isMovingToOnHold ? "Moving..." : "On Hold"}
+      </Button>
+    </AlertDialogTrigger>
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Put Lead On Hold?</AlertDialogTitle>
+        <AlertDialogDescription>
+          This will move the lead to the On Hold section of the Active pipeline.
+          The lead can be moved back to Incoming or Live later.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogAction onClick={handleMoveToOnHold}>
+          Move to On Hold
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+)}
+```
+
+**3. Add handler function** (after `handleCloseLoan` around line 550):
+```typescript
+const handleMoveToOnHold = async () => {
+  if (!leadId) return;
+  setIsMovingToOnHold(true);
+  try {
+    const { error } = await supabase
+      .from('leads')
+      .update({ pipeline_section: 'On Hold' })
+      .eq('id', leadId);
+    
+    if (error) throw error;
+    
+    toast({
+      title: "Success",
+      description: "Lead moved to On Hold",
+    });
+    
+    if (onLeadUpdated) onLeadUpdated();
+  } catch (error) {
+    console.error("Error moving lead to on hold:", error);
+    toast({
+      title: "Error",
+      description: "Failed to move lead to On Hold",
+      variant: "destructive",
+    });
+  } finally {
+    setIsMovingToOnHold(false);
+  }
+};
+```
+
+**4. Add Pause icon import** (at top of file with other lucide imports):
+```typescript
+import { Pause } from "lucide-react";
 ```
 
 ---
 
-## Result After Changes
+## Button Order After Change
 
-| Column | Before | After |
-|--------|--------|-------|
-| **15yr Fixed** | 80%, 90%, 95%, 97% | 80%, 95%, 97% |
-| **30yr Fixed** | 70%, 80%, 95%, 97% | 80%, 95%, 97% |
-
-Total daily scenarios: Reduced by 2 (fewer API calls, less overlap risk)
+| Button | Style | Condition |
+|--------|-------|-----------|
+| Delete Lead | Destructive (red) | Always visible |
+| Back to Pre-Approved | Secondary | Only when in Active stage |
+| **On Hold** | Outline | Only when in Active stage |
+| Idle | Outline | Always visible |
+| Mark as Closed | Yellow | Always visible |
 
 ---
 
 ## Files to Modify
 
-| File | Action |
-|------|--------|
-| `supabase/functions/fetch-daily-rates/index.ts` | Remove 2 scenario objects |
-| `supabase/functions/fetch-single-rate/index.ts` | Remove 2 scenario configs |
-| `src/components/dashboard/MarketRatesCard.tsx` | Remove 2 RateCard components |
+| File | Changes |
+|------|---------|
+| `src/components/lead-details/DetailsTab.tsx` | Add state, handler, icon import, and button with dialog |
+
+---
+
+## Result
+
+When viewing a lead in the Active pipeline:
+- A new "On Hold" button appears between "Mark as Closed" and "Idle"
+- Clicking it shows a confirmation dialog
+- Confirming moves the lead to the "On Hold" section on the Active board
+- The lead can later be moved back by changing `loan_status` or manually updating `pipeline_section`
+
