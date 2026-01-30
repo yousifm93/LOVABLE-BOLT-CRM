@@ -1079,6 +1079,7 @@ export type Database = {
           tags: string[] | null
           type: Database["public"]["Enums"]["contact_type"]
           updated_at: string
+          updated_by: string | null
           user_notes: string | null
         }
         Insert: {
@@ -1099,6 +1100,7 @@ export type Database = {
           tags?: string[] | null
           type: Database["public"]["Enums"]["contact_type"]
           updated_at?: string
+          updated_by?: string | null
           user_notes?: string | null
         }
         Update: {
@@ -1119,6 +1121,7 @@ export type Database = {
           tags?: string[] | null
           type?: Database["public"]["Enums"]["contact_type"]
           updated_at?: string
+          updated_by?: string | null
           user_notes?: string | null
         }
         Relationships: [
@@ -1127,6 +1130,13 @@ export type Database = {
             columns: ["email_log_id"]
             isOneToOne: false
             referencedRelation: "email_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

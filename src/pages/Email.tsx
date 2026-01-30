@@ -197,10 +197,11 @@ function DroppableFolder({
     </div>;
 }
 // Map CRM user IDs to their allowed email accounts
-const USER_ACCOUNT_MAP: Record<string, { primary: 'yousif' | 'salma' | 'herman'; label: string }> = {
+const USER_ACCOUNT_MAP: Record<string, { primary: 'yousif' | 'salma' | 'herman' | 'ashley'; label: string }> = {
   '230ccf6d-48f5-4f3c-89fd-f2907ebdba1e': { primary: 'yousif', label: 'Yousif Inbox' },
   '159376ae-30e9-4997-b61f-76ab8d7f224b': { primary: 'salma', label: 'Salma Inbox' },
   'fa92a4c6-890d-4d69-99a8-c3adc6c904ee': { primary: 'herman', label: 'Herman Inbox' },
+  '3dca68fc-ee7e-46cc-91a1-0c6176d4c32a': { primary: 'ashley', label: 'Ashley Inbox' },
 };
 
 export default function Email() {
@@ -220,7 +221,7 @@ export default function Email() {
   
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedAccount, setSelectedAccount] = useState<'yousif' | 'scenarios' | 'salma' | 'herman'>('yousif');
+  const [selectedAccount, setSelectedAccount] = useState<'yousif' | 'scenarios' | 'salma' | 'herman' | 'ashley'>('yousif');
   const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
   const [emailContent, setEmailContent] = useState<{
@@ -437,7 +438,8 @@ export default function Email() {
     yousif: 0,
     scenarios: 0,
     salma: 0,
-    herman: 0
+    herman: 0,
+    ashley: 0
   });
 
   // Fetch email categories from database - filtered by account

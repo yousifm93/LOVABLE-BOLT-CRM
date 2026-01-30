@@ -154,16 +154,19 @@ export function MentionNotificationBadge() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Badge 
-          variant="destructive" 
-          className="h-5 min-w-5 px-1.5 text-xs cursor-pointer ml-1"
+        <div
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
           }}
         >
-          {unreadCount}
-        </Badge>
+          <Badge 
+            variant="destructive" 
+            className="h-5 min-w-5 px-1.5 text-xs cursor-pointer ml-1"
+          >
+            {unreadCount}
+          </Badge>
+        </div>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0 z-[9999]" align="start">
         <div className="flex items-center justify-between px-3 py-2 border-b">
