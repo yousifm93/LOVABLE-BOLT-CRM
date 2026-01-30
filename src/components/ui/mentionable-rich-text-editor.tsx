@@ -80,14 +80,29 @@ export function MentionableRichTextEditor({
         spaceIndex === -1 ? Infinity : spaceIndex,
         newlineIndex === -1 ? Infinity : newlineIndex
       );
-      const isTypingMention = firstBreak === Infinity || afterAt.length === 0;
       
-      // Check if it's a completed mention (already has data-user-id in HTML)
-      const hasCompletedMention = newValue.includes('data-user-id');
+      // Get the search text (characters between @ and next space/newline)
+      const searchText = afterAt.substring(0, firstBreak === Infinity ? afterAt.length : firstBreak);
       
-      if (isTypingMention && !hasCompletedMention && afterAt.length < 20) {
-        setMentionSearch(afterAt.trim());
-        setShowMentionPopover(true);
+      // Only show popover if we're actively typing after @ and text is short
+      if (searchText.length < 20) {
+        // Check if this specific @ is NOT already inside a completed mention span
+        // Find the position of the last @ in the HTML and check context
+        const atPositionInHtml = newValue.lastIndexOf('@');
+        if (atPositionInHtml !== -1) {
+          const precedingHtml = newValue.substring(Math.max(0, atPositionInHtml - 100), atPositionInHtml);
+          const isInsideMentionSpan = precedingHtml.includes('<span class="mention"') && 
+                                       !precedingHtml.includes('</span>');
+          
+          if (!isInsideMentionSpan) {
+            setMentionSearch(searchText.trim());
+            setShowMentionPopover(true);
+          } else {
+            setShowMentionPopover(false);
+          }
+        } else {
+          setShowMentionPopover(false);
+        }
       } else {
         setShowMentionPopover(false);
       }

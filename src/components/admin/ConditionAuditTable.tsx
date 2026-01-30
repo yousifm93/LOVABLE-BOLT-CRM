@@ -226,13 +226,14 @@ export function ConditionAuditTable() {
     {
       accessorKey: 'notes',
       header: 'Audit Notes',
-      width: 200,
+      width: 180,
       cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div onClick={(e) => e.stopPropagation()} className="max-w-[180px]">
           <InlineEditNotes
             value={row.original.notes}
             onValueChange={(value) => handleNotesUpdate(row.original.id, value)}
-            placeholder="Add audit note..."
+            placeholder="Add note..."
+            className="text-xs"
           />
         </div>
       )
