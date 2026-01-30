@@ -74,10 +74,10 @@ export interface FieldPosition {
 // LOCKED DEFAULT POSITIONS - calibrated to match the Bolt Estimate template (from user screenshot)
 export const DEFAULT_FIELD_POSITIONS: Record<string, FieldPosition> = {
   // Top info section - LEFT column (right-aligned, font size 8)
-  borrowerName: { x: 232, y: 121, rightAlign: true, fontSize: 8 },
-  lenderLoanNumber: { x: 248, y: 132, rightAlign: true, fontSize: 8 },
-  zipState: { x: 245, y: 143, rightAlign: true, fontSize: 8 },
-  date: { x: 244, y: 154, rightAlign: true, fontSize: 8 },
+  borrowerName: { x: 280, y: 121, rightAlign: true, fontSize: 8 },
+  lenderLoanNumber: { x: 280, y: 132, rightAlign: true, fontSize: 8 },
+  zipState: { x: 280, y: 143, rightAlign: true, fontSize: 8 },
+  date: { x: 280, y: 154, rightAlign: true, fontSize: 8 },
   
   // Top info section - RIGHT column (right-aligned, font size 8)
   purchasePrice: { x: 555, y: 121, rightAlign: true, fontSize: 8 },
@@ -85,27 +85,27 @@ export const DEFAULT_FIELD_POSITIONS: Record<string, FieldPosition> = {
   rateApr: { x: 555, y: 143, rightAlign: true, fontSize: 8 },
   loanTerm: { x: 555, y: 153, rightAlign: true, fontSize: 8 },
   
-  // Section A: Lender Fees (items 7, total 9 - NOT bold)
-  sectionATotal: { x: 280, y: 192, rightAlign: true, fontSize: 9 },
+  // Section A: Lender Fees (items 7, total 8 - NOT bold)
+  sectionATotal: { x: 280, y: 192, rightAlign: true, fontSize: 8 },
   discountPoints: { x: 280, y: 216, rightAlign: true, fontSize: 7 },
   underwritingFee: { x: 280, y: 227, rightAlign: true, fontSize: 7 },
   
-  // Section B: Third Party Fees (items 7, total 9 - NOT bold)
-  sectionBTotal: { x: 280, y: 275, rightAlign: true, fontSize: 9 },
+  // Section B: Third Party Fees (items 7, total 8 - NOT bold)
+  sectionBTotal: { x: 280, y: 275, rightAlign: true, fontSize: 8 },
   appraisalFee: { x: 280, y: 308, rightAlign: true, fontSize: 7 },
   creditReportFee: { x: 280, y: 320, rightAlign: true, fontSize: 7 },
   processingFee: { x: 280, y: 331, rightAlign: true, fontSize: 7 },
   lendersTitleInsurance: { x: 280, y: 362, rightAlign: true, fontSize: 7 },
   titleClosingFee: { x: 280, y: 373, rightAlign: true, fontSize: 7 },
   
-  // Section C: Taxes & Government Fees (items 7, total 9 - NOT bold)
-  sectionCTotal: { x: 555, y: 192, rightAlign: true, fontSize: 9 },
+  // Section C: Taxes & Government Fees (items 7, total 8 - NOT bold)
+  sectionCTotal: { x: 555, y: 192, rightAlign: true, fontSize: 8 },
   intangibleTax: { x: 555, y: 213, rightAlign: true, fontSize: 7 },
   transferTax: { x: 555, y: 222, rightAlign: true, fontSize: 7 },
   recordingFees: { x: 555, y: 232, rightAlign: true, fontSize: 7 },
   
-  // Section D: Prepaids & Escrow (items 7, total 9 - NOT bold)
-  sectionDTotal: { x: 555, y: 275, rightAlign: true, fontSize: 9 },
+  // Section D: Prepaids & Escrow (items 7, total 8 - NOT bold)
+  sectionDTotal: { x: 555, y: 275, rightAlign: true, fontSize: 8 },
   prepaidHoi: { x: 555, y: 311, rightAlign: true, fontSize: 7 },
   prepaidInterest: { x: 555, y: 322, rightAlign: true, fontSize: 7 },
   escrowHoi: { x: 555, y: 355, rightAlign: true, fontSize: 7 },
