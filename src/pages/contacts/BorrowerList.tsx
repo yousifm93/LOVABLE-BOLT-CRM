@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Phone, Mail, User, MapPin, FileText, Trash2, Check, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, User, MapPin, FileText, Trash2, Check, X, ChevronDown, ChevronRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { formatDistanceToNow } from "date-fns";
 
 // Format phone number as (XXX) XXX-XXXX
 const formatPhoneNumber = (phone: string | null | undefined): string => {
@@ -42,6 +45,25 @@ const getSourceDisplayName = (source: string, type?: string, sourceType?: string
   };
   return sourceMap[source] || 'Other';
 };
+
+// Get contact type category
+const getContactTypeCategory = (contact: any): string => {
+  if (contact.source === 'buyer_agents') return 'Real Estate Agent';
+  if (contact.source === 'lenders') return 'Lender';
+  if (contact.source === 'leads') return 'Borrower';
+  // For contacts table, use the type field
+  if (contact.type === 'Borrower' || contact.type === 'borrower') return 'Borrower';
+  if (contact.type === 'Agent' || contact.type === 'agent') return 'Real Estate Agent';
+  if (contact.type === 'Lender' || contact.type === 'lender') return 'Lender';
+  return 'Other';
+};
+
+const CONTACT_TYPE_OPTIONS = [
+  { value: 'Borrower', label: 'Borrower' },
+  { value: 'Real Estate Agent', label: 'Real Estate Agent' },
+  { value: 'Lender', label: 'Lender' },
+  { value: 'Other', label: 'Other' },
+];
 
 // Duplicate detection function - only flags as duplicate if existing contact has complete info
 const checkIsDuplicate = (contact: any, allContacts: any[]): boolean => {
@@ -103,7 +125,10 @@ const getColumns = (
   activeFilter: string, 
   allContacts: any[], 
   onApprove?: (contact: any) => void, 
-  onDeny?: (contact: any) => void
+  onDeny?: (contact: any) => void,
+  onUpdateNotes?: (contactId: string, notes: string) => void,
+  onUpdateType?: (contactId: string, type: string) => void,
+  users?: any[]
 ): ColumnDef<any>[] => {
   // For Pending Approval tab, use specific column order
   if (activeFilter === 'Pending Approval') {
@@ -352,6 +377,39 @@ const getColumns = (
       sortable: true,
     },
     {
+      accessorKey: "contact_type",
+      header: "Contact Type",
+      cell: ({ row }) => {
+        const contact = row.original;
+        const contactType = getContactTypeCategory(contact);
+        const isContactsTable = contact.source === 'contacts';
+        
+        // Only allow editing for contacts table entries
+        if (isContactsTable && onUpdateType) {
+          return (
+            <div onClick={(e) => e.stopPropagation()}>
+              <InlineEditSelect
+                value={contactType}
+                options={CONTACT_TYPE_OPTIONS}
+                onValueChange={(value) => {
+                  if (value) onUpdateType(contact.source_id, value);
+                }}
+                showClearOption={false}
+              />
+            </div>
+          );
+        }
+        
+        // Read-only for other sources
+        return (
+          <Badge variant="outline" className="text-xs">
+            {contactType}
+          </Badge>
+        );
+      },
+      sortable: true,
+    },
+    {
       accessorKey: "created_at",
       header: "Created On",
       cell: ({ row }) => {
@@ -471,18 +529,78 @@ const getColumns = (
       ),
     },
     {
-      accessorKey: "notes",
+      accessorKey: "user_notes",
       header: "Notes",
-      cell: ({ row }) => (
-        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-          {row.original.notes ? (
-            <span className="flex items-center gap-1">
-              <FileText className="h-3 w-3 flex-shrink-0" />
-              <span className="truncate">{row.original.notes}</span>
-            </span>
-          ) : "—"}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const contact = row.original;
+        const isContactsTable = contact.source === 'contacts';
+        const notes = contact.user_notes || contact.notes || '';
+        
+        // Only allow editing for contacts table entries
+        if (isContactsTable && onUpdateNotes) {
+          return (
+            <div onClick={(e) => e.stopPropagation()} className="max-w-[200px]">
+              <InlineEditNotes
+                value={notes}
+                onValueChange={(value) => onUpdateNotes(contact.source_id, value)}
+                placeholder="Add notes..."
+                maxLength={500}
+              />
+            </div>
+          );
+        }
+        
+        // Read-only for other sources
+        return (
+          <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+            {notes ? (
+              <span className="flex items-center gap-1">
+                <FileText className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">{notes}</span>
+              </span>
+            ) : "—"}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "updated_at",
+      header: "Last Updated",
+      cell: ({ row }) => {
+        const date = row.original.updated_at;
+        if (!date) return <span className="text-sm text-muted-foreground">—</span>;
+        
+        try {
+          const d = new Date(date);
+          const timeAgo = formatDistanceToNow(d, { addSuffix: true });
+          return (
+            <div className="text-sm text-muted-foreground flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              <span>{timeAgo}</span>
+            </div>
+          );
+        } catch {
+          return <span className="text-sm text-muted-foreground">—</span>;
+        }
+      },
+      sortable: true,
+    },
+    {
+      accessorKey: "updated_by",
+      header: "Updated By",
+      cell: ({ row }) => {
+        const updatedById = row.original.updated_by;
+        if (!updatedById || !users) return <span className="text-sm text-muted-foreground">—</span>;
+        
+        const user = users.find((u: any) => u.id === updatedById);
+        if (!user) return <span className="text-sm text-muted-foreground">—</span>;
+        
+        return (
+          <span className="text-sm">
+            {user.first_name} {user.last_name?.[0] || ''}.
+          </span>
+        );
+      },
     },
   ];
 
@@ -514,6 +632,7 @@ export default function BorrowerList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [contacts, setContacts] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('All');
@@ -547,7 +666,75 @@ export default function BorrowerList() {
 
   useEffect(() => {
     loadContacts();
+    loadUsers();
   }, []);
+
+  const loadUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, first_name, last_name')
+        .eq('is_active', true);
+      if (!error && data) {
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  };
+
+  // Update notes for a contact
+  const handleUpdateNotes = async (contactId: string, notes: string) => {
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .update({ user_notes: notes })
+        .eq('id', contactId);
+
+      if (error) throw error;
+
+      // Update local state
+      setContacts(prev => prev.map(c => 
+        c.source_id === contactId ? { ...c, user_notes: notes } : c
+      ));
+    } catch (error) {
+      console.error('Error updating notes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update notes.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Update contact type
+  const handleUpdateType = async (contactId: string, type: string) => {
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .update({ type: type as any })
+        .eq('id', contactId);
+
+      if (error) throw error;
+
+      // Update local state
+      setContacts(prev => prev.map(c => 
+        c.source_id === contactId ? { ...c, type } : c
+      ));
+      
+      toast({
+        title: "Contact updated",
+        description: `Contact type changed to ${type}.`,
+      });
+    } catch (error) {
+      console.error('Error updating contact type:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update contact type.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const loadContacts = async () => {
     try {
@@ -963,7 +1150,7 @@ export default function BorrowerList() {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="mt-2">
                       <DataTable
-                        columns={getColumns('Pending Approval', contacts, handleApproveContact, handleDenyContact)}
+                        columns={getColumns('Pending Approval', contacts, handleApproveContact, handleDenyContact, handleUpdateNotes, handleUpdateType, users)}
                         data={pendingWithPhone}
                         searchTerm={searchTerm}
                         onRowClick={handleRowClick}
@@ -994,7 +1181,7 @@ export default function BorrowerList() {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="mt-2">
                       <DataTable
-                        columns={getColumns('Pending Approval', contacts, handleApproveContact, handleDenyContact)}
+                        columns={getColumns('Pending Approval', contacts, handleApproveContact, handleDenyContact, handleUpdateNotes, handleUpdateType, users)}
                         data={pendingEmailOnly}
                         searchTerm={searchTerm}
                         onRowClick={handleRowClick}
@@ -1029,7 +1216,7 @@ export default function BorrowerList() {
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2">
                 <DataTable
-                  columns={getColumns(activeFilter, contacts, handleApproveContact, handleDenyContact)}
+                  columns={getColumns(activeFilter, contacts, handleApproveContact, handleDenyContact, handleUpdateNotes, handleUpdateType, users)}
                   data={recentContacts}
                   searchTerm={searchTerm}
                   onRowClick={handleRowClick}
@@ -1060,7 +1247,7 @@ export default function BorrowerList() {
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2">
                 <DataTable
-                  columns={getColumns(activeFilter, contacts, handleApproveContact, handleDenyContact)}
+                  columns={getColumns(activeFilter, contacts, handleApproveContact, handleDenyContact, handleUpdateNotes, handleUpdateType, users)}
                   data={olderContacts}
                   searchTerm={searchTerm}
                   onRowClick={handleRowClick}
