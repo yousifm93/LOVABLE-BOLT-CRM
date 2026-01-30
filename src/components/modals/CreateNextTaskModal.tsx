@@ -213,7 +213,7 @@ export function CreateNextTaskModal({
         description: formData.description || null,
         due_date: formData.due_date || null,
         priority: formData.priority as "Critical" | "High" | "Low" | "Medium",
-        status: "To Do",
+        status: "To Do" as any,
         borrower_id: leadId,
         assignee_id: formData.assignee_id || null,
         completion_requirement_type: formData.completion_requirement_type || null,

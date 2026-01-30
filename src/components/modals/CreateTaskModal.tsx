@@ -413,7 +413,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
           description: formData.description || null,
           due_date: normalizedDueDate,
           priority: "Medium" as any,
-          status: "Working on it" as any,
+          status: "To Do" as any,
           assignee_id: formData.assignee_id || null,
           borrower_id: formData.borrower_id || null,
           task_order: 0,

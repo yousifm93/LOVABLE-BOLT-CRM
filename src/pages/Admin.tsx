@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Settings, Database, Users, FileText, Activity, Plus, Edit, Trash2, Check, X, Search, Filter, Zap, Mail, CalendarIcon, AlertTriangle, Shield, Layout, Bot, FileQuestion } from "lucide-react";
+import { Settings, Database, Users, FileText, Activity, Plus, Edit, Trash2, Check, X, Search, Filter, Zap, Mail, CalendarIcon, AlertTriangle, Shield, Layout, Bot, FileQuestion, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/pages/UserManagement";
 import EmailTemplates from "@/pages/admin/EmailTemplates";
@@ -8,6 +8,7 @@ import PipelineViews from "@/pages/admin/PipelineViews";
 import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
 import { TaskAutomationsTable } from "@/components/admin/TaskAutomationsTable";
 import { EmailAutomationsTable } from "@/components/admin/EmailAutomationsTable";
+import { ConditionAuditTable } from "@/components/admin/ConditionAuditTable";
 import { AddFieldModal } from "@/components/admin/AddFieldModal";
 import { statusChangeRules } from "@/services/statusChangeValidation";
 import { Button } from "@/components/ui/button";
@@ -661,8 +662,9 @@ export default function Admin() {
 
       {/* Main Content */}
       <Tabs defaultValue="fields" className="space-y-4 mx-[10px]">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="fields">Field Management</TabsTrigger>
+          <TabsTrigger value="condition-audit">Condition Audit</TabsTrigger>
           <TabsTrigger value="email-automations">Email Automations</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
@@ -757,6 +759,10 @@ export default function Admin() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="condition-audit" className="space-y-4">
+          <ConditionAuditTable />
         </TabsContent>
 
         <TabsContent value="email-automations" className="space-y-4">
