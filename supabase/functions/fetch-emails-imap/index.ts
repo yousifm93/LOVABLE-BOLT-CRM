@@ -28,10 +28,14 @@ const ACCOUNTS: Record<string, { user: string; passwordEnvVar: string }> = {
     user: "herman@mortgagebolt.org",
     passwordEnvVar: "HERMAN_EMAIL_PASSWORD",
   },
+  ashley: {
+    user: "processing@mortgagevault.org",
+    passwordEnvVar: "ASHLEY_EMAIL_PASSWORD",
+  },
 };
 
 interface FetchEmailsRequest {
-  account?: 'yousif' | 'scenarios' | 'salma' | 'herman';
+  account?: 'yousif' | 'scenarios' | 'salma' | 'herman' | 'ashley';
   folder?: string;
   limit?: number;
   offset?: number;
