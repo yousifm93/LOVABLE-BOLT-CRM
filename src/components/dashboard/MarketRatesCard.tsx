@@ -631,17 +631,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               disabled={isDisabled && !refreshingTypes.has('15yr_fixed')}
             />
             <RateCard 
-              label="90% LTV" 
-              rate={marketData?.rate_15yr_fixed_90ltv ?? null} 
-              points={marketData?.points_15yr_fixed_90ltv ?? null}
-              onClick={() => handleRateCardClick('15yr_fixed_90ltv')}
-              onRefresh={() => handleRefreshSingle('15yr_fixed_90ltv')}
-              isRefreshing={refreshingTypes.has('15yr_fixed_90ltv')}
-              lastUpdated={lastUpdatedByScenario['15yr_fixed_90ltv']}
-              disabled={isDisabled && !refreshingTypes.has('15yr_fixed_90ltv')}
-            />
-            <RateCard 
-              label="95% LTV" 
+              label="95% LTV"
               rate={marketData?.rate_15yr_fixed_95ltv ?? null} 
               points={marketData?.points_15yr_fixed_95ltv ?? null}
               onClick={() => handleRateCardClick('15yr_fixed_95ltv')}
@@ -668,17 +658,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               30yr Fixed
             </h4>
             <RateCard 
-              label="70% LTV" 
-              rate={marketData?.rate_30yr_fixed_70ltv ?? null} 
-              points={marketData?.points_30yr_fixed_70ltv ?? null}
-              onClick={() => handleRateCardClick('30yr_fixed_70ltv')}
-              onRefresh={() => handleRefreshSingle('30yr_fixed_70ltv')}
-              isRefreshing={refreshingTypes.has('30yr_fixed_70ltv')}
-              lastUpdated={lastUpdatedByScenario['30yr_fixed_70ltv']}
-              disabled={isDisabled && !refreshingTypes.has('30yr_fixed_70ltv')}
-            />
-            <RateCard 
-              label="80% LTV" 
+              label="80% LTV"
               rate={marketData?.rate_30yr_fixed ?? null} 
               points={marketData?.points_30yr_fixed ?? null}
               onClick={() => handleRateCardClick('30yr_fixed')}
