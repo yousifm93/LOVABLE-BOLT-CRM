@@ -2077,57 +2077,89 @@ export function ClientDetailDrawer({
                   </Card>
                 )}
 
-                {/* Pipeline Review - for Leads/Pending App/Pre-Qualified/Pre-Approved (NOT Screening - moved to right column) */}
-                {!isActiveOrPastClient && opsStage !== 'screening' && (
+                {/* Latest File Update - for Leads/Pending App in left column */}
+                {isLeadsOrPendingApp && (
                   <Card>
                     <CardHeader className="pb-3 bg-white">
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-sm font-bold">Pipeline Review</CardTitle>
-                        {isAdmin && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              if (isRecordingFileUpdates) {
-                                handleVoiceRecordingStop();
-                              } else {
-                                handleVoiceRecordingStart();
-                              }
-                            }}
-                            disabled={isSummarizingTranscript}
-                            className={cn(
-                              "w-8 h-8 rounded-full transition-all",
-                              isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
-                            )}
-                            title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
-                          >
-                            {isSummarizingTranscript ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
-                            )}
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
+                        {!isEditingFileUpdates && localFileUpdates && (
+                          <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
+                            Edit
                           </Button>
                         )}
                       </div>
                     </CardHeader>
                     <CardContent className="bg-gray-50">
-                      {localFileUpdates ? (
-                        <FileUpdatesDisplay content={localFileUpdates} />
+                      {isEditingFileUpdates || !localFileUpdates ? (
+                        <>
+                          <Textarea 
+                            key="file-updates-textarea-leads" 
+                            value={localFileUpdates} 
+                            onChange={e => {
+                              setLocalFileUpdates(e.target.value);
+                              setHasUnsavedFileUpdates(true);
+                            }} 
+                            placeholder="Enter the latest update on this file..." 
+                            className="min-h-[100px] resize-none bg-white mb-2" 
+                          />
+                          {hasUnsavedFileUpdates && (
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={async () => {
+                                setIsSavingFileUpdates(true);
+                                try {
+                                  const { data: { user } } = await supabase.auth.getUser();
+                                  const { data: crmUser } = await supabase
+                                    .from('users')
+                                    .select('id')
+                                    .eq('auth_user_id', user?.id)
+                                    .single();
+                                  await databaseService.updateLead(leadId!, {
+                                    latest_file_updates: localFileUpdates,
+                                    latest_file_updates_updated_by: crmUser?.id || null,
+                                    latest_file_updates_updated_at: new Date().toISOString()
+                                  });
+                                  if (onLeadUpdated) await onLeadUpdated();
+                                  setHasUnsavedFileUpdates(false);
+                                  setIsEditingFileUpdates(false);
+                                  toast({ title: "Saved", description: "Latest File Update has been saved." });
+                                } catch (error) {
+                                  console.error('Error saving file updates:', error);
+                                  toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+                                } finally {
+                                  setIsSavingFileUpdates(false);
+                                }
+                              }} disabled={isSavingFileUpdates}>
+                                {isSavingFileUpdates ? 'Saving...' : 'Save'}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => {
+                                setLocalFileUpdates((client as any).latest_file_updates || '');
+                                setHasUnsavedFileUpdates(false);
+                                setIsEditingFileUpdates(false);
+                              }}>
+                                Cancel
+                              </Button>
+                            </div>
+                          )}
+                        </>
                       ) : (
-                        <p className="text-sm text-muted-foreground italic">
-                          Click the microphone to record a voice note
-                        </p>
+                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingFileUpdates(true)}>
+                          <FileUpdatesDisplay content={localFileUpdates} />
+                        </div>
                       )}
-                      {(client as any).latest_file_updates_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                      {(client as any).latest_file_updates_updated_at && (
+                        <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
                           <Clock className="h-3 w-3" />
-                          Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
-                          {fileUpdatesUpdatedByUser && <>
+                          Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                          {fileUpdatesUpdatedByUser && (
+                            <>
                               <span>•</span>
                               <User className="h-3 w-3" />
                               {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
-                            </>}
-                        </div>}
+                            </>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -2254,16 +2286,94 @@ export function ClientDetailDrawer({
                   </Card>
                 )}
 
-                {/* DTI / Address / PITI - For Screening/Pre-Qualified/Pre-Approved in left column */}
-                {(opsStage === 'screening' || opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
-                  <LeadTeamContactsDatesCard 
-                    leadId={leadId || ""} 
-                    onLeadUpdated={onLeadUpdated} 
-                    defaultCollapsed={false}
-                  />
+                {/* Latest File Update - For Screening stage in left column (after About the Borrower) */}
+                {opsStage === 'screening' && (
+                  <Card>
+                    <CardHeader className="pb-3 bg-white">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
+                        {!isEditingFileUpdates && localFileUpdates && (
+                          <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
+                            Edit
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="bg-gray-50">
+                      {isEditingFileUpdates || !localFileUpdates ? (
+                        <>
+                          <Textarea 
+                            key="file-updates-textarea-screening" 
+                            value={localFileUpdates} 
+                            onChange={e => {
+                              setLocalFileUpdates(e.target.value);
+                              setHasUnsavedFileUpdates(true);
+                            }} 
+                            placeholder="Enter the latest update on this file..." 
+                            className="min-h-[100px] resize-none bg-white mb-2" 
+                          />
+                          {hasUnsavedFileUpdates && (
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={async () => {
+                                setIsSavingFileUpdates(true);
+                                try {
+                                  const { data: { user } } = await supabase.auth.getUser();
+                                  const { data: crmUser } = await supabase
+                                    .from('users')
+                                    .select('id')
+                                    .eq('auth_user_id', user?.id)
+                                    .single();
+                                  await databaseService.updateLead(leadId!, {
+                                    latest_file_updates: localFileUpdates,
+                                    latest_file_updates_updated_by: crmUser?.id || null,
+                                    latest_file_updates_updated_at: new Date().toISOString()
+                                  });
+                                  if (onLeadUpdated) await onLeadUpdated();
+                                  setHasUnsavedFileUpdates(false);
+                                  setIsEditingFileUpdates(false);
+                                  toast({ title: "Saved", description: "Latest File Update has been saved." });
+                                } catch (error) {
+                                  console.error('Error saving file updates:', error);
+                                  toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+                                } finally {
+                                  setIsSavingFileUpdates(false);
+                                }
+                              }} disabled={isSavingFileUpdates}>
+                                {isSavingFileUpdates ? 'Saving...' : 'Save'}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => {
+                                setLocalFileUpdates((client as any).latest_file_updates || '');
+                                setHasUnsavedFileUpdates(false);
+                                setIsEditingFileUpdates(false);
+                              }}>
+                                Cancel
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingFileUpdates(true)}>
+                          <FileUpdatesDisplay content={localFileUpdates} />
+                        </div>
+                      )}
+                      {(client as any).latest_file_updates_updated_at && (
+                        <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                          <Clock className="h-3 w-3" />
+                          Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                          {fileUpdatesUpdatedByUser && (
+                            <>
+                              <span>•</span>
+                              <User className="h-3 w-3" />
+                              {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 )}
 
-                {/* About the Borrower - For Pre-Qualified/Pre-Approved in left column (below DTI) */}
+                {/* About the Borrower - For Pre-Qualified/Pre-Approved in left column (ABOVE DTI) */}
                 {(opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
                   <Card>
                     <CardHeader className="pb-3 bg-white">
@@ -2276,7 +2386,7 @@ export function ClientDetailDrawer({
                     </CardHeader>
                     <CardContent className="bg-gray-50">
                       {isEditingNotes || !localNotes ? <>
-                          <Textarea key={`notes-textarea-${opsStage}-left`} value={localNotes} onChange={e => {
+                          <Textarea key={`notes-textarea-${opsStage}-top`} value={localNotes} onChange={e => {
                         setLocalNotes(e.target.value);
                         setHasUnsavedNotes(true);
                       }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
@@ -2335,6 +2445,102 @@ export function ClientDetailDrawer({
                               {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
                             </>}
                         </div>}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* DTI / Address / PITI - For Screening/Pre-Qualified/Pre-Approved in left column */}
+                {(opsStage === 'screening' || opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
+                  <LeadTeamContactsDatesCard 
+                    leadId={leadId || ""} 
+                    onLeadUpdated={onLeadUpdated} 
+                    defaultCollapsed={false}
+                  />
+                )}
+
+                {/* Latest File Update - For Pre-Qualified/Pre-Approved in left column (at bottom) */}
+                {(opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
+                  <Card>
+                    <CardHeader className="pb-3 bg-white">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
+                        {!isEditingFileUpdates && localFileUpdates && (
+                          <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
+                            Edit
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="bg-gray-50">
+                      {isEditingFileUpdates || !localFileUpdates ? (
+                        <>
+                          <Textarea 
+                            key={`file-updates-textarea-${opsStage}`}
+                            value={localFileUpdates} 
+                            onChange={e => {
+                              setLocalFileUpdates(e.target.value);
+                              setHasUnsavedFileUpdates(true);
+                            }} 
+                            placeholder="Enter the latest update on this file..." 
+                            className="min-h-[100px] resize-none bg-white mb-2" 
+                          />
+                          {hasUnsavedFileUpdates && (
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={async () => {
+                                setIsSavingFileUpdates(true);
+                                try {
+                                  const { data: { user } } = await supabase.auth.getUser();
+                                  const { data: crmUser } = await supabase
+                                    .from('users')
+                                    .select('id')
+                                    .eq('auth_user_id', user?.id)
+                                    .single();
+                                  await databaseService.updateLead(leadId!, {
+                                    latest_file_updates: localFileUpdates,
+                                    latest_file_updates_updated_by: crmUser?.id || null,
+                                    latest_file_updates_updated_at: new Date().toISOString()
+                                  });
+                                  if (onLeadUpdated) await onLeadUpdated();
+                                  setHasUnsavedFileUpdates(false);
+                                  setIsEditingFileUpdates(false);
+                                  toast({ title: "Saved", description: "Latest File Update has been saved." });
+                                } catch (error) {
+                                  console.error('Error saving file updates:', error);
+                                  toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+                                } finally {
+                                  setIsSavingFileUpdates(false);
+                                }
+                              }} disabled={isSavingFileUpdates}>
+                                {isSavingFileUpdates ? 'Saving...' : 'Save'}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => {
+                                setLocalFileUpdates((client as any).latest_file_updates || '');
+                                setHasUnsavedFileUpdates(false);
+                                setIsEditingFileUpdates(false);
+                              }}>
+                                Cancel
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingFileUpdates(true)}>
+                          <FileUpdatesDisplay content={localFileUpdates} />
+                        </div>
+                      )}
+                      {(client as any).latest_file_updates_updated_at && (
+                        <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                          <Clock className="h-3 w-3" />
+                          Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                          {fileUpdatesUpdatedByUser && (
+                            <>
+                              <span>•</span>
+                              <User className="h-3 w-3" />
+                              {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                            </>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -3018,62 +3224,7 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* Pipeline Review - For Screening stage in right column */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              if (opsStage !== 'screening') return null;
-              return (
-                <Card>
-                  <CardHeader className="pb-3 bg-white">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-sm font-bold">Pipeline Review</CardTitle>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          if (isRecordingFileUpdates) {
-                            handleVoiceRecordingStop();
-                          } else {
-                            handleVoiceRecordingStart();
-                          }
-                        }}
-                        disabled={isSummarizingTranscript}
-                        className={cn(
-                          "w-8 h-8 rounded-full transition-all",
-                          isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
-                        )}
-                        title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
-                      >
-                        {isSummarizingTranscript ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
-                        )}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="bg-gray-50">
-                    {localFileUpdates ? (
-                      <FileUpdatesDisplay content={localFileUpdates} />
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">
-                        Click the microphone to record a voice note
-                      </p>
-                    )}
-                    {(client as any).latest_file_updates_updated_at && <div className="mt-1 pt-1 border-t text-xs text-muted-foreground flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
-                        {fileUpdatesUpdatedByUser && <>
-                            <span>•</span>
-                            <User className="h-3 w-3" />
-                            {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
-                          </>}
-                      </div>}
-                  </CardContent>
-                </Card>
-              );
-            })()}
+            {/* Pipeline Review removed from Screening stage - now using Latest File Update in left column */}
 
             {/* Chat with Borrower - REMOVED from right column for Leads/Pending App (now in left column) */}
 
@@ -3102,89 +3253,7 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* About the Borrower - For Pre-Qualified/Pre-Approved ONLY in right column (Screening now has it in left column) */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
-              if (!isPreQualOrPreApproved) return null;
-              return (
-            <Card>
-              <CardHeader className="pb-3 bg-white">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
-                  {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(true)} className="h-7 text-xs">
-                      Edit
-                    </Button>}
-                </div>
-              </CardHeader>
-              <CardContent className="bg-gray-50">
-                {isEditingNotes || !localNotes ? <>
-                    <Textarea key="notes-textarea-prequal" value={localNotes} onChange={e => {
-                  setLocalNotes(e.target.value);
-                  setHasUnsavedNotes(true);
-                }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
-                    {hasUnsavedNotes && <div className="flex gap-2">
-                        <Button size="sm" onClick={async () => {
-                    const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
-                    if (localNotes === currentNotes) {
-                      toast({ title: "No Changes", description: "Notes haven't changed." });
-                      setHasUnsavedNotes(false);
-                      setIsEditingNotes(false);
-                      return;
-                    }
-                    setIsSavingNotes(true);
-                    try {
-                      const { data: { user } } = await supabase.auth.getUser();
-                      // Get CRM user ID (not auth user ID)
-                      const { data: crmUser } = await supabase
-                        .from('users')
-                        .select('id')
-                        .eq('auth_user_id', user?.id)
-                        .single();
-                      await databaseService.updateLead(leadId!, {
-                        notes: localNotes,
-                        notes_updated_by: crmUser?.id || null,
-                        notes_updated_at: new Date().toISOString()
-                      });
-                      if (onLeadUpdated) await onLeadUpdated();
-                      setHasUnsavedNotes(false);
-                      setIsEditingNotes(false);
-                      toast({ title: "Saved", description: "About the Borrower section has been updated." });
-                    } catch (error: any) {
-                      console.error('Error saving notes:', error);
-                      const errorMessage = error?.message || error?.details || 'Unknown error';
-                      console.error('Error details:', { message: error?.message, details: error?.details, code: error?.code });
-                      toast({ title: "Error", description: `Failed to save: ${errorMessage}`, variant: "destructive" });
-                    } finally {
-                      setIsSavingNotes(false);
-                    }
-                  }} disabled={isSavingNotes}>
-                          {isSavingNotes ? 'Saving...' : 'Save'}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => {
-                    setLocalNotes((client as any).notes || '');
-                    setHasUnsavedNotes(false);
-                    setIsEditingNotes(false);
-                  }}>
-                          Cancel
-                        </Button>
-                      </div>}
-                  </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
-                    {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
-                  </div>}
-                {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                    <Clock className="h-3 w-3" />
-                    Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
-                    {notesUpdatedByUser && <>
-                        <span>•</span>
-                        <User className="h-3 w-3" />
-                        {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
-                      </>}
-                  </div>}
-              </CardContent>
-            </Card>
-              );
-            })()}
+            {/* About the Borrower removed from Pre-Qual/Pre-Approved right column - now at top of left column */}
           </div>
         </div>
       </div>

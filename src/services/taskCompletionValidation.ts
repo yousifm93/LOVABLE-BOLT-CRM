@@ -326,5 +326,37 @@ export async function validateTaskCompletion(
     }
   }
 
+  // Check for disclosure requirements (for "Disclose" task)
+  if (task.title?.toLowerCase().includes('disclose')) {
+    const borrowerId = task.borrower_id;
+    if (borrowerId) {
+      const { data: lead, error } = await supabase
+        .from('leads')
+        .select('disc_file, disclosure_status')
+        .eq('id', borrowerId)
+        .single();
+
+      if (!error && lead) {
+        // Check if disclosure file is uploaded
+        if (!lead.disc_file) {
+          return {
+            canComplete: false,
+            message: 'You must upload a Disclosure document before completing this task',
+            missingRequirement: 'disc_file_required',
+          };
+        }
+
+        // Check if disclosure status is "Sent"
+        if (lead.disclosure_status !== 'Sent') {
+          return {
+            canComplete: false,
+            message: 'Disclosure status must be "Sent" before completing this task',
+            missingRequirement: 'disclosure_status_sent',
+          };
+        }
+      }
+    }
+  }
+
   return { canComplete: true };
 }
