@@ -44,9 +44,15 @@ export const pipelineStageRules: PipelineStageRules = {
 
 export const statusChangeRules: StatusChangeRules = {
   disclosure_status: {
+    'Ordered': {
+      requires: 'disc_file',
+      message: 'You must upload a Disclosure document before setting status to Ordered',
+      actionLabel: 'Upload Disclosure Package',
+      actionType: 'upload_file'
+    },
     'Sent': {
       requires: 'disc_file',
-      message: 'Upload the disclosure package to change status to Sent',
+      message: 'You must upload a Disclosure document before setting status to Sent',
       actionLabel: 'Upload Disclosure Package',
       actionType: 'upload_file'
     },

@@ -806,11 +806,12 @@ export const databaseService = {
       const formatLocalDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
       // Resolve teammate_assigned safely (avoid FK violations)
+      // Fix: Map auth.users UUID to CRM users.id via auth_user_id column
       let teammateId: string | null = null;
       const { data: teammateUser } = await supabase
         .from('users')
         .select('id')
-        .eq('id', userId)
+        .eq('auth_user_id', userId)
         .maybeSingle();
       if (teammateUser?.id) teammateId = teammateUser.id;
 
