@@ -1,361 +1,117 @@
 
-# Plan: Fix Multiple Issues in Mortgage CRM - Round 2
+# Plan: Add Month Selector Buttons to Dashboard
 
 ## Summary
 
-This plan addresses the following issues identified from the user's feedback:
-
-1. **Pre-Qualified HSCI Task** - Add 3rd task "Home Search Check In (HSCI)" due 7 days after moving to Pre-Qualified
-2. **Screening Task Not Working for All Users** - Fix FK constraint error in `execute_pipeline_stage_changed_automations`
-3. **Disclosure Status Automations Not Working** - Fix `execute_disclosure_status_changed_automations` to use correct trigger_type
-4. **New RFP Automations** - Add "Condo Approval" (conditional on property_type=Condo) and "Order Title Work" tasks
-5. **Lead Creation Task Failing for Some Users** - Fix FK constraint error in `execute_lead_created_automations`
-6. **User Filter Shows UUIDs** - Update `ButtonFilterBuilder` to support `optionLabels`
-7. **Duplicate Fields in DetailsTab** - Remove fields that are now in Live Deal section
-8. **Agent Search Not Working** - Debug and fix sidebar search for agents
+Add a row of month selector buttons (January through December) above the main dashboard tabs (Sales, Calls, Active, etc.). Clicking a month button will filter all dashboard data to show data from that selected month. The current month (February) will be highlighted by default.
 
 ---
 
-## Issue 1: Pre-Qualified HSCI Task Automation
+## Current Architecture
 
-### Problem
-When a lead moves to Pre-Qualified, only 2 tasks are created. Need a 3rd task "Home Search Check In (HSCI)" due 7 days from the move date.
+### Data Flow
+1. `DashboardTabs.tsx` - Main dashboard component with Sales, Calls, Active, Closed, Miscellaneous, All tabs
+2. `useDashboardData.tsx` - Custom hook that fetches all dashboard metrics using React Query
+3. All date ranges are calculated from `new Date()` (today) with no month selection capability
 
-### Solution
-**Database Migration**: Insert a new task_automation record
-
-```sql
-INSERT INTO task_automations (
-  name,
-  trigger_type,
-  trigger_config,
-  task_name,
-  task_description,
-  task_priority,
-  assigned_to_user_id,
-  due_date_offset_days,
-  is_active
-) VALUES (
-  'Home Search Check In (HSCI)',
-  'pipeline_stage_changed',
-  '{"target_stage_id": "09162eec-d2b2-48e5-86d0-9e66ee8b2af7"}'::jsonb,
-  'Home Search Check In (HSCI)',
-  'Follow up with borrower on their home search progress',
-  'High',
-  NULL, -- Will use lead's teammate_assigned
-  7,
-  true
-);
-```
-
-**Also update the trigger function** to use the lead's `teammate_assigned` when `assigned_to_user_id` is NULL:
-
-```sql
--- In execute_pipeline_stage_changed_automations:
-COALESCE(automation.assigned_to_user_id, NEW.teammate_assigned)
-```
-
----
-
-## Issue 2: Screening Task Not Working for All Users
-
-### Root Cause
-The `execute_pipeline_stage_changed_automations` function uses `v_user_id` (from JWT claims) as `created_by`, but this is an auth.users UUID which violates the foreign key constraint on `tasks.created_by` (which references `users.id`).
-
-### Solution
-**Database Migration**: Update the function to lookup the CRM user ID:
-
-```sql
-CREATE OR REPLACE FUNCTION public.execute_pipeline_stage_changed_automations()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  automation RECORD;
-  new_task_id uuid;
-  v_user_id uuid;
-  v_crm_user_id uuid;
-BEGIN
-  IF OLD.pipeline_stage_id IS DISTINCT FROM NEW.pipeline_stage_id THEN
-    -- Get the current user ID from JWT claims
-    BEGIN
-      v_user_id := (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid;
-      -- Map auth user ID to CRM user ID
-      SELECT id INTO v_crm_user_id 
-      FROM users 
-      WHERE auth_user_id = v_user_id 
-      LIMIT 1;
-    EXCEPTION WHEN OTHERS THEN
-      v_user_id := NULL;
-      v_crm_user_id := NULL;
-    END;
-    
-    -- ... rest of function uses v_crm_user_id as created_by
-```
-
----
-
-## Issue 3: Disclosure Status Automations Not Working
-
-### Root Cause
-The `execute_disclosure_status_changed_automations` function (line 92) looks for:
-```sql
-trigger_type = 'disclosure_status_change'
-```
-
-But all disclosure automations are stored with:
-```sql
-trigger_type = 'status_changed'
-trigger_config->>'field' = 'disclosure_status'
-```
-
-### Solution
-**Database Migration**: Update the function to match the correct trigger_type:
-
-```sql
-CREATE OR REPLACE FUNCTION public.execute_disclosure_status_changed_automations()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
--- ... (header unchanged)
-BEGIN
-  IF OLD.disclosure_status IS DISTINCT FROM NEW.disclosure_status THEN
-    -- ...
-    FOR automation IN
-      SELECT ta.*
-      FROM task_automations ta
-      WHERE ta.is_active = true
-        AND ta.trigger_type = 'status_changed'  -- FIXED: was 'disclosure_status_change'
-        AND ta.trigger_config->>'field' = 'disclosure_status'  -- ADDED: field check
-        AND ta.trigger_config->>'target_status' = NEW.disclosure_status::text
-    LOOP
-    -- ... rest unchanged
-```
-
----
-
-## Issue 4: New RFP (Ready for Processor) Automations
-
-### Problem
-When loan_status changes to "RFP", need to create:
-1. **Condo Approval** task - assigned to Ashley, due today, notes "Order condo docs" - ONLY if property_type is "Condo" or "Condominium"
-2. **Order Title Work** task - assigned to Ashley, due today
-
-### Solution
-**Database Migration**: Insert two new task_automations
-
-```sql
--- Order Title Work (always)
-INSERT INTO task_automations (
-  name,
-  trigger_type,
-  trigger_config,
-  task_name,
-  task_description,
-  task_priority,
-  assigned_to_user_id,
-  due_date_offset_days,
-  is_active
-) VALUES (
-  'Order Title Work',
-  'status_changed',
-  '{"field": "loan_status", "target_status": "RFP"}'::jsonb,
-  'Order Title Work',
-  'Order title work for this loan',
-  'High',
-  '3dca68fc-ee7e-46cc-91a1-0c6176d4c32a', -- Ashley
-  0,
-  true
-);
-
--- Condo Approval (conditional - needs special handling)
-INSERT INTO task_automations (
-  name,
-  trigger_type,
-  trigger_config,
-  task_name,
-  task_description,
-  task_priority,
-  assigned_to_user_id,
-  due_date_offset_days,
-  is_active
-) VALUES (
-  'Condo Approval',
-  'status_changed',
-  '{"field": "loan_status", "target_status": "RFP", "condition_field": "property_type", "condition_value": "Condo"}'::jsonb,
-  'Condo Approval',
-  'Order condo docs',
-  'High',
-  '3dca68fc-ee7e-46cc-91a1-0c6176d4c32a', -- Ashley
-  0,
-  true
-);
-```
-
-**Also update `execute_loan_status_changed_automations`** to support the condition check:
-
-```sql
--- Add condition checking in the loop:
-FOR automation IN
-  SELECT ta.*
-  FROM task_automations ta
-  WHERE ta.is_active = true
-    AND ta.trigger_type = 'status_changed'
-    AND ta.trigger_config->>'field' = 'loan_status'
-    AND LOWER(ta.trigger_config->>'target_status') = LOWER(NEW.loan_status::text)
-    -- Add condition check
-    AND (
-      ta.trigger_config->>'condition_field' IS NULL
-      OR (
-        ta.trigger_config->>'condition_field' = 'property_type'
-        AND LOWER(NEW.property_type) ILIKE '%' || LOWER(ta.trigger_config->>'condition_value') || '%'
-      )
-    )
-LOOP
-```
-
----
-
-## Issue 5: Lead Creation Task Failing for Some Users
-
-### Root Cause
-Same FK constraint issue. The `execute_lead_created_automations` function uses `NEW.created_by` (auth.users UUID) as `tasks.created_by`, but the FK requires a `users.id`.
-
-### Solution
-**Database Migration**: Update the function to lookup the CRM user ID:
-
-```sql
-CREATE OR REPLACE FUNCTION public.execute_lead_created_automations()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  automation RECORD;
-  new_task_id uuid;
-  assignee_id_value uuid;
-  v_crm_user_id uuid;
-BEGIN
-  -- Map auth user ID to CRM user ID for created_by
-  SELECT id INTO v_crm_user_id 
-  FROM users 
-  WHERE auth_user_id = NEW.created_by 
-  LIMIT 1;
-
-  FOR automation IN
-    SELECT * FROM public.task_automations
-    WHERE is_active = true
-      AND trigger_type = 'lead_created'
-  LOOP
-    BEGIN
-      assignee_id_value := COALESCE(NEW.teammate_assigned, automation.assigned_to_user_id);
-      
-      INSERT INTO public.tasks (
-        -- ...
-        created_by,  -- Use CRM user ID, not auth user ID
-        -- ...
-      )
-      VALUES (
-        -- ...
-        v_crm_user_id,  -- FIXED: was NEW.created_by
-        -- ...
-      )
-      -- ...
-```
-
----
-
-## Issue 6: User Filter Shows UUIDs Instead of Names
-
-### Root Cause
-The `ButtonFilterBuilder` component's `FilterColumn` interface doesn't include `optionLabels`, so even though `Leads.tsx` passes it, it's not used.
-
-### Solution
-**File: `src/components/ui/button-filter-builder.tsx`**
-
-1. Update the `FilterColumn` interface (line 19-24):
+### Current Date Calculations
+The hook calculates dates like this:
 ```typescript
-export interface FilterColumn {
-  label: string;
-  value: string;
-  type: 'text' | 'number' | 'date' | 'select';
-  options?: string[];
-  optionLabels?: Record<string, string>; // ADD THIS
+const today = new Date();
+const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+const startOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+```
+
+---
+
+## Implementation Approach
+
+### 1. Add Month State to DashboardTabs.tsx
+
+Add state to track the selected month:
+```typescript
+const [selectedMonth, setSelectedMonth] = useState(() => {
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth() }; // 0-indexed
+});
+```
+
+### 2. Create Month Selector Buttons Component
+
+Add a row of buttons above the tabs:
+```typescript
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const currentMonth = new Date().getMonth();
+
+<div className="flex gap-1 mb-4">
+  {months.map((month, index) => (
+    <Button
+      key={month}
+      variant={selectedMonth.month === index ? "default" : "outline"}
+      size="sm"
+      onClick={() => setSelectedMonth({ year: selectedMonth.year, month: index })}
+      className={cn(
+        "px-3 py-1.5 text-xs font-medium",
+        selectedMonth.month === index && "bg-primary text-primary-foreground",
+        index === currentMonth && selectedMonth.month !== index && "border-primary"
+      )}
+    >
+      {month}
+    </Button>
+  ))}
+</div>
+```
+
+### 3. Update useDashboardData Hook
+
+Modify the hook to accept an optional month parameter:
+```typescript
+interface DashboardDataOptions {
+  year?: number;
+  month?: number; // 0-indexed (0 = January, 11 = December)
 }
+
+export const useDashboardData = (options?: DashboardDataOptions) => {
+  // Use provided month/year or default to current
+  const baseDate = useMemo(() => {
+    if (options?.year !== undefined && options?.month !== undefined) {
+      return new Date(options.year, options.month, 15); // Mid-month to avoid edge cases
+    }
+    return new Date();
+  }, [options?.year, options?.month]);
+  
+  const today = baseDate;
+  // ... rest of calculations based on baseDate
+};
 ```
 
-2. Update the select options rendering (around line 341-353) to use labels:
+### 4. Update All Date Calculations
+
+All queries will need to use the selected month instead of `new Date()`:
+
+**Before:**
 ```typescript
-{selectedColumn.options.map(option => (
-  <Button
-    key={option}
-    variant="outline"
-    size="sm"
-    onClick={() => handleAddFilterWithValue(option)}
-    className="justify-start h-8 text-xs"
-  >
-    {selectedColumn.optionLabels?.[option] || option}
-  </Button>
-))}
+const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 ```
 
-3. Update the filter chip display (around line 181) to show labels:
+**After:**
 ```typescript
-{filter.value && (
-  <span className="text-foreground">
-    "{column?.optionLabels?.[String(filter.value)] || String(filter.value)}"
-  </span>
-)}
+const selectedYear = options?.year ?? today.getFullYear();
+const selectedMonthNum = options?.month ?? today.getMonth();
+const startOfMonth = new Date(selectedYear, selectedMonthNum, 1);
+const startOfNextMonth = new Date(selectedYear, selectedMonthNum + 1, 1);
 ```
 
----
+### 5. Handle "Today", "Yesterday", "This Week" Labels
 
-## Issue 7: Duplicate Fields in DetailsTab
+When viewing historical months, labels like "Today" and "Yesterday" don't make sense. We'll adjust the display:
+- For current month: Show "Today", "Yesterday", "This Week", "This Month"
+- For past months: Show the full month data and disable/hide daily breakdowns
 
-### Problem
-Several fields now appear twice - once in the new "Live Deal" section and once in their original locations.
+**Option A (Simpler):** Keep all cards but show 0 for Today/Yesterday when viewing past months
+**Option B (Better UX):** Conditionally hide Today/Yesterday cards when not viewing current month
 
-### Solution
-**File: `src/components/lead-details/DetailsTab.tsx`**
-
-Remove these fields from their original sections:
-
-1. **From Transaction Details (lines 963-987)**: Remove `Subject Property Rental Income` and `Closing Date`
-2. **From Rate Lock Information (lines 1553-1587)**: Remove `Prepayment Penalty`, `Lock Expiration`, and `Credits`
-
-The Live Deal section already has these fields, so they just need to be removed from the duplicated locations.
-
-Also rename "Lender Credits" to just "Credits" in the Live Deal section (line 1416).
-
----
-
-## Issue 8: Agent Search Not Working in Sidebar
-
-### Root Cause
-The agent search query looks correct, but checking the database shows agents exist. The issue may be with how results are being rendered or the `deleted_at` filter.
-
-### Analysis
-Database query shows "David Fraine" and other David agents exist with `deleted_at = NULL`. The search query in `AppSidebar.tsx` (lines 201-215) correctly:
-- Searches `buyer_agents` table
-- Uses `.is('deleted_at', null)`
-- Limits to 5 results
-
-### Solution
-**File: `src/components/AppSidebar.tsx`**
-
-Add console logging to debug:
-```typescript
-console.log('Agent search for:', term, 'Results:', agents);
-```
-
-The more likely issue is the render - the agent type icon is correctly set to `Phone` (line 476), but if results are empty, we need to verify the query is running.
-
-Also ensure the search term is being passed correctly and the component properly renders agent-type results.
+I recommend **Option A** for now to avoid major UI changes - the cards will simply show 0 counts for historical months.
 
 ---
 
@@ -363,28 +119,70 @@ Also ensure the search term is being passed correctly and the component properly
 
 | File | Changes |
 |------|---------|
-| Database Migration | Fix 3 trigger functions + add 3 task automations |
-| `src/components/ui/button-filter-builder.tsx` | Add `optionLabels` support |
-| `src/components/lead-details/DetailsTab.tsx` | Remove duplicate fields |
-| `src/components/AppSidebar.tsx` | Debug agent search |
+| `src/pages/DashboardTabs.tsx` | Add month state, month selector buttons, pass month to hook |
+| `src/hooks/useDashboardData.tsx` | Accept month parameter, update all date calculations |
 
 ---
 
-## Database Functions to Update
+## Visual Design
 
-| Function | Issue | Fix |
-|----------|-------|-----|
-| `execute_lead_created_automations` | Uses auth UUID as created_by | Map to CRM user ID |
-| `execute_pipeline_stage_changed_automations` | Uses auth UUID as created_by + needs HSCI task | Map to CRM user ID + add teammate fallback |
-| `execute_disclosure_status_changed_automations` | Wrong trigger_type lookup | Use 'status_changed' + field check |
-| `execute_loan_status_changed_automations` | No condition support for Condo | Add condition_field check |
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Dashboard                                                               │
+│  Comprehensive mortgage business analytics                               │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────────┐│
+│  │ Search...                                                           ││
+│  └─────────────────────────────────────────────────────────────────────┘│
+│                                                                          │
+│  ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
+│  │ Jan │ Feb │ Mar │ Apr │ May │ Jun │ Jul │ Aug │ Sep │ Oct │ Nov │ Dec │  ← NEW
+│  └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
+│        ▲                                                                 │
+│        └── Currently highlighted (active month)                          │
+│                                                                          │
+│  ┌───────┬───────┬────────┬────────┬───────────────┬─────┐              │
+│  │ Sales │ Calls │ Active │ Closed │ Miscellaneous │ All │              │
+│  └───────┴───────┴────────┴────────┴───────────────┴─────┘              │
+│                                                                          │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │
+│  │   Leads     │ │Applications │ │ Face-to-Face│ │Broker Opens │        │
+│  │   8         │ │   5         │ │   0         │ │   0         │        │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘        │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## New Task Automations to Add
+## Data Behavior by Month Selection
 
-| Name | Trigger | Due Date | Assignee |
-|------|---------|----------|----------|
-| Home Search Check In (HSCI) | Pre-Qualified stage | +7 days | Lead's teammate |
-| Order Title Work | loan_status = RFP | Today | Ashley |
-| Condo Approval | loan_status = RFP + property_type = Condo | Today | Ashley |
+| View | Current Month (Feb 2026) | Past Month (Jan 2026) |
+|------|--------------------------|----------------------|
+| This Month | Feb 1-28 data | Jan 1-31 data |
+| This Week | Current week | Last week of Jan |
+| Yesterday | Feb 1 | Jan 30 |
+| Today | Feb 2 | Jan 31 |
+| All | All non-closed leads | All non-closed leads |
+
+**Note:** When viewing past months, "Today/Yesterday" will reference the last days of that month, which is technically correct but may be confusing. Alternative: We could hide those cards for historical views.
+
+---
+
+## Technical Considerations
+
+1. **React Query Cache Keys**: All queries include date params in their keys, so changing months will trigger new fetches
+2. **Performance**: Each month change will refetch data - this is acceptable since React Query handles caching
+3. **Year Navigation**: Currently this is scoped to the current year (2026). We may want to add year selection later if needed
+4. **Query Invalidation**: No changes needed - existing cache strategy remains effective
+
+---
+
+## Implementation Steps
+
+1. Update `useDashboardData.tsx` to accept `{ year, month }` options parameter
+2. Update all date calculations to use the provided month instead of `new Date()`
+3. Add `selectedMonth` state to `DashboardTabs.tsx`
+4. Create month selector button row component
+5. Pass `selectedMonth` to `useDashboardData` hook
+6. Ensure all modals and detail views respect the selected month context
