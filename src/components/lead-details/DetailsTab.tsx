@@ -127,6 +127,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     cash_to_close: (client as any).cash_to_close || (client as any).cashToClose || null,
     closing_costs: (client as any).closing_costs || (client as any).closingCosts || null,
     close_date: (client as any).close_date || null,
+    fin_cont: (client as any).fin_cont || null,
     
     // Loan & Property - Property
     occupancy: (client as any).occupancy || "",
@@ -355,6 +356,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       adjustments_credits: (client as any).adjustments_credits || null,
       apr: (client as any).apr || null,
       close_date: (client as any).close_date || null,
+      fin_cont: (client as any).fin_cont || null,
       review_left_on: (client as any).review_left_on || null,
     });
   };
@@ -1340,6 +1342,101 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Live Deal Section */}
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Live Deal</h4>
+            <div className="p-4 bg-muted/30 rounded-lg">
+              <FourColumnDetailLayout items={[
+                { 
+                  icon: Calendar, 
+                  label: "Finance Contingency", 
+                  value: formatDate((client as any).fin_cont),
+                  editComponent: isEditing ? (
+                    <Input
+                      type="date"
+                      value={editData.fin_cont || ""}
+                      onChange={(e) => setEditData({ ...editData, fin_cont: e.target.value || null })}
+                      className="h-8"
+                    />
+                  ) : undefined
+                },
+                { 
+                  icon: DollarSign, 
+                  label: "Subject Property Rental Income", 
+                  value: formatCurrency((client as any).subject_property_rental_income),
+                  editComponent: isEditing ? (
+                    <InlineEditCurrency
+                      value={editData.subject_property_rental_income}
+                      onValueChange={(value) => setEditData(prev => ({ ...prev, subject_property_rental_income: value || 0 }))}
+                      className="w-full"
+                    />
+                  ) : undefined
+                },
+                { 
+                  icon: Calendar, 
+                  label: "Closing Date", 
+                  value: formatDate((client as any).close_date),
+                  editComponent: isEditing ? (
+                    <Input
+                      type="date"
+                      value={editData.close_date || ""}
+                      onChange={(e) => setEditData({ ...editData, close_date: e.target.value || null })}
+                      className="h-8"
+                    />
+                  ) : undefined
+                },
+                { 
+                  icon: Lock, 
+                  label: "Prepayment Penalty", 
+                  value: (client as any).prepayment_penalty ? `${(client as any).prepayment_penalty} Year${(client as any).prepayment_penalty !== "1" ? "s" : ""}` : "—",
+                  editComponent: isEditing ? (
+                    <Select
+                      value={editData.prepayment_penalty}
+                      onValueChange={(value) => setEditData({ ...editData, prepayment_penalty: value })}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Select years" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">0 Years</SelectItem>
+                        <SelectItem value="1">1 Year</SelectItem>
+                        <SelectItem value="2">2 Years</SelectItem>
+                        <SelectItem value="3">3 Years</SelectItem>
+                        <SelectItem value="4">4 Years</SelectItem>
+                        <SelectItem value="5">5 Years</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : undefined
+                },
+                { 
+                  icon: DollarSign, 
+                  label: "Lender Credits", 
+                  value: formatCurrency((client as any).adjustments_credits || 0),
+                  editComponent: isEditing ? (
+                    <InlineEditCurrency
+                      value={editData.adjustments_credits}
+                      onValueChange={(value) => setEditData(prev => ({ ...prev, adjustments_credits: value || 0 }))}
+                      className="w-full"
+                    />
+                  ) : undefined
+                },
+                { 
+                  icon: Calendar, 
+                  label: "Lock Expiration", 
+                  value: formatDate((client as any).lock_expiration_date),
+                  editComponent: isEditing ? (
+                    <Input
+                      type="date"
+                      value={editData.lock_expiration_date || ""}
+                      onChange={(e) => setEditData({ ...editData, lock_expiration_date: e.target.value || null })}
+                      className="h-8"
+                    />
+                  ) : undefined
+                },
+              ]} columns={3} />
             </div>
           </div>
 

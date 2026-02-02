@@ -411,6 +411,7 @@ export default function Leads() {
     { value: 'last_name', label: 'Last Name', type: 'text' as const },
     { value: 'email', label: 'Email', type: 'text' as const },
     { value: 'phone', label: 'Phone', type: 'text' as const },
+    { value: 'teammate_assigned', label: 'User', type: 'select' as const, options: users.map(u => u.id), optionLabels: Object.fromEntries(users.map(u => [u.id, `${u.first_name || ''} ${u.last_name || ''}`.trim()])) },
     { value: 'referred_via', label: 'Referred Via', type: 'select' as const, options: referredViaOptions.map(o => o.value) },
     { value: 'referral_source', label: 'Referral Source', type: 'select' as const, options: referralSourceOptions.map(o => o.value) },
     { value: 'converted', label: 'Status', type: 'select' as const, options: convertedOptions.map(o => o.value) },

@@ -475,6 +475,7 @@ export function AppSidebar() {
                                 {result.type === 'lead' && <User className="h-4 w-4 text-blue-500" />}
                                 {result.type === 'agent' && <Phone className="h-4 w-4 text-green-500" />}
                                 {result.type === 'lender' && <Building className="h-4 w-4 text-purple-500" />}
+                                {result.type === 'contact' && <User className="h-4 w-4 text-orange-500" />}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm font-medium truncate">{result.name}</p>

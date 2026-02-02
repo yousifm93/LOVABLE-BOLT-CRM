@@ -423,23 +423,8 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
           contingency_requirements: selectedContingencies.length > 0 ? selectedContingencies : null,
         });
 
-        if (formData.borrower_id && createdTask) {
-          const assignedUser = users.find(u => u.id === formData.assignee_id);
-          const assigneeName = assignedUser ? `${assignedUser.first_name} ${assignedUser.last_name}`.trim() : undefined;
-          
-          try {
-            await databaseService.createTaskActivityLog({
-              lead_id: formData.borrower_id,
-              task_id: createdTask.id,
-              task_title: formData.title,
-              assignee_name: assigneeName,
-              due_date: formData.due_date,
-              author_id: crmUser.id,
-            });
-          } catch (logError) {
-            console.error('Failed to create task activity log:', logError);
-          }
-        }
+        // Note: Removed duplicate activity log creation - tasks are already shown in activity feed
+        // directly from tasks table via databaseService.getLeadActivities()
 
         toast({
           title: "Success",
