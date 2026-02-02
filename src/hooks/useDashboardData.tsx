@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
+
+export interface DashboardDataOptions {
+  year?: number;
+  month?: number; // 0-indexed (0 = January, 11 = December)
+}
 
 export interface DashboardLead {
   id: string;
@@ -53,57 +59,87 @@ export interface DashboardEmail {
   };
 }
 
-export const useDashboardData = () => {
-  // Get current date in local timezone
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
+export const useDashboardData = (options?: DashboardDataOptions) => {
+  // Get a stable current date reference (only updates once per minute to avoid constant recalculation)
+  const now = useMemo(() => new Date(), []);
+  const currentYear = now.getFullYear();
+  const currentMonthNum = now.getMonth();
+  
+  // Determine if we're viewing a historical month vs the current month
+  const isCurrentMonth = useMemo(() => {
+    if (options?.year !== undefined && options?.month !== undefined) {
+      return options.year === currentYear && options.month === currentMonthNum;
+    }
+    return true;
+  }, [options?.year, options?.month, currentYear, currentMonthNum]);
+
+  // Calculate base dates based on selected month or current date
+  const { today, yesterday, startOfMonth, startOfNextMonth, thisWeekRange, lastWeekRange, todayBoundaries, yesterdayBoundaries } = useMemo(() => {
+    const selectedYear = options?.year ?? currentYear;
+    const selectedMonth = options?.month ?? currentMonthNum;
+    
+    // For historical months, "today" is the last day of that month
+    // For current month, use actual today
+    let baseToday: Date;
+    if (isCurrentMonth) {
+      baseToday = new Date(now);
+    } else {
+      // Last day of the selected month
+      baseToday = new Date(selectedYear, selectedMonth + 1, 0);
+    }
+    
+    const baseYesterday = new Date(baseToday);
+    baseYesterday.setDate(baseYesterday.getDate() - 1);
+    
+    const baseStartOfMonth = new Date(selectedYear, selectedMonth, 1);
+    const baseStartOfNextMonth = new Date(selectedYear, selectedMonth + 1, 1);
+    
+    // For TIMESTAMPTZ comparisons, use UTC boundaries that align with local dates
+    const getUTCDayBoundaries = (date: Date) => {
+      const localMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+      const localEndOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+      return {
+        start: localMidnight.toISOString(),
+        end: localEndOfDay.toISOString()
+      };
+    };
+    
+    // Get week range (Monday-Sunday) based on the selected month
+    const getWeekRange = (weekOffset: number = 0, referenceDate: Date) => {
+      const day = referenceDate.getDay();
+      const monday = new Date(referenceDate);
+      monday.setDate(referenceDate.getDate() - (day === 0 ? 6 : day - 1) + (weekOffset * 7));
+      monday.setHours(0, 0, 0, 0);
+      
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      
+      return {
+        start: monday.toISOString(),
+        end: sunday.toISOString()
+      };
+    };
+    
+    return {
+      today: baseToday,
+      yesterday: baseYesterday,
+      startOfMonth: baseStartOfMonth,
+      startOfNextMonth: baseStartOfNextMonth,
+      thisWeekRange: getWeekRange(0, baseToday),
+      lastWeekRange: getWeekRange(-1, baseToday),
+      todayBoundaries: getUTCDayBoundaries(baseToday),
+      yesterdayBoundaries: getUTCDayBoundaries(baseYesterday)
+    };
+  }, [options?.year, options?.month, isCurrentMonth, currentYear, currentMonthNum, now]);
 
   // For DATE comparisons (lead_on_date), use date-only strings
   const formatDate = (date: Date) => {
     return date.toISOString().split('T')[0];
   };
 
-  // For TIMESTAMPTZ comparisons, use UTC boundaries that align with local dates
-  const getUTCDayBoundaries = (date: Date) => {
-    // Create a new date at midnight local time
-    const localMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
-    const localEndOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
-    
-    // Get the UTC timestamps for these local times
-    return {
-      start: localMidnight.toISOString(),
-      end: localEndOfDay.toISOString()
-    };
-  };
-
-  // Get week range (Monday-Sunday)
-  const getWeekRange = (weekOffset: number = 0) => {
-    const now = new Date();
-    const day = now.getDay();
-    // Monday of current week (day 0 = Sunday, so adjust)
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + (weekOffset * 7));
-    monday.setHours(0, 0, 0, 0);
-    
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    sunday.setHours(23, 59, 59, 999);
-    
-    return {
-      start: monday.toISOString(),
-      end: sunday.toISOString()
-    };
-  };
-
-  const thisWeekRange = getWeekRange(0);
-  const lastWeekRange = getWeekRange(-1);
-
-  const todayBoundaries = getUTCDayBoundaries(today);
-  const yesterdayBoundaries = getUTCDayBoundaries(yesterday);
-
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const startOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+  // Create a unique cache key prefix based on selected month
+  const monthKey = `${options?.year ?? 'current'}-${options?.month ?? 'current'}`;
 
   // This Month's Leads
   const { data: thisMonthLeads, isLoading: isLoadingThisMonthLeads } = useQuery({
@@ -1864,5 +1900,6 @@ export const useDashboardData = () => {
     closedMonthlyUnits: closedMonthlyUnits || [],
     allPipelineLeads: allPipelineLeads || [],
     isLoading,
+    isCurrentMonth,
   };
 };

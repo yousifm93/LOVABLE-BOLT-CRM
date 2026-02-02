@@ -138,8 +138,22 @@ const STAGE_ID_TO_NAME: Record<string, string> = {
 };
 
 export default function DashboardTabs() {
+  // Month selector state
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() }; // 0-indexed
+  });
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
   // Calculate expected progress based on day of month
   const calculateExpectedProgress = (monthlyGoal: number): number => {
+    // For historical months, return the full goal (100%)
+    if (selectedMonth.year !== currentYear || selectedMonth.month !== currentMonth) {
+      return monthlyGoal;
+    }
     const now = new Date();
     const currentDay = now.getDate();
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -148,9 +162,8 @@ export default function DashboardTabs() {
   
   // Helper to calculate weekly goal from monthly goal
   const calculateWeeklyGoal = (monthlyGoal: number): number => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    const year = selectedMonth.year;
+    const month = selectedMonth.month;
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     // Count Mondays in month = number of weeks
@@ -163,6 +176,10 @@ export default function DashboardTabs() {
   
   // Helper to calculate expected weekly progress based on day of week
   const calculateExpectedWeeklyProgress = (monthlyGoal: number): number => {
+    // For historical months, return the full weekly goal
+    if (selectedMonth.year !== currentYear || selectedMonth.month !== currentMonth) {
+      return calculateWeeklyGoal(monthlyGoal);
+    }
     const now = new Date();
     const dayOfWeek = now.getDay(); // 0=Sunday, 1=Monday, etc
     const daysIntoWeek = dayOfWeek === 0 ? 7 : dayOfWeek; // Sunday counts as day 7
@@ -259,7 +276,8 @@ export default function DashboardTabs() {
     closedMonthlyUnits,
     allPipelineLeads,
     isLoading,
-  } = useDashboardData();
+    isCurrentMonth,
+  } = useDashboardData({ year: selectedMonth.year, month: selectedMonth.month });
 
   // Combine monthly volume and units into a single array for charts
   const monthlyData = useMemo(() => {
@@ -577,6 +595,34 @@ export default function DashboardTabs() {
           placeholder="Search..." 
           className="max-w-md h-9" 
         />
+      </div>
+
+      {/* Month Selector */}
+      <div className="flex items-center gap-3">
+        <div className="flex gap-1 flex-wrap">
+          {months.map((month, index) => (
+            <Button
+              key={month}
+              variant={selectedMonth.month === index && selectedMonth.year === currentYear ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedMonth({ year: currentYear, month: index })}
+              className={`px-3 py-1.5 text-xs font-medium transition-all ${
+                selectedMonth.month === index && selectedMonth.year === currentYear 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : index === currentMonth 
+                    ? "border-primary border-2 text-primary" 
+                    : "hover:bg-muted"
+              }`}
+            >
+              {month}
+            </Button>
+          ))}
+        </div>
+        {!isCurrentMonth && (
+          <Badge variant="secondary" className="text-xs">
+            Viewing: {months[selectedMonth.month]} {selectedMonth.year}
+          </Badge>
+        )}
       </div>
 
       <Tabs defaultValue={hasPermission('dashboard_sales') !== 'hidden' ? 'sales' : 'calls'} className="space-y-4">
