@@ -961,31 +961,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       ) : undefined
     },
     { 
-      icon: DollarSign, 
-      label: "Subject Property Rental Income", 
-      value: formatCurrency((client as any).subject_property_rental_income || 0),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.subject_property_rental_income}
-          onValueChange={(value) => setEditData(prev => ({ ...prev, subject_property_rental_income: value || 0 }))}
-          className="w-full"
-        />
-      ) : null
-    },
-    { 
-      icon: Calendar, 
-      label: "Closing Date", 
-      value: formatDate((client as any).close_date || (client as any).closeDate),
-      editComponent: isEditing ? (
-        <Input
-          type="date"
-          value={editData.close_date || ""}
-          onChange={(e) => setEditData({ ...editData, close_date: e.target.value || null })}
-          className="h-8"
-        />
-      ) : undefined
-    },
-    { 
       icon: Building2, 
       label: "Lender", 
       value: (client as any).approved_lender?.lender_name || '—',
@@ -1413,7 +1388,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                 },
                 { 
                   icon: DollarSign, 
-                  label: "Lender Credits", 
+                  label: "Credits",
                   value: formatCurrency((client as any).adjustments_credits || 0),
                   editComponent: isEditing ? (
                     <InlineEditCurrency
@@ -1550,42 +1525,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                 value: client.loan?.ltv ? formatPercentage(client.loan.ltv) : "—"
               },
               { 
-                icon: Lock, 
-                label: "Prepayment Penalty", 
-                value: (client as any).prepayment_penalty ? `${(client as any).prepayment_penalty} Year${(client as any).prepayment_penalty !== "1" ? "s" : ""}` : "—",
-                editComponent: isEditing ? (
-                  <Select
-                    value={editData.prepayment_penalty}
-                    onValueChange={(value) => setEditData({ ...editData, prepayment_penalty: value })}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue placeholder="Select years" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">0 Years</SelectItem>
-                      <SelectItem value="1">1 Year</SelectItem>
-                      <SelectItem value="2">2 Years</SelectItem>
-                      <SelectItem value="3">3 Years</SelectItem>
-                      <SelectItem value="4">4 Years</SelectItem>
-                      <SelectItem value="5">5 Years</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : undefined
-              },
-              { 
-                icon: Calendar, 
-                label: "Lock Expiration", 
-                value: formatDate((client as any).lock_expiration_date),
-                editComponent: isEditing ? (
-                  <Input
-                    type="date"
-                    value={editData.lock_expiration_date || ""}
-                    onChange={(e) => setEditData({ ...editData, lock_expiration_date: e.target.value || null })}
-                    className="h-8"
-                  />
-                ) : undefined
-              },
-              { 
                 icon: Building, 
                 label: "Escrow Waiver", 
                 value: (client as any).escrows || formatYesNo(client.loan?.escrowWaiver || false),
@@ -1603,18 +1542,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                     </SelectContent>
                   </Select>
                 ) : undefined
-              },
-              { 
-                icon: DollarSign, 
-                label: "Credits", 
-                value: formatCurrency((client as any).adjustments_credits || 0),
-                editComponent: isEditing ? (
-                  <InlineEditCurrency
-                    value={editData.adjustments_credits}
-                    onValueChange={(value) => setEditData(prev => ({ ...prev, adjustments_credits: value || 0 }))}
-                    className="w-full"
-                  />
-                ) : null
               },
             ]} />
           </div>

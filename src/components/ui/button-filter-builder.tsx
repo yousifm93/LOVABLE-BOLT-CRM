@@ -21,6 +21,7 @@ export interface FilterColumn {
   value: string;
   type: 'text' | 'number' | 'date' | 'select';
   options?: string[];
+  optionLabels?: Record<string, string>;
 }
 
 interface ButtonFilterBuilderProps {
@@ -178,7 +179,7 @@ export function ButtonFilterBuilder({
               >
                 <span className="font-medium text-foreground">{column?.label || filter.column}</span>
                 <span className="text-muted-foreground">{operatorLabel}</span>
-                {filter.value && <span className="text-foreground">"{String(filter.value)}"</span>}
+                {filter.value && <span className="text-foreground">"{column?.optionLabels?.[String(filter.value)] || String(filter.value)}"</span>}
                 <button
                   onClick={() => removeFilter(filter.id)}
                   className="ml-1 hover:bg-muted rounded p-0.5"
@@ -347,7 +348,7 @@ export function ButtonFilterBuilder({
                     onClick={() => handleAddFilterWithValue(option)}
                     className="justify-start h-8 text-xs"
                   >
-                    {option}
+                    {selectedColumn.optionLabels?.[option] || option}
                   </Button>
                 ))}
               </div>
