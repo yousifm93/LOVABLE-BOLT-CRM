@@ -651,14 +651,15 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
           >
             ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
+          <TableHead className="w-[85px] text-center text-xs">Last updated</TableHead>
           <TableHead 
             onClick={() => handleSortClick('needed_from')}
             className="cursor-pointer hover:bg-muted w-[70px] text-center text-xs"
           >
             From {sortBy === 'needed_from' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
-          <TableHead className="w-[85px] text-center text-xs">Last updated</TableHead>
           <TableHead className="w-[40px] text-center text-xs">Doc</TableHead>
+          <TableHead className="w-[85px] text-center text-xs">Created On</TableHead>
           <TableHead className="w-[30px]"></TableHead>
         </TableRow>
       </TableHeader>
@@ -738,25 +739,6 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
                     </PopoverContent>
                   </Popover>
                 </TableCell>
-                <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
-                  <Select
-                    value={condition.needed_from || ""}
-                    onValueChange={(value) => handleInlineUpdate(condition.id, 'needed_from', value)}
-                  >
-                    <SelectTrigger className="w-full border-0 h-full rounded-none text-xs text-center justify-center">
-                      <SelectValue placeholder="—">
-                        <span className="text-xs">{condition.needed_from || "—"}</span>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {NEEDED_FROM_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value} className="text-xs">
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
                 <TableCell className="py-0.5 px-1">
                   <Popover>
                     <PopoverTrigger asChild>
@@ -776,6 +758,25 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
                       <div className="text-muted-foreground">{format(new Date(lastUpdatedAt), 'MMM d, yyyy h:mm a')}</div>
                     </PopoverContent>
                   </Popover>
+                </TableCell>
+                <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={condition.needed_from || ""}
+                    onValueChange={(value) => handleInlineUpdate(condition.id, 'needed_from', value)}
+                  >
+                    <SelectTrigger className="w-full border-0 h-full rounded-none text-xs text-center justify-center">
+                      <SelectValue placeholder="—">
+                        <span className="text-xs">{condition.needed_from || "—"}</span>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NEEDED_FROM_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="text-xs">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </TableCell>
                 <TableCell className="py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
                   {condition.document_id ? (
@@ -797,6 +798,26 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
                       <Plus className="h-3.5 w-3.5 text-muted-foreground" />
                     </Button>
                   )}
+                </TableCell>
+                <TableCell className="py-0.5 px-1">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80">
+                        <Avatar className="h-5 w-5">
+                          <AvatarFallback className="text-[10px] bg-muted">
+                            {getUserInitials(condition.created_by)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistance(new Date(condition.created_at), new Date(), { addSuffix: true })}
+                        </span>
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-2 text-xs" align="center">
+                      <div className="font-medium">Created by {getUserName(condition.created_by)}</div>
+                      <div className="text-muted-foreground">{format(new Date(condition.created_at), 'MMM d, yyyy h:mm a')}</div>
+                    </PopoverContent>
+                  </Popover>
                 </TableCell>
                 <TableCell className="py-0.5 px-0.5" onClick={(e) => e.stopPropagation()}>
                   <Button 
