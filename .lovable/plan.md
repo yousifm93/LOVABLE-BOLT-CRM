@@ -1,321 +1,361 @@
 
-# Plan: Fix Multiple Issues in Mortgage CRM
+# Plan: Fix Multiple Issues in Mortgage CRM - Round 2
 
 ## Summary
 
-This plan addresses 8 issues:
-1. **Task creation automation not working for all users** - Fix trigger to work for all accounts
-2. **Add "User" filter to Leads page** - Add teammate_assigned filter option
-3. **Add "Live Deal" section with Finance Contingency** - Reorganize DetailsTab
-4. **Tasks box height restriction** - Add fixed height with scroll
-5. **Duplicate task activity log entries** - Remove redundant note creation
-6. **Agent search not working in sidebar** - Fix search to include agents
-7. **Disclose task validation not working** - Fix validation logic
-8. **Search dropdown width issue** - Already fixed in previous update, will verify
+This plan addresses the following issues identified from the user's feedback:
+
+1. **Pre-Qualified HSCI Task** - Add 3rd task "Home Search Check In (HSCI)" due 7 days after moving to Pre-Qualified
+2. **Screening Task Not Working for All Users** - Fix FK constraint error in `execute_pipeline_stage_changed_automations`
+3. **Disclosure Status Automations Not Working** - Fix `execute_disclosure_status_changed_automations` to use correct trigger_type
+4. **New RFP Automations** - Add "Condo Approval" (conditional on property_type=Condo) and "Order Title Work" tasks
+5. **Lead Creation Task Failing for Some Users** - Fix FK constraint error in `execute_lead_created_automations`
+6. **User Filter Shows UUIDs** - Update `ButtonFilterBuilder` to support `optionLabels`
+7. **Duplicate Fields in DetailsTab** - Remove fields that are now in Live Deal section
+8. **Agent Search Not Working** - Debug and fix sidebar search for agents
 
 ---
 
-## Issue 1: Task Creation Automation Not Working For All Users
+## Issue 1: Pre-Qualified HSCI Task Automation
+
+### Problem
+When a lead moves to Pre-Qualified, only 2 tasks are created. Need a 3rd task "Home Search Check In (HSCI)" due 7 days from the move date.
+
+### Solution
+**Database Migration**: Insert a new task_automation record
+
+```sql
+INSERT INTO task_automations (
+  name,
+  trigger_type,
+  trigger_config,
+  task_name,
+  task_description,
+  task_priority,
+  assigned_to_user_id,
+  due_date_offset_days,
+  is_active
+) VALUES (
+  'Home Search Check In (HSCI)',
+  'pipeline_stage_changed',
+  '{"target_stage_id": "09162eec-d2b2-48e5-86d0-9e66ee8b2af7"}'::jsonb,
+  'Home Search Check In (HSCI)',
+  'Follow up with borrower on their home search progress',
+  'High',
+  NULL, -- Will use lead's teammate_assigned
+  7,
+  true
+);
+```
+
+**Also update the trigger function** to use the lead's `teammate_assigned` when `assigned_to_user_id` is NULL:
+
+```sql
+-- In execute_pipeline_stage_changed_automations:
+COALESCE(automation.assigned_to_user_id, NEW.teammate_assigned)
+```
+
+---
+
+## Issue 2: Screening Task Not Working for All Users
 
 ### Root Cause
-The task automation trigger `execute_lead_created_automations` uses `NEW.teammate_assigned` to assign the follow-up task. However, in the `CreateLeadModalModern` and `databaseService.createLead()`, when other users create leads, the `teammate_assigned` value may not be properly set to their user ID.
-
-### Technical Analysis
-Looking at `databaseService.createLead()` (lines 808-815):
-- It uses `userId` from `supabase.auth.getSession()` (which is the auth.users UUID)
-- Then queries `users` table with `.eq('id', userId)` - but `userId` is an auth UUID, not a users table UUID
+The `execute_pipeline_stage_changed_automations` function uses `v_user_id` (from JWT claims) as `created_by`, but this is an auth.users UUID which violates the foreign key constraint on `tasks.created_by` (which references `users.id`).
 
 ### Solution
-**File: `src/services/database.ts`** (around lines 808-815)
+**Database Migration**: Update the function to lookup the CRM user ID:
 
-Fix the teammate assignment logic to properly map auth user ID to CRM user ID:
-
-```typescript
-// Current (broken):
-const { data: teammateUser } = await supabase
-  .from('users')
-  .select('id')
-  .eq('id', userId)  // Wrong! userId is auth user ID
-  .maybeSingle();
-
-// Fixed:
-const { data: teammateUser } = await supabase
-  .from('users')
-  .select('id')
-  .eq('auth_user_id', userId)  // Correct! Match on auth_user_id
-  .maybeSingle();
+```sql
+CREATE OR REPLACE FUNCTION public.execute_pipeline_stage_changed_automations()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  automation RECORD;
+  new_task_id uuid;
+  v_user_id uuid;
+  v_crm_user_id uuid;
+BEGIN
+  IF OLD.pipeline_stage_id IS DISTINCT FROM NEW.pipeline_stage_id THEN
+    -- Get the current user ID from JWT claims
+    BEGIN
+      v_user_id := (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid;
+      -- Map auth user ID to CRM user ID
+      SELECT id INTO v_crm_user_id 
+      FROM users 
+      WHERE auth_user_id = v_user_id 
+      LIMIT 1;
+    EXCEPTION WHEN OTHERS THEN
+      v_user_id := NULL;
+      v_crm_user_id := NULL;
+    END;
+    
+    -- ... rest of function uses v_crm_user_id as created_by
 ```
-
-This ensures that whoever creates the lead gets their proper CRM user ID assigned to `teammate_assigned`, which the database trigger then uses for the "Follow up on new lead" task.
 
 ---
 
-## Issue 2: Add "User" Filter to Leads Page
+## Issue 3: Disclosure Status Automations Not Working
+
+### Root Cause
+The `execute_disclosure_status_changed_automations` function (line 92) looks for:
+```sql
+trigger_type = 'disclosure_status_change'
+```
+
+But all disclosure automations are stored with:
+```sql
+trigger_type = 'status_changed'
+trigger_config->>'field' = 'disclosure_status'
+```
 
 ### Solution
-**File: `src/pages/Leads.tsx`** (around line 409-424)
+**Database Migration**: Update the function to match the correct trigger_type:
 
-Add a new filter column for `teammate_assigned`:
-
-```typescript
-const filterColumns = [
-  { value: 'first_name', label: 'First Name', type: 'text' as const },
-  { value: 'last_name', label: 'Last Name', type: 'text' as const },
-  // ... existing filters ...
-  { value: 'teammate_assigned', label: 'User', type: 'select' as const, options: [] }, // Add this
-  { value: 'created_at', label: 'Created Date', type: 'date' as const },
-];
+```sql
+CREATE OR REPLACE FUNCTION public.execute_disclosure_status_changed_automations()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+-- ... (header unchanged)
+BEGIN
+  IF OLD.disclosure_status IS DISTINCT FROM NEW.disclosure_status THEN
+    -- ...
+    FOR automation IN
+      SELECT ta.*
+      FROM task_automations ta
+      WHERE ta.is_active = true
+        AND ta.trigger_type = 'status_changed'  -- FIXED: was 'disclosure_status_change'
+        AND ta.trigger_config->>'field' = 'disclosure_status'  -- ADDED: field check
+        AND ta.trigger_config->>'target_status' = NEW.disclosure_status::text
+    LOOP
+    -- ... rest unchanged
 ```
-
-Since this is a user ID field, we need to load user options dynamically. Modify to use a special user filter:
-
-```typescript
-// Add user options from already-loaded users array
-{ 
-  value: 'teammate_assigned', 
-  label: 'User', 
-  type: 'select' as const, 
-  options: users.map(u => u.id)  // Will need custom rendering
-},
-```
-
-Better approach: Add user name mapping to the filter system. This requires modifying the filter to show user names but filter by ID.
 
 ---
 
-## Issue 3: Add "Live Deal" Section with Finance Contingency
+## Issue 4: New RFP (Ready for Processor) Automations
+
+### Problem
+When loan_status changes to "RFP", need to create:
+1. **Condo Approval** task - assigned to Ashley, due today, notes "Order condo docs" - ONLY if property_type is "Condo" or "Condominium"
+2. **Order Title Work** task - assigned to Ashley, due today
+
+### Solution
+**Database Migration**: Insert two new task_automations
+
+```sql
+-- Order Title Work (always)
+INSERT INTO task_automations (
+  name,
+  trigger_type,
+  trigger_config,
+  task_name,
+  task_description,
+  task_priority,
+  assigned_to_user_id,
+  due_date_offset_days,
+  is_active
+) VALUES (
+  'Order Title Work',
+  'status_changed',
+  '{"field": "loan_status", "target_status": "RFP"}'::jsonb,
+  'Order Title Work',
+  'Order title work for this loan',
+  'High',
+  '3dca68fc-ee7e-46cc-91a1-0c6176d4c32a', -- Ashley
+  0,
+  true
+);
+
+-- Condo Approval (conditional - needs special handling)
+INSERT INTO task_automations (
+  name,
+  trigger_type,
+  trigger_config,
+  task_name,
+  task_description,
+  task_priority,
+  assigned_to_user_id,
+  due_date_offset_days,
+  is_active
+) VALUES (
+  'Condo Approval',
+  'status_changed',
+  '{"field": "loan_status", "target_status": "RFP", "condition_field": "property_type", "condition_value": "Condo"}'::jsonb,
+  'Condo Approval',
+  'Order condo docs',
+  'High',
+  '3dca68fc-ee7e-46cc-91a1-0c6176d4c32a', -- Ashley
+  0,
+  true
+);
+```
+
+**Also update `execute_loan_status_changed_automations`** to support the condition check:
+
+```sql
+-- Add condition checking in the loop:
+FOR automation IN
+  SELECT ta.*
+  FROM task_automations ta
+  WHERE ta.is_active = true
+    AND ta.trigger_type = 'status_changed'
+    AND ta.trigger_config->>'field' = 'loan_status'
+    AND LOWER(ta.trigger_config->>'target_status') = LOWER(NEW.loan_status::text)
+    -- Add condition check
+    AND (
+      ta.trigger_config->>'condition_field' IS NULL
+      OR (
+        ta.trigger_config->>'condition_field' = 'property_type'
+        AND LOWER(NEW.property_type) ILIKE '%' || LOWER(ta.trigger_config->>'condition_value') || '%'
+      )
+    )
+LOOP
+```
+
+---
+
+## Issue 5: Lead Creation Task Failing for Some Users
+
+### Root Cause
+Same FK constraint issue. The `execute_lead_created_automations` function uses `NEW.created_by` (auth.users UUID) as `tasks.created_by`, but the FK requires a `users.id`.
+
+### Solution
+**Database Migration**: Update the function to lookup the CRM user ID:
+
+```sql
+CREATE OR REPLACE FUNCTION public.execute_lead_created_automations()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  automation RECORD;
+  new_task_id uuid;
+  assignee_id_value uuid;
+  v_crm_user_id uuid;
+BEGIN
+  -- Map auth user ID to CRM user ID for created_by
+  SELECT id INTO v_crm_user_id 
+  FROM users 
+  WHERE auth_user_id = NEW.created_by 
+  LIMIT 1;
+
+  FOR automation IN
+    SELECT * FROM public.task_automations
+    WHERE is_active = true
+      AND trigger_type = 'lead_created'
+  LOOP
+    BEGIN
+      assignee_id_value := COALESCE(NEW.teammate_assigned, automation.assigned_to_user_id);
+      
+      INSERT INTO public.tasks (
+        -- ...
+        created_by,  -- Use CRM user ID, not auth user ID
+        -- ...
+      )
+      VALUES (
+        -- ...
+        v_crm_user_id,  -- FIXED: was NEW.created_by
+        -- ...
+      )
+      -- ...
+```
+
+---
+
+## Issue 6: User Filter Shows UUIDs Instead of Names
+
+### Root Cause
+The `ButtonFilterBuilder` component's `FilterColumn` interface doesn't include `optionLabels`, so even though `Leads.tsx` passes it, it's not used.
+
+### Solution
+**File: `src/components/ui/button-filter-builder.tsx`**
+
+1. Update the `FilterColumn` interface (line 19-24):
+```typescript
+export interface FilterColumn {
+  label: string;
+  value: string;
+  type: 'text' | 'number' | 'date' | 'select';
+  options?: string[];
+  optionLabels?: Record<string, string>; // ADD THIS
+}
+```
+
+2. Update the select options rendering (around line 341-353) to use labels:
+```typescript
+{selectedColumn.options.map(option => (
+  <Button
+    key={option}
+    variant="outline"
+    size="sm"
+    onClick={() => handleAddFilterWithValue(option)}
+    className="justify-start h-8 text-xs"
+  >
+    {selectedColumn.optionLabels?.[option] || option}
+  </Button>
+))}
+```
+
+3. Update the filter chip display (around line 181) to show labels:
+```typescript
+{filter.value && (
+  <span className="text-foreground">
+    "{column?.optionLabels?.[String(filter.value)] || String(filter.value)}"
+  </span>
+)}
+```
+
+---
+
+## Issue 7: Duplicate Fields in DetailsTab
+
+### Problem
+Several fields now appear twice - once in the new "Live Deal" section and once in their original locations.
 
 ### Solution
 **File: `src/components/lead-details/DetailsTab.tsx`**
 
-Add a new "Live Deal" section after "Subject Property Address" containing:
-- Finance Contingency (fin_cont)
-- Subject Property Rental Income
-- Closing Date
-- Lender Pre-Payment Penalty
-- Credits
-- Lock Expiration
+Remove these fields from their original sections:
 
-### Implementation
-After the "Subject Property Address" section (around line 1350), add:
+1. **From Transaction Details (lines 963-987)**: Remove `Subject Property Rental Income` and `Closing Date`
+2. **From Rate Lock Information (lines 1553-1587)**: Remove `Prepayment Penalty`, `Lock Expiration`, and `Credits`
 
-```typescript
-{/* LIVE DEAL SECTION */}
-<div className="space-y-4 pt-4">
-  <h3 className="text-lg font-semibold flex items-center gap-2">
-    <Target className="h-5 w-5 text-primary" />
-    Live Deal
-  </h3>
-  <div className="p-4 bg-muted/30 rounded-lg">
-    <FourColumnDetailLayout items={[
-      {
-        icon: Calendar,
-        label: "Finance Contingency",
-        value: formatDate((client as any).fin_cont),
-        editComponent: isEditing ? (
-          <InlineEditDate
-            value={editData.fin_cont}
-            onValueChange={(value) => setEditData(prev => ({ ...prev, fin_cont: value }))}
-          />
-        ) : undefined
-      },
-      {
-        icon: DollarSign,
-        label: "Subject Property Rental Income",
-        value: formatCurrency((client as any).subject_property_rental_income),
-        editComponent: isEditing ? (
-          <InlineEditCurrency
-            value={editData.subject_property_rental_income}
-            onValueChange={(value) => setEditData(prev => ({ ...prev, subject_property_rental_income: value }))}
-          />
-        ) : undefined
-      },
-      {
-        icon: Calendar,
-        label: "Closing Date",
-        value: formatDate((client as any).close_date),
-        editComponent: isEditing ? (
-          <InlineEditDate
-            value={editData.close_date}
-            onValueChange={(value) => setEditData(prev => ({ ...prev, close_date: value }))}
-          />
-        ) : undefined
-      },
-      {
-        icon: DollarSign,
-        label: "Prepayment Penalty",
-        value: formatCurrency((client as any).prepayment_penalty),
-        editComponent: // existing editor
-      },
-      {
-        icon: DollarSign,
-        label: "Credits",
-        value: formatCurrency((client as any).adjustments_credits),
-        editComponent: // existing editor
-      },
-      {
-        icon: Calendar,
-        label: "Lock Expiration",
-        value: formatDate((client as any).lock_expiration_date),
-        editComponent: // existing editor
-      },
-    ]} />
-  </div>
-</div>
-```
+The Live Deal section already has these fields, so they just need to be removed from the duplicated locations.
 
-Move the relevant fields from "Rate Lock Information" section to this new section.
+Also rename "Lender Credits" to just "Credits" in the Live Deal section (line 1416).
 
 ---
 
-## Issue 4: Tasks Box Height Restriction
-
-### Solution
-**File: `src/components/ClientDetailDrawer.tsx`** (around line 2831-2871)
-
-Add a max-height and scroll to the Tasks card:
-
-```typescript
-{/* Tasks */}
-<Card>
-  <CardHeader className="pb-3 bg-white">
-    <CardTitle className="text-sm font-bold flex items-center justify-between">
-      Tasks
-      <Button size="sm" variant="outline" onClick={() => setShowCreateTaskModal(true)} className="h-6 px-2 text-xs">
-        <Plus className="h-3 w-3 mr-1" />
-        Add Task
-      </Button>
-    </CardTitle>
-  </CardHeader>
-  <CardContent className="space-y-2 bg-gray-50 max-h-[280px] overflow-y-auto">
-    {/* existing task list rendering */}
-  </CardContent>
-</Card>
-```
-
-The `max-h-[280px]` roughly matches the height of the Borrower Info card. Adding `overflow-y-auto` enables scrolling when tasks exceed this height.
-
----
-
-## Issue 5: Duplicate Task Activity Log Entries
+## Issue 8: Agent Search Not Working in Sidebar
 
 ### Root Cause
-When a task is created:
-1. The task is inserted into the `tasks` table
-2. `createTaskActivityLog()` is called, which inserts a note into `notes` table
-3. `loadActivities()` fetches both tasks AND notes
-4. Result: The same task appears twice - once from tasks table, once from notes table
-
-### Solution
-**File: `src/components/modals/CreateTaskModal.tsx`** (around lines 426-442)
-
-Remove the call to `createTaskActivityLog()`:
-
-```typescript
-// Before:
-if (formData.borrower_id && createdTask) {
-  const assignedUser = users.find(u => u.id === formData.assignee_id);
-  const assigneeName = assignedUser ? `${assignedUser.first_name} ${assignedUser.last_name}`.trim() : undefined;
-  
-  try {
-    await databaseService.createTaskActivityLog({
-      lead_id: formData.borrower_id,
-      task_id: createdTask.id,
-      task_title: formData.title,
-      assignee_name: assigneeName,
-      due_date: formData.due_date,
-      author_id: crmUser.id,
-    });
-  } catch (logError) {
-    console.error('Failed to create task activity log:', logError);
-  }
-}
-
-// After: Remove the entire block above - tasks are already shown in activity feed directly from tasks table
-```
-
-The activity tab already loads tasks directly from the database via `databaseService.getLeadActivities()`, so the redundant note-based log is not needed.
-
----
-
-## Issue 6: Agent Search Not Working in Sidebar
-
-### Root Cause
-Looking at `AppSidebar.tsx` lines 200-215, the agent search correctly queries `buyer_agents` table. However, the search results might not be rendering agents due to missing icon handling.
+The agent search query looks correct, but checking the database shows agents exist. The issue may be with how results are being rendered or the `deleted_at` filter.
 
 ### Analysis
-In lines 474-477:
-```typescript
-{result.type === 'lead' && <User className="h-4 w-4 text-blue-500" />}
-{result.type === 'agent' && <Phone className="h-4 w-4 text-green-500" />}
-{result.type === 'lender' && <Building className="h-4 w-4 text-purple-500" />}
-```
-
-But `result.type === 'contact'` is not handled with an icon. More importantly, if the agent data isn't being returned, we need to check the query.
+Database query shows "David Fraine" and other David agents exist with `deleted_at = NULL`. The search query in `AppSidebar.tsx` (lines 201-215) correctly:
+- Searches `buyer_agents` table
+- Uses `.is('deleted_at', null)`
+- Limits to 5 results
 
 ### Solution
-**File: `src/components/AppSidebar.tsx`** (around line 200-215)
+**File: `src/components/AppSidebar.tsx`**
 
-The issue is that the search might be filtering out agents due to `deleted_at` filter. Let me verify and fix:
-
+Add console logging to debug:
 ```typescript
-// Ensure agents query works correctly
-const { data: agents } = await supabase
-  .from('buyer_agents')
-  .select('id, first_name, last_name, brokerage')
-  .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,brokerage.ilike.%${term}%`)
-  .is('deleted_at', null)
-  .limit(5);
-
-// Debug: Add console.log to verify agents are being found
-console.log('Agent search results:', agents);
+console.log('Agent search for:', term, 'Results:', agents);
 ```
 
-Also add icon for 'contact' type in line 478:
-```typescript
-{result.type === 'contact' && <User className="h-4 w-4 text-orange-500" />}
-```
+The more likely issue is the render - the agent type icon is correctly set to `Phone` (line 476), but if results are empty, we need to verify the query is running.
 
----
-
-## Issue 7: Disclose Task Validation Not Working
-
-### Root Cause
-Looking at `taskCompletionValidation.ts` lines 329-359, the validation checks for "Disclose" in the task title. However, this validation only runs when `validateTaskCompletion()` is called, which happens in `handleTaskToggle()`.
-
-The issue is that the user is changing the `disclosure_status` to "Sent" directly in the UI without the task validation blocking them. The Disclose task validation was meant to block the TASK completion, not the status field change.
-
-### Solution
-Two-part fix:
-
-**Part A: Block disclosure_status change if no file uploaded**
-
-**File: `src/services/statusChangeValidation.ts`**
-
-Add a rule for disclosure_status field:
-```typescript
-// Add rule to block disclosure_status = 'Sent' unless disc_file is populated
-{
-  fieldName: 'disclosure_status',
-  targetValue: 'Sent',
-  requiredFields: [
-    { field: 'disc_file', message: 'You must upload a Disclosure document before setting status to Sent' }
-  ],
-  message: 'Disclosure document required before marking as Sent'
-}
-```
-
-**Part B: Ensure "Disclose" task validation works**
-
-The current validation in `taskCompletionValidation.ts` (lines 329-359) looks correct but might have an issue with the borrower_id not being populated on the task.
-
-Debug by checking if `task.borrower_id` is set when the task is created via automation.
-
----
-
-## Issue 8: Search Dropdown Width (Already Fixed)
-
-The search dropdown width was fixed in a previous update by adding `min-w-[280px] w-max`. Will verify this is working.
+Also ensure the search term is being passed correctly and the component properly renders agent-type results.
 
 ---
 
@@ -323,56 +363,28 @@ The search dropdown width was fixed in a previous update by adding `min-w-[280px
 
 | File | Changes |
 |------|---------|
-| `src/services/database.ts` | Fix auth_user_id mapping in createLead |
-| `src/pages/Leads.tsx` | Add "User" filter column |
-| `src/components/lead-details/DetailsTab.tsx` | Add "Live Deal" section |
-| `src/components/ClientDetailDrawer.tsx` | Add max-height to Tasks card |
-| `src/components/modals/CreateTaskModal.tsx` | Remove duplicate activity log creation |
-| `src/components/AppSidebar.tsx` | Debug/fix agent search, add contact icon |
-| `src/services/statusChangeValidation.ts` | Add disclosure_status validation rule |
+| Database Migration | Fix 3 trigger functions + add 3 task automations |
+| `src/components/ui/button-filter-builder.tsx` | Add `optionLabels` support |
+| `src/components/lead-details/DetailsTab.tsx` | Remove duplicate fields |
+| `src/components/AppSidebar.tsx` | Debug agent search |
 
 ---
 
-## Visual Summary
+## Database Functions to Update
 
-### Leads Filter (After)
-```
-Filters
-├── First Name
-├── Last Name
-├── Email
-├── ...
-├── User ✨ NEW
-├── Due Date
-└── Created Date
-```
+| Function | Issue | Fix |
+|----------|-------|-----|
+| `execute_lead_created_automations` | Uses auth UUID as created_by | Map to CRM user ID |
+| `execute_pipeline_stage_changed_automations` | Uses auth UUID as created_by + needs HSCI task | Map to CRM user ID + add teammate fallback |
+| `execute_disclosure_status_changed_automations` | Wrong trigger_type lookup | Use 'status_changed' + field check |
+| `execute_loan_status_changed_automations` | No condition support for Condo | Add condition_field check |
 
-### DetailsTab - Live Deal Section (After)
-```
-Subject Property Address
-├── Address 1/2, City, State, Zip
+---
 
-Live Deal ✨ NEW
-├── Finance Contingency
-├── Subject Property Rental Income
-├── Closing Date
-├── Prepayment Penalty
-├── Credits
-└── Lock Expiration
+## New Task Automations to Add
 
-Rate Lock Information
-└── (remaining fields)
-```
-
-### Tasks Card Height (After)
-```
-┌─────────────────────────────┐
-│ Tasks              + Add Task│
-├─────────────────────────────┤
-│ ☐ Task 1                    │
-│ ☐ Task 2                    │
-│ ☐ Task 3                    │  ← Max height ~280px
-│ ☐ Task 4                    │
-│ ───────────────────────────│  ← Scroll if more
-└─────────────────────────────┘
-```
+| Name | Trigger | Due Date | Assignee |
+|------|---------|----------|----------|
+| Home Search Check In (HSCI) | Pre-Qualified stage | +7 days | Lead's teammate |
+| Order Title Work | loan_status = RFP | Today | Ashley |
+| Condo Approval | loan_status = RFP + property_type = Condo | Today | Ashley |
