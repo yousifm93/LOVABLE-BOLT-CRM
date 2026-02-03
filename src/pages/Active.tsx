@@ -70,7 +70,8 @@ const DEFAULT_MAIN_VIEW_COLUMNS = [
   "buyer_agent",
   "listing_agent",
   "earliest_task_due_date",
-  "tasks"
+  "tasks",
+  "latest_file_updates"
 ];
 
 const MAIN_VIEW_STORAGE_KEY = 'active_main_view_custom';
@@ -109,6 +110,7 @@ interface ActiveLoan {
   is_closed: boolean | null;
   closed_at: string | null;
   notes: string | null;
+  latest_file_updates: string | null;
   earliest_task_due_date?: string | null;
   tasks?: { id: string; due_date: string | null; title: string; status: string }[];
   // Validation fields - needed for status change validation
@@ -862,6 +864,21 @@ const createColumns = (
     sortable: true,
   },
   {
+    accessorKey: "latest_file_updates",
+    header: "LATEST UPDATE",
+    className: "text-left",
+    headerClassName: "text-left",
+    cell: ({ row }) => (
+      <div 
+        className="max-w-md text-sm line-clamp-2 text-muted-foreground" 
+        title={row.original.latest_file_updates || ''}
+      >
+        {row.original.latest_file_updates || '—'}
+      </div>
+    ),
+    sortable: true,
+  },
+  {
     accessorKey: "is_closed",
     header: "CLOSED",
     className: "text-center",
@@ -923,6 +940,7 @@ export default function Active() {
         "occupancy": "OCCUPANCY",
         "earliest_task_due_date": "TASK DUE",
         "tasks": "TASKS",
+        "latest_file_updates": "LATEST UPDATE",
         "is_closed": "CLOSED",
       };
       
