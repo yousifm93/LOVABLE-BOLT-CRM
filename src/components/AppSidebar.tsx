@@ -179,44 +179,63 @@ export function AppSidebar() {
     
     try {
       const results: SearchResult[] = [];
+      const normalizedTerm = term.toLowerCase().trim();
+      
+      // For multi-word search (e.g., "David Freed"), split into words for OR query
+      const searchWords = term.trim().split(/\s+/);
+      const firstWord = searchWords[0];
       
       // Run all searches in parallel for better performance
+      // Use broader query with higher limit, then filter client-side for full name matches
       const [leadsResult, agentsResult, lendersResult, contactsResult] = await Promise.all([
-        // Search leads (borrowers)
+        // Search leads (borrowers) - query first word to catch partial matches
         supabase
           .from('leads')
           .select('id, first_name, last_name, email, pipeline_stage_id')
-          .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
-          .limit(5),
+          .or(`first_name.ilike.%${firstWord}%,last_name.ilike.%${firstWord}%,email.ilike.%${term}%`)
+          .limit(20),
         
         // Search agents (Real Estate Agents)
         supabase
           .from('buyer_agents')
           .select('id, first_name, last_name, brokerage')
-          .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,brokerage.ilike.%${term}%`)
+          .or(`first_name.ilike.%${firstWord}%,last_name.ilike.%${firstWord}%,brokerage.ilike.%${term}%`)
           .is('deleted_at', null)
-          .limit(5),
+          .limit(20),
         
         // Search lenders
         supabase
           .from('lenders')
           .select('id, lender_name, account_executive')
           .or(`lender_name.ilike.%${term}%,account_executive.ilike.%${term}%`)
-          .limit(5),
+          .limit(10),
         
         // Search contacts (Master Contact List)
         supabase
           .from('contacts')
           .select('id, first_name, last_name, email, type')
-          .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
-          .limit(5),
+          .or(`first_name.ilike.%${firstWord}%,last_name.ilike.%${firstWord}%,email.ilike.%${term}%`)
+          .limit(20),
       ]);
       
-      // Process leads with error logging
+      // Helper to check if record matches the full search term (for multi-word searches)
+      const matchesFullName = (firstName: string | null, lastName: string | null): boolean => {
+        const fullName = `${firstName || ''} ${lastName || ''}`.toLowerCase().trim();
+        return fullName.includes(normalizedTerm) ||
+               (firstName?.toLowerCase().includes(normalizedTerm) ?? false) ||
+               (lastName?.toLowerCase().includes(normalizedTerm) ?? false);
+      };
+      
+      // Process leads with client-side full name filtering
       if (leadsResult.error) {
         console.error('Leads search error:', leadsResult.error);
       } else if (leadsResult.data) {
-        results.push(...leadsResult.data.map(l => ({
+        const filtered = leadsResult.data.filter(l => 
+          matchesFullName(l.first_name, l.last_name) ||
+          l.email?.toLowerCase().includes(normalizedTerm)
+        ).slice(0, 5);
+        
+        results.push(...filtered.map(l => ({
           id: l.id,
           type: 'lead' as const,
           name: `${l.first_name || ''} ${l.last_name || ''}`.trim() || 'Unknown',
@@ -225,11 +244,16 @@ export function AppSidebar() {
         })));
       }
       
-      // Process agents with error logging
+      // Process agents with client-side full name filtering
       if (agentsResult.error) {
         console.error('Agents search error:', agentsResult.error);
       } else if (agentsResult.data) {
-        results.push(...agentsResult.data.map(a => ({
+        const filtered = agentsResult.data.filter(a => 
+          matchesFullName(a.first_name, a.last_name) ||
+          a.brokerage?.toLowerCase().includes(normalizedTerm)
+        ).slice(0, 5);
+        
+        results.push(...filtered.map(a => ({
           id: a.id,
           type: 'agent' as const,
           name: `${a.first_name || ''} ${a.last_name || ''}`.trim() || 'Unknown',
@@ -241,7 +265,7 @@ export function AppSidebar() {
       if (lendersResult.error) {
         console.error('Lenders search error:', lendersResult.error);
       } else if (lendersResult.data) {
-        results.push(...lendersResult.data.map(l => ({
+        results.push(...lendersResult.data.slice(0, 5).map(l => ({
           id: l.id,
           type: 'lender' as const,
           name: l.lender_name || 'Unknown',
@@ -249,11 +273,16 @@ export function AppSidebar() {
         })));
       }
       
-      // Process contacts with error logging
+      // Process contacts with client-side full name filtering
       if (contactsResult.error) {
         console.error('Contacts search error:', contactsResult.error);
       } else if (contactsResult.data) {
-        results.push(...contactsResult.data.map(c => ({
+        const filtered = contactsResult.data.filter(c => 
+          matchesFullName(c.first_name, c.last_name) ||
+          c.email?.toLowerCase().includes(normalizedTerm)
+        ).slice(0, 5);
+        
+        results.push(...filtered.map(c => ({
           id: c.id,
           type: 'contact' as const,
           name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
