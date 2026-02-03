@@ -110,6 +110,7 @@ export function LeadThirdPartyItemsCard({ leadId, defaultCollapsed = false }: Le
                 <AppraisalTab 
                   leadId={leadId}
                   borrowerLastName={lead.last_name}
+                  lead={lead}
                   data={{
                     appraisal_status: lead.appraisal_status,
                     appraisal_ordered_date: lead.appraisal_ordered_date,
@@ -129,6 +130,7 @@ export function LeadThirdPartyItemsCard({ leadId, defaultCollapsed = false }: Le
               <TabsContent value="title" className="mt-4">
                 <TitleTab 
                   leadId={leadId}
+                  lead={lead}
                   data={{
                     title_ordered_date: lead.title_ordered_date,
                     title_eta: lead.title_eta,
@@ -143,6 +145,7 @@ export function LeadThirdPartyItemsCard({ leadId, defaultCollapsed = false }: Le
               <TabsContent value="insurance" className="mt-4">
                 <InsuranceTab 
                   leadId={leadId}
+                  lead={lead}
                   data={{
                     hoi_status: lead.hoi_status,
                     insurance_quoted_date: lead.insurance_quoted_date,
@@ -159,6 +162,7 @@ export function LeadThirdPartyItemsCard({ leadId, defaultCollapsed = false }: Le
               <TabsContent value="condo" className="mt-4">
                 <CondoTab
                   leadId={leadId}
+                  lead={lead}
                   data={{
                     condo_id: lead.condo_id,
                     condo_status: lead.condo_status,
