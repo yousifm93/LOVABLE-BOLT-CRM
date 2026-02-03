@@ -1,187 +1,112 @@
 
-## Goals (what you’ll get)
-1. Clicking *any* top-left sidebar search result (Lead, Agent, Lender, Master Contact, Past Client/Idle/etc) will:
-   - Navigate to the correct page **and**
-   - Automatically open that specific record (drawer/dialog) immediately.
-2. The **Active-stage “Latest File Update”** card will:
-   - Be larger (similar height/feel to Pipeline Review, roughly ~70% of “About the Borrower”)
-   - Show **Last updated date/time + who updated it** at the bottom (same pattern as Pipeline Review).
-3. Tasks that still show **“Assign to…”** will be **actually assigned in the database** (not just visually):
-   - Any task missing assignees will be assigned to the user(s) from the **most recent task on that same file (borrower_id)**.
-4. Fix “Failed to move lead to Idle”:
-   - Current failure is caused by a database trigger referencing a non-existent field `OLD.pipeline_stage`.
+# Plan: Import PRMG Condo List
+
+## Overview
+
+Adding **81 condos** from PRMG (a lender like UWM and A&D) to your existing condo directory. I'll add a new PRMG column, import the data, and avoid duplicates by matching on condo name and address.
 
 ---
 
-## What I found (root causes)
+## Data Summary from the Excel File
 
-### A) Search result click: only some pages “auto-open”
-- The sidebar search already navigates with query params like:
-  - `?openLead=...`, `?openAgent=...`, `?openLender=...`, `?openContact=...`
-- Agents/Lenders/Contacts pages now correctly read those params and open the drawer/dialog.
-- **But most pipeline pages (Pending App, Screening, Pre-Qualified, Pre-Approved, Past Clients) do not implement `openLead` handling**, so clicking a Lead/Past Client result takes you to the page but doesn’t open the record.
+| Metric | Count |
+|--------|-------|
+| **Total condos in file** | 81 |
+| **Review Types** | Full Review (Conventional Full), Limited Review (Conventional Limited) |
+| **Expiration dates** | All between 2025-2027 |
+| **State** | All Florida (FL) |
 
-### B) Past Clients routing mismatch in sidebar search
-- In `AppSidebar.tsx`, `PIPELINE_STAGE_NAMES` contains Past Clients stage id:
-  - `acdfc6ba-7cbc-47af-a8c6-380d77aef6dd`
-- But `getPipelineRoute()` uses a different id (`e9fc7eb8-...`) for `/past-clients`.
-- Result: Past Clients leads can route incorrectly (often back to `/leads`).
-
-### C) Idle transition failure is definitely backend (database trigger)
-From your browser network logs, the PATCH to `leads` fails with:
-- **400** and message: `record "old" has no field "pipeline_stage"`
-
-This means a **Postgres trigger function on the `leads` table** is referencing `OLD.pipeline_stage`, but the `leads` table uses `pipeline_stage_id` (uuid). So *any* stage move (including to Idle) can fail depending on which trigger version is active.
-
-### D) Tasks “Assigned To” still blank because we only added display fallback
-- `TasksModern.tsx` currently *displays* a fallback assignee when missing.
-- But it does **not** persist assignments to the database.
-- So you still see tasks with “Assign to…” because:
-  - Some borrowers have no other tasks loaded with assignees (or the “most recent assigned task” isn’t in the current filtered list), and/or
-  - Nothing is actually backfilled server-side.
+**Sample entries from your file:**
+- Sailboat Pointe, 2440 Northwest 33rd St, Oakland Park, FL 33009 - Full Review, expires 07/03/2026
+- Villas of Bonaventure in Tract 37 South, 342 Fairway Circle, Weston, FL 33326 - Limited Review, expires 04/23/2026
+- Ocean Walk at New Smyrna Beach Building No. 18, 5300 S Atlantic Ave, New Smyrna Beach, FL 32169 - Full Review, expires 04/14/2026
 
 ---
 
-## Implementation Plan (code + database)
+## What I'll Build
 
-### 1) Make search-click open *every* entity (including every pipeline stage lead)
-**Files to update**
-- `src/pages/PendingApp.tsx`
-- `src/pages/Screening.tsx`
-- `src/pages/PreQualified.tsx` (or `PreQualified.tsx` naming used in your repo)
-- `src/pages/PreApproved.tsx`
-- `src/pages/PastClients.tsx`
+### 1. Database Changes
+Add a new `source_prmg` boolean column to the `condos` table:
+```sql
+ALTER TABLE condos ADD COLUMN source_prmg boolean DEFAULT false;
+```
 
-**Change**
-- Add the same `useSearchParams` + `useEffect` pattern used in `Leads.tsx` / `Active.tsx`:
-  - Read `openLead`
-  - If the lead exists in the current list, open drawer
-  - If not, fetch it by id (`databaseService.getLeadByIdWithEmbeds(openLeadId)` or a direct supabase query like in `Leads.tsx`)
-  - Clear the query param after opening
+### 2. UI Updates
 
-**Result**
-- Clicking a Lead from sidebar search will always open the drawer regardless of which pipeline stage page it belongs to.
+**Condolist.tsx:**
+- Add "PRMG" column with green checkmark (matching UWM style)
+- Add "PRMG Approved" filter option
 
----
+**CondoDetailDialog.tsx:**
+- Add PRMG toggle in the "Approval Sources" card alongside UWM and A&D
 
-### 2) Fix Past Clients pipeline route mapping in sidebar search
-**File to update**
-- `src/components/AppSidebar.tsx`
+**CreateCondoModal.tsx:**
+- Add PRMG checkbox when creating new condos
 
-**Change**
-- Update `getPipelineRoute()` so Past Clients uses the correct stage id:
-  - Add route map entry for `acdfc6ba-7cbc-47af-a8c6-380d77aef6dd` → `/past-clients`
-- Optionally remove/replace the incorrect `e9fc7eb8-...` entry if it’s legacy.
+**public-condo-search edge function:**
+- Include `source_prmg` in public search results
 
-**Result**
-- Past Clients search results navigate to `/past-clients?openLead=...` correctly.
+### 3. Import Logic
 
----
+I'll create an import edge function that:
+1. **Normalizes and matches** condos by:
+   - Condo name (case-insensitive, trimmed)
+   - Street address (normalized: removes extra spaces, standardizes abbreviations)
+   - City + Zip combination
 
-### 3) Make the Active “Latest File Update” match the larger style + show updated metadata
-**File to update**
-- `src/components/ClientDetailDrawer.tsx` (Active section currently around the “Latest File Update” card)
+2. **For existing matches:**
+   - Sets `source_prmg = true`
+   - Updates expiration date if provided
+   - Does NOT overwrite other fields
 
-**Changes**
-- Replace the minimal `MentionableInlineEditNotes` block with a layout closer to the other “big text box” sections:
-  - Use a `Textarea` (or keep mentions, but adjust layout so the visible area is larger)
-  - Target height: around `min-h-[140px]` to `min-h-[170px]` (so it’s clearly larger than now but smaller than “About the Borrower” which is ~210px)
-- Add the same footer line currently shown under Pipeline Review:
-  - Show `(client as any).latest_file_updates_updated_at`
-  - Show `fileUpdatesUpdatedByUser` name (already used by Pipeline Review) or fetch it if needed
-- Keep it positioned between **Send Email Templates** and **Pipeline Review** as it is now.
-
-**Result**
-- Bigger box, consistent feel, and always shows who/when last updated.
+3. **For new condos:**
+   - Inserts with PRMG data
+   - Sets `source_prmg = true`
+   - Review type: "Full Review" → "Conventional Full", "Limited Review" → "Conventional Limited"
 
 ---
 
-### 4) Actually assign unassigned tasks using “most recent task on the same file”
-**File to update**
-- `src/pages/TasksModern.tsx`
+## Expected Results
 
-**Approach**
-- Add a backfill step after tasks are loaded (and ideally only for Admins):
-  1. Identify tasks with:
-     - no `assignee_ids` (empty/undefined) AND no `assignee_id`
-     - has a `borrower_id`
-  2. For each such task, compute fallback assignee(s) from the most recent task for that borrower that has assignees.
-     - Use the full `tasks` array (not filtered) to find the most recent by `updated_at` or `created_at`
-  3. Persist to DB:
-     - Update `tasks.assignee_ids` (preferred) and set `tasks.assignee_id` to the first id for compatibility
-  4. Update local state after persistence to remove “Assign to…” immediately.
-
-**Edge cases**
-- If a borrower truly has no tasks with assignees, then:
-  - Fall back to the global fallback user (YM) if that matches your current rule, or
-  - Leave it unassigned (I’ll implement the YM fallback if you confirm you want that behavior here too)
-
-**Result**
-- The column stops showing blanks because the tasks are now truly assigned in the database.
+After import:
+- **Estimated new condos**: ~50-70 (depends on how many match existing UWM/A&D records)
+- **Estimated updates**: ~10-30 existing condos will get `source_prmg = true`
+- You'll see a PRMG column in the condo list with green checkmarks
+- The import report will show exact counts of inserted vs. updated records
 
 ---
 
-### 5) Fix “Failed to move lead to Idle” (database trigger bug)
-**What’s broken**
-- A trigger function (current active version) uses:
-  - `IF OLD.pipeline_stage IS DISTINCT FROM NEW.pipeline_stage THEN`
-- But `leads` doesn’t have `pipeline_stage`.
+## Files to Create/Modify
 
-**Fix**
-- Create a new migration that:
-  1. Replaces the broken `execute_pipeline_stage_changed_automations()` with a correct version that uses:
-     - `OLD.pipeline_stage_id` / `NEW.pipeline_stage_id`
-  2. When it needs a stage name (for comparing to automation config), it will:
-     - Lookup stage names from `pipeline_stages` using the ids
-     - Compare `new_stage_name::text` to the automation’s configured target
-  3. Ensure the trigger is attached to:
-     - `AFTER UPDATE OF pipeline_stage_id ON public.leads`
-
-**Why this will fix Idle**
-- Your Idle move is a simple update to `leads.pipeline_stage_id`.
-- The database error happens before the update can complete.
-- Fixing that trigger removes the 400 error, and the UI will succeed.
-
-**Validation**
-- After deploying migration, I’ll re-test moving a lead to Idle and confirm the PATCH is 200.
+| File | Action | Changes |
+|------|--------|---------|
+| `supabase/migrations/[new].sql` | Create | Add `source_prmg` column |
+| `supabase/functions/import-prmg-condos/index.ts` | Create | New edge function for PRMG import with duplicate detection |
+| `src/pages/resources/Condolist.tsx` | Modify | Add PRMG column, PRMG filter |
+| `src/components/CondoDetailDialog.tsx` | Modify | Add PRMG toggle in sources section |
+| `src/components/modals/CreateCondoModal.tsx` | Modify | Add PRMG checkbox |
+| `supabase/functions/public-condo-search/index.ts` | Modify | Include `source_prmg` in results |
+| `src/integrations/supabase/types.ts` | Auto-update | TypeScript types for new column |
 
 ---
 
-## Testing checklist (I will do before finishing)
-1. **Search deep link open**
-   - Search a Lead in each stage (Leads, Pending App, Screening, Pre-Qualified, Pre-Approved, Active, Past Clients, Idle)
-   - Click result → correct page loads and drawer opens
-2. **Past Clients route**
-   - Search a Past Client lead → ensure it routes to `/past-clients` (not `/leads`)
-3. **Active Latest File Update UI**
-   - Open an Active lead → confirm box size increased and footer shows last updated timestamp + user
-   - Edit/save → confirm it persists and footer updates
-4. **Task assignments backfill**
-   - Open Tasks → verify previously blank “Assigned To” rows become assigned
-   - Refresh page → verify assignments persist (DB updated)
-5. **Idle move**
-   - From lead drawer, move to Idle → confirm success toast and lead appears in Idle pipeline
+## Implementation Steps
+
+1. **Database migration**: Add `source_prmg` column
+2. **Create import function**: Parse the Excel data and handle duplicates
+3. **Run import**: Execute with the 81 PRMG condos
+4. **Update UI**: Add PRMG column and filter to Condolist
+5. **Update dialogs**: Add PRMG toggle to detail and create modals
+6. **Report results**: Show how many were inserted vs. updated
 
 ---
 
-## Files / areas that will change
-**Frontend**
-- `src/components/AppSidebar.tsx` (Past Clients stage id route mapping)
-- `src/pages/PendingApp.tsx` (add `openLead` handling)
-- `src/pages/Screening.tsx` (add `openLead` handling)
-- `src/pages/PreQualified.tsx` (add `openLead` handling)
-- `src/pages/PreApproved.tsx` (add `openLead` handling)
-- `src/pages/PastClients.tsx` (add `openLead` handling)
-- `src/components/ClientDetailDrawer.tsx` (Active Latest File Update UI + footer)
-- `src/pages/TasksModern.tsx` (persist backfill of missing assignees)
+## Duplicate Detection Strategy
 
-**Database**
-- New migration: fix `execute_pipeline_stage_changed_automations()` so it uses `pipeline_stage_id` + stage name lookup, removing `OLD.pipeline_stage` reference.
+The import will use this priority for matching:
+1. **Exact condo name match** (case-insensitive) → Update existing
+2. **Exact street address + city + zip match** → Update existing
+3. **Fuzzy name match** (e.g., "Sailboat Pointe" vs "Sailboat Pointe Condo") → Flag for review
+4. **No match** → Insert as new
 
----
-
-## One quick confirmation (so I implement exactly what you want)
-For tasks that are unassigned and there is no “most recent assigned task” for that borrower:
-- Should we default to **YM (Yousif Mohamed)** like other fallbacks, or leave it unassigned?
-
-I can implement YM fallback by default if you want consistency with the rest of the CRM.
+This ensures we don't create duplicates while still capturing new condos from PRMG.
