@@ -1418,28 +1418,83 @@ export const databaseService = {
       return taskCreatedAt >= thirtyDaysAgo;
     });
 
+    // Helper function to check compound requirements
+    const checkCompoundRequirement = async (req: string): Promise<boolean> => {
+      if (req === 'compound:title_ordered') {
+        const { data: lead } = await supabase
+          .from('leads')
+          .select('title_status, title_eta')
+          .eq('id', leadId)
+          .single();
+        return lead?.title_status === 'Ordered' && !!lead?.title_eta;
+      }
+
+      if (req === 'compound:condo_ordered') {
+        const { data: lead } = await supabase
+          .from('leads')
+          .select('condo_status, condo_ordered_date, condo_eta')
+          .eq('id', leadId)
+          .single();
+        return lead?.condo_status === 'Ordered' && !!lead?.condo_ordered_date && !!lead?.condo_eta;
+      }
+
+      return false;
+    };
+
     // Find tasks that should be completed by this field update
-    const tasksToComplete = recentTasks.filter(task => {
+    const tasksToComplete: typeof recentTasks = [];
+    
+    for (const task of recentTasks) {
       const req = task.completion_requirement_type;
-      if (!req) return false;
+      if (!req) continue;
+
+      // Check auto_complete_only requirements (e.g., auto_complete_only:disc_file)
+      if (req.startsWith('auto_complete_only:')) {
+        const reqField = req.replace('auto_complete_only:', '');
+        if (reqField === fieldName && fieldValue !== null && fieldValue !== '') {
+          tasksToComplete.push(task);
+        }
+        continue;
+      }
+
+      // Check compound requirements
+      if (req.startsWith('compound:')) {
+        // Only check if one of the relevant fields was updated
+        const relevantFields: Record<string, string[]> = {
+          'compound:title_ordered': ['title_status', 'title_eta'],
+          'compound:condo_ordered': ['condo_status', 'condo_ordered_date', 'condo_eta'],
+        };
+        
+        if (relevantFields[req]?.includes(fieldName)) {
+          const allMet = await checkCompoundRequirement(req);
+          if (allMet) {
+            tasksToComplete.push(task);
+          }
+        }
+        continue;
+      }
 
       // Check field_populated requirements
       if (req.startsWith('field_populated:')) {
         const reqField = req.split(':')[1];
-        return reqField === fieldName && fieldValue !== null && fieldValue !== '';
+        if (reqField === fieldName && fieldValue !== null && fieldValue !== '') {
+          tasksToComplete.push(task);
+        }
+        continue;
       }
 
       // Check field_value requirements
       if (req.startsWith('field_value:')) {
         const [, fieldConfig] = req.split(':');
         const [reqField, valuesStr] = fieldConfig.split('=');
-        if (reqField !== fieldName) return false;
+        if (reqField !== fieldName) continue;
         const allowedValues = valuesStr.split(',');
-        return allowedValues.includes(fieldValue || '');
+        if (allowedValues.includes(fieldValue || '')) {
+          tasksToComplete.push(task);
+        }
+        continue;
       }
-
-      return false;
-    });
+    }
 
     if (tasksToComplete.length === 0) {
       return { completedCount: 0, taskTitles: [] };

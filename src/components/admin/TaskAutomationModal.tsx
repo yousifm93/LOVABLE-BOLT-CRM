@@ -696,6 +696,9 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                     <SelectItem value="field_value:loan_status=SUB">Require Loan Status = SUB</SelectItem>
                     <SelectItem value="field_value:disclosure_status=Ordered,Sent,Signed">Require Disclosure Status = Ordered/Sent/Signed</SelectItem>
                     <SelectItem value="field_value:epo_status=Sent">Require EPO Status = Sent</SelectItem>
+                    <SelectItem value="auto_complete_only:disc_file">Auto-complete only: Disclosure document uploaded</SelectItem>
+                    <SelectItem value="compound:title_ordered">Require Title Ordered + ETA</SelectItem>
+                    <SelectItem value="compound:condo_ordered">Require Condo Ordered + Order Date + ETA</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">

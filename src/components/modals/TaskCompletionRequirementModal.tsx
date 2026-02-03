@@ -1,4 +1,4 @@
-import { AlertCircle, Phone, User, ExternalLink, FileText } from "lucide-react";
+import { AlertCircle, Phone, User, ExternalLink, FileText, Ban, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,13 +44,29 @@ export function TaskCompletionRequirementModal({
   // Determine if this is an any-activity requirement
   const isAnyActivityRequirement = requirement.missingRequirement === 'log_any_activity';
 
+  // Determine if this is an auto-complete-only requirement (cannot be manually completed)
+  const isAutoCompleteOnly = requirement.missingRequirement === 'auto_complete_only' ||
+                             requirement.missingRequirement === 'manual_completion_blocked';
+
+  // Determine if this is a compound requirement
+  const isCompoundRequirement = requirement.missingRequirement?.startsWith('compound:');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-yellow-500" />
-            Cannot Complete Task
+            {isAutoCompleteOnly ? (
+              <>
+                <Ban className="h-5 w-5 text-blue-500" />
+                Task Auto-Completes When Ready
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-5 w-5 text-yellow-500" />
+                Cannot Complete Task
+              </>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -83,6 +99,28 @@ export function TaskCompletionRequirementModal({
             </div>
           )}
 
+          {isCompoundRequirement && (
+            <div className="bg-muted p-4 rounded-md space-y-2">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4" />
+                <span className="text-sm">
+                  Update all required fields under the Third Party Items section on the lead.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {isAutoCompleteOnly && (
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4 rounded-md space-y-2">
+              <div className="flex items-center gap-2">
+                <Ban className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm text-blue-800 dark:text-blue-200">
+                  This task cannot be completed manually. It will automatically complete when the required document is uploaded.
+                </span>
+              </div>
+            </div>
+          )}
+
           {isAnyActivityRequirement && requirement.contactInfo && (
             <div className="bg-muted p-4 rounded-md space-y-2">
               <div className="flex items-center gap-2">
@@ -104,7 +142,7 @@ export function TaskCompletionRequirementModal({
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {isAutoCompleteOnly ? 'Got It' : 'Cancel'}
           </Button>
           {isCallRequirement && requirement.contactInfo && (
             <Button onClick={onLogCall}>
@@ -118,7 +156,7 @@ export function TaskCompletionRequirementModal({
               Open Lead to Log Activity
             </Button>
           )}
-          {isFieldRequirement && borrowerId && onOpenLead && (
+          {(isFieldRequirement || isCompoundRequirement) && borrowerId && onOpenLead && (
             <Button onClick={onOpenLead}>
               <ExternalLink className="h-4 w-4 mr-2" />
               Open Lead
