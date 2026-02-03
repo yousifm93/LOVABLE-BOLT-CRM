@@ -244,7 +244,8 @@ const createColumns = (
   handleUpdate: (id: string, field: string, value: any) => void,
   handleRowClick: (loan: ActiveLoan) => void,
   toast: any,
-  onCloseLoan: (loanId: string) => void
+  onCloseLoan: (loanId: string) => void,
+  onUploadAction: (loanId: string, fieldName: string) => void
 ): ColumnDef<ActiveLoan>[] => [
   {
     accessorKey: "borrower_name",
@@ -496,6 +497,7 @@ const createColumns = (
         showAsStatusBadge
         fillCell={true}
         className="w-16"
+        onUploadAction={() => onUploadAction(row.original.id, 'disclosure_status')}
       />
       </div>
     ),
@@ -536,6 +538,7 @@ const createColumns = (
         showAsStatusBadge
         fillCell={true}
         className="w-14"
+        onUploadAction={() => onUploadAction(row.original.id, 'loan_status')}
       />
       </div>
     ),
@@ -559,6 +562,7 @@ const createColumns = (
         showAsStatusBadge
         fillCell={true}
         className="w-18"
+        onUploadAction={() => onUploadAction(row.original.id, 'appraisal_status')}
       />
       </div>
     ),
@@ -582,6 +586,7 @@ const createColumns = (
         showAsStatusBadge
         fillCell={true}
         className="w-20"
+        onUploadAction={() => onUploadAction(row.original.id, 'title_status')}
       />
       </div>
     ),
@@ -605,6 +610,7 @@ const createColumns = (
         showAsStatusBadge
         fillCell={true}
         className="w-14"
+        onUploadAction={() => onUploadAction(row.original.id, 'hoi_status')}
       />
       </div>
     ),
@@ -628,6 +634,7 @@ const createColumns = (
         showAsStatusBadge
         fillCell={true}
         className="w-16"
+        onUploadAction={() => onUploadAction(row.original.id, 'condo_status')}
       />
       </div>
     ),
@@ -1475,6 +1482,18 @@ export default function Active() {
     setFilters(prev => prev.filter(f => f.id !== filterId));
   };
 
+  // Handler for when validation modal's upload button is clicked
+  const handleUploadAction = async (loanId: string, fieldName: string) => {
+    const loan = activeLoans.find(l => l.id === loanId);
+    if (loan) {
+      await handleRowClick(loan);
+      toast({
+        title: "Upload Required",
+        description: "Please upload the required document in the lead drawer.",
+      });
+    }
+  };
+
   const allColumns = createColumns(
     users, 
     lenders, 
@@ -1485,7 +1504,8 @@ export default function Active() {
     (loanId: string) => {
       setLoanToClose(loanId);
       setIsCloseDialogOpen(true);
-    }
+    },
+    handleUploadAction
   );
   
   // Filter columns based on visibility settings
