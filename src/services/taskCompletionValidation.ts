@@ -37,6 +37,97 @@ export async function validateTaskCompletion(
 
   const requirementType = task.completion_requirement_type;
 
+  // Check for auto-complete-only tasks (cannot be manually completed)
+  if (requirementType.startsWith('auto_complete_only:')) {
+    const fieldName = requirementType.replace('auto_complete_only:', '');
+    const borrowerId = task.borrower_id;
+    if (!borrowerId) return { canComplete: true };
+
+    const { data: lead, error } = await supabase
+      .from('leads')
+      .select(fieldName)
+      .eq('id', borrowerId)
+      .single();
+
+    const fieldDisplayNames: Record<string, string> = {
+      'disc_file': 'Disclosure document',
+      'appraisal_file': 'Appraisal document',
+      'initial_approval_file': 'Initial Approval document',
+    };
+    const displayName = fieldDisplayNames[fieldName] || fieldName;
+
+    if (!error && lead && lead[fieldName]) {
+      // Field IS populated - still block MANUAL completion, it should only auto-complete
+      return {
+        canComplete: false,
+        message: `This task is auto-completed when the ${displayName} is uploaded. It cannot be manually completed.`,
+        missingRequirement: 'manual_completion_blocked',
+      };
+    }
+    
+    // Field is NOT uploaded - explain what needs to be done
+    return {
+      canComplete: false,
+      message: `Please upload the ${displayName} first. This task will auto-complete once the document is uploaded.`,
+      missingRequirement: 'auto_complete_only',
+    };
+  }
+
+  // Check for compound: title_ordered requirement
+  if (requirementType === 'compound:title_ordered') {
+    const borrowerId = task.borrower_id;
+    if (!borrowerId) return { canComplete: true };
+
+    const { data: lead, error } = await supabase
+      .from('leads')
+      .select('title_status, title_eta')
+      .eq('id', borrowerId)
+      .single();
+
+    if (error || !lead) return { canComplete: true };
+
+    const unmet: string[] = [];
+    if (lead.title_status !== 'Ordered') unmet.push('Title Status = Ordered');
+    if (!lead.title_eta) unmet.push('Title ETA');
+
+    if (unmet.length > 0) {
+      return {
+        canComplete: false,
+        message: `The following requirements must be met: ${unmet.join(', ')}`,
+        missingRequirement: requirementType,
+      };
+    }
+    return { canComplete: true };
+  }
+
+  // Check for compound: condo_ordered requirement
+  if (requirementType === 'compound:condo_ordered') {
+    const borrowerId = task.borrower_id;
+    if (!borrowerId) return { canComplete: true };
+
+    const { data: lead, error } = await supabase
+      .from('leads')
+      .select('condo_status, condo_ordered_date, condo_eta')
+      .eq('id', borrowerId)
+      .single();
+
+    if (error || !lead) return { canComplete: true };
+
+    const unmet: string[] = [];
+    if (lead.condo_status !== 'Ordered') unmet.push('Condo Status = Ordered');
+    if (!lead.condo_ordered_date) unmet.push('Condo Order Date');
+    if (!lead.condo_eta) unmet.push('Condo ETA');
+
+    if (unmet.length > 0) {
+      return {
+        canComplete: false,
+        message: `The following requirements must be met: ${unmet.join(', ')}`,
+        missingRequirement: requirementType,
+      };
+    }
+    return { canComplete: true };
+  }
+
   // Check for buyer's agent call log
   if (requirementType === 'log_call_buyer_agent') {
     const agentId = task.lead?.buyer_agent_id || task.borrower?.buyer_agent_id;
