@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, Plus, Filter, Phone, Mail, User, MapPin, FileText, Trash2, Check, X, ChevronDown, ChevronRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -679,6 +679,7 @@ const getColumns = (
 
 export default function BorrowerList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [contacts, setContacts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -712,6 +713,23 @@ export default function BorrowerList() {
   // Sub-section states for pending approval
   const [pendingWithPhoneExpanded, setPendingWithPhoneExpanded] = useState(true);
   const [pendingEmailOnlyExpanded, setPendingEmailOnlyExpanded] = useState(false);
+
+  // Handle URL parameter to auto-open contact dialog
+  useEffect(() => {
+    const openContactId = searchParams.get('openContact');
+    if (openContactId && !isLoading && contacts.length > 0) {
+      const contact = contacts.find(c => c.source_id === openContactId || c.id === openContactId);
+      if (contact) {
+        // Open appropriate dialog based on source
+        handleViewDetails(contact);
+        // Clear param to prevent re-opening on subsequent renders
+        setSearchParams(prev => {
+          prev.delete('openContact');
+          return prev;
+        }, { replace: true });
+      }
+    }
+  }, [searchParams, contacts, isLoading, setSearchParams]);
 
   useEffect(() => {
     loadContacts();

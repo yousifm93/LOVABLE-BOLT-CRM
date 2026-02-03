@@ -6206,6 +6206,10 @@ export type Database = {
       has_admin_access: { Args: never; Returns: boolean }
       is_team_member: { Args: { user_uuid: string }; Returns: boolean }
       normalize_address: { Args: { addr: string }; Returns: string }
+      safe_insert_task_assignee: {
+        Args: { p_task_id: string; p_user_id: string }
+        Returns: undefined
+      }
       search_blog_posts: {
         Args: { search_query: string }
         Returns: {

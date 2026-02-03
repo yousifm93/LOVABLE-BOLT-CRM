@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search, Filter, Phone, Mail, Building, Users, Upload, Eye, ChevronDown, ChevronRight, Plus, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -311,6 +312,7 @@ const formatDate = (value: string | undefined) => {
 };
 
 export default function ApprovedLenders() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [lenders, setLenders] = useState<Lender[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -335,6 +337,23 @@ export default function ApprovedLenders() {
   const [isAISearchOpen, setIsAISearchOpen] = useState(false);
   
   const { toast } = useToast();
+
+  // Handle URL parameter to auto-open lender drawer
+  useEffect(() => {
+    const openLenderId = searchParams.get('openLender');
+    if (openLenderId && !isLoading && lenders.length > 0) {
+      const lender = lenders.find(l => l.id === openLenderId);
+      if (lender) {
+        setSelectedLender(lender);
+        setIsDrawerOpen(true);
+        // Clear param to prevent re-opening on subsequent renders
+        setSearchParams(prev => {
+          prev.delete('openLender');
+          return prev;
+        }, { replace: true });
+      }
+    }
+  }, [searchParams, lenders, isLoading, setSearchParams]);
 
   const {
     columns: columnVisibility,

@@ -45,6 +45,7 @@ import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
+import { MentionableInlineEditNotes } from "@/components/ui/mentionable-inline-edit-notes";
 import { getDatabaseFieldName } from "@/types/crm";
 import { formatDateModern, formatDateForInput, formatDateFull } from "@/utils/dateUtils";
 import { validateTaskCompletion } from "@/services/taskCompletionValidation";
@@ -2784,6 +2785,27 @@ export function ClientDetailDrawer({
                     </CollapsibleContent>
                   </Card>
                 </Collapsible>
+              );
+            })()}
+
+            {/* Latest File Update Section - For Active stage ONLY, between Email Templates and Pipeline Review */}
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              const isActive = opsStage === 'active';
+              if (!isActive) return null;
+              return (
+                <Card>
+                  <CardHeader className="pb-3 bg-white">
+                    <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
+                  </CardHeader>
+                  <CardContent className="bg-gray-50">
+                    <MentionableInlineEditNotes
+                      value={(client as any).latest_file_updates || ''}
+                      onValueChange={(value) => handleLeadUpdate('latest_file_updates', value)}
+                      placeholder="Add status updates, notes, or important information..."
+                    />
+                  </CardContent>
+                </Card>
               );
             })()}
 
