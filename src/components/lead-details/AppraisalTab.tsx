@@ -5,7 +5,7 @@ import { Calendar, Clock, DollarSign, FileText, ClipboardCheck, MessageSquare, M
 import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
-import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { ValidatedInlineSelect } from "@/components/ui/validated-inline-select";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { FileUploadButton } from "@/components/ui/file-upload-button";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,7 @@ import { databaseService } from "@/services/database";
 interface AppraisalTabProps {
   leadId: string;
   borrowerLastName: string;
+  lead: any; // Full lead object for validation
   data: {
     appraisal_status: string | null;
     appraisal_ordered_date: string | null;
@@ -40,7 +41,7 @@ const appraisalStatusOptions = [
   { value: "On Hold", label: "On Hold" }
 ];
 
-export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: AppraisalTabProps) {
+export function AppraisalTab({ leadId, borrowerLastName, lead, data, onUpdate }: AppraisalTabProps) {
   const { toast } = useToast();
   const [isParsing, setIsParsing] = useState(false);
 
@@ -140,8 +141,8 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
             <ClipboardCheck className="h-3 w-3" />
             Status
           </Label>
-          <InlineEditSelect
-            value={data.appraisal_status}
+          <ValidatedInlineSelect
+            value={data.appraisal_status || ''}
             onValueChange={(value) => {
               onUpdate('appraisal_status', value);
               // Auto-set ordered date when status changes to Ordered
@@ -150,6 +151,8 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
               }
             }}
             options={appraisalStatusOptions}
+            fieldName="appraisal_status"
+            lead={lead}
             placeholder="Select status"
             showAsStatusBadge={false}
             className="text-sm"

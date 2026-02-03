@@ -1,7 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Shield, FileText, ClipboardCheck, MessageSquare, Mail, Calendar } from "lucide-react";
-import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { ValidatedInlineSelect } from "@/components/ui/validated-inline-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { MentionableInlineEditNotes } from "@/components/ui/mentionable-inline-edit-notes";
 import { FileUploadButton } from "@/components/ui/file-upload-button";
@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface InsuranceTabProps {
   leadId: string;
+  lead: any; // Full lead object for validation
   data: {
     hoi_status: string | null;
     insurance_quoted_date: string | null;
@@ -27,7 +28,7 @@ const hoiStatusOptions = [
   { value: "Received", label: "Received" }
 ];
 
-export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
+export function InsuranceTab({ leadId, lead, data, onUpdate }: InsuranceTabProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Row 1: HOI Status */}
@@ -36,8 +37,8 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
           <Shield className="h-3 w-3" />
           Status
         </Label>
-        <InlineEditSelect
-          value={data.hoi_status}
+        <ValidatedInlineSelect
+          value={data.hoi_status || ''}
           onValueChange={(value) => {
             onUpdate('hoi_status', value);
             // Auto-populate ordered date when status changes to "Ordered"
@@ -46,6 +47,8 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
             }
           }}
           options={hoiStatusOptions}
+          fieldName="hoi_status"
+          lead={lead}
           placeholder="Select status"
           showAsStatusBadge={false}
           className="text-sm"

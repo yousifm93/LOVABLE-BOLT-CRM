@@ -86,10 +86,24 @@ export const statusChangeRules: StatusChangeRules = {
     }
   },
   title_status: {
+    'Ordered': {
+      requires: 'title_eta',
+      message: 'Enter a Title ETA before setting status to Ordered',
+      actionLabel: 'Set Title ETA',
+      actionType: 'set_field'
+    },
     'Received': {
       requires: 'title_file',
       message: 'Upload the title work to change status to Received',
       actionLabel: 'Upload Title File',
+      actionType: 'upload_file'
+    }
+  },
+  hoi_status: {
+    'Received': {
+      requires: 'insurance_policy_file',
+      message: 'Upload the HOI policy to change status to Received',
+      actionLabel: 'Upload HOI Policy',
       actionType: 'upload_file'
     }
   },
@@ -110,6 +124,12 @@ export const statusChangeRules: StatusChangeRules = {
     }
   },
   condo_status: {
+    'Ordered': {
+      requires: ['condo_ordered_date', 'condo_eta'],
+      message: 'Enter Order Date and ETA before setting status to Ordered',
+      actionLabel: 'Set Order Details',
+      actionType: 'set_field'
+    },
     'Approved': {
       requires: 'condo_file',
       message: 'Upload condo documents to change status to Approved',

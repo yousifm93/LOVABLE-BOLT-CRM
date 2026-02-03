@@ -2,13 +2,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, FileText, CheckCircle, FileCheck, MessageSquare, Mail } from "lucide-react";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
-import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { ValidatedInlineSelect } from "@/components/ui/validated-inline-select";
 import { MentionableInlineEditNotes } from "@/components/ui/mentionable-inline-edit-notes";
 import { FileUploadButton } from "@/components/ui/file-upload-button";
 import { useToast } from "@/hooks/use-toast";
 
 interface TitleTabProps {
   leadId: string;
+  lead: any; // Full lead object for validation
   data: {
     title_ordered_date: string | null;
     title_eta: string | null;
@@ -20,12 +21,13 @@ interface TitleTabProps {
 }
 
 const titleStatusOptions = [
+  { value: "Ordered", label: "Ordered" },
   { value: "Requested", label: "Requested" },
   { value: "Received", label: "Received" },
   { value: "On Hold", label: "On Hold" }
 ];
 
-export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
+export function TitleTab({ leadId, lead, data, onUpdate }: TitleTabProps) {
   return (
     <div className="space-y-4">
       {/* Row 1: Status, Ordered, ETA - all in one row */}
@@ -35,8 +37,8 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
             <FileCheck className="h-3 w-3" />
             Status
           </Label>
-          <InlineEditSelect
-            value={data.title_status}
+          <ValidatedInlineSelect
+            value={data.title_status || ''}
             onValueChange={(value) => {
               onUpdate('title_status', value);
               // Auto-populate ordered date when status changes to "Ordered"
@@ -45,6 +47,8 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
               }
             }}
             options={titleStatusOptions}
+            fieldName="title_status"
+            lead={lead}
             placeholder="Select status"
             showAsStatusBadge={false}
             className="text-sm"

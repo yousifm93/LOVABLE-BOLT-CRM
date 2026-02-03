@@ -1,5 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Building2, MessageSquare, ExternalLink, Calendar, Check, FileText } from "lucide-react";
+import { ValidatedInlineSelect } from "@/components/ui/validated-inline-select";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { InlineEditCondo } from "@/components/ui/inline-edit-condo";
@@ -12,6 +13,7 @@ import { useState, useEffect } from "react";
 
 interface CondoTabProps {
   leadId: string;
+  lead: any; // Full lead object for validation
   data: {
     condo_id: string | null;
     condo_status: string | null;
@@ -54,7 +56,7 @@ const condoApprovalTypeOptions = [
   { value: "Non-Warrantable Limited", label: "Non-Warrantable Limited" }
 ];
 
-export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
+export function CondoTab({ leadId, lead, data, onUpdate }: CondoTabProps) {
   const [condoDetails, setCondoDetails] = useState<CondoDetails | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -116,10 +118,12 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
             <Building2 className="h-3 w-3" />
             Status
           </Label>
-          <InlineEditSelect
-            value={data.condo_status}
+          <ValidatedInlineSelect
+            value={data.condo_status || ''}
             onValueChange={(value) => onUpdate('condo_status', value)}
             options={condoStatusOptions}
+            fieldName="condo_status"
+            lead={lead}
             placeholder="Select status"
             showAsStatusBadge={false}
             className="text-sm"
