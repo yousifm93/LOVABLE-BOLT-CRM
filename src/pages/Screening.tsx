@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useFields } from "@/contexts/FieldsContext";
 import { Search, Plus, Filter, Phone, Mail, Clock, X, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -333,6 +334,8 @@ const allAvailableColumns = useMemo(() => {
     }
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   useEffect(() => {
     fetchLeads();
     loadUsers();
@@ -348,6 +351,37 @@ const allAvailableColumns = useMemo(() => {
       }
     }
   }, [toast]);
+  
+  // Handle openLead query param from sidebar search
+  useEffect(() => {
+    const openLeadId = searchParams.get('openLead');
+    if (openLeadId && !loading) {
+      // Try to find in current list first
+      const lead = leads.find(l => l.id === openLeadId);
+      if (lead) {
+        handleRowClick(lead);
+      } else {
+        // Fetch directly if not in current list
+        (async () => {
+          try {
+            const dbLead = await databaseService.getLeadByIdWithEmbeds(openLeadId);
+            if (dbLead) {
+              const crmClient = transformLeadToClient(dbLead);
+              setSelectedClient(crmClient);
+              setIsDrawerOpen(true);
+            }
+          } catch (error) {
+            console.error('Error loading lead from URL:', error);
+          }
+        })();
+      }
+      // Clear the param
+      setSearchParams(prev => {
+        prev.delete('openLead');
+        return prev;
+      }, { replace: true });
+    }
+  }, [searchParams, leads, loading]);
   
   // Save filters to localStorage when they change
   useEffect(() => {
