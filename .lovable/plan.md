@@ -1,61 +1,73 @@
-# Plan: Import PRMG Condo List ✅ COMPLETED
 
-## Results
 
-**Import completed successfully:**
-- **70 new condos inserted**
-- **10 existing condos updated** (matched and marked as PRMG approved)
-- **Total processed: 81 condos**
+## Plan: Update Down Payment Percentages for Conventional Condos
 
-### Matched Condos (Updated with PRMG approval)
-1. Visconti West
-2. Hampton Isles
-3. Caribbean Isles Villas (2 entries)
-4. Avila
-5. Brookview
-6. The Horizons Condominium No.5
-7. Sandpointe Bay
-8. Sandpointe Bay (2nd entry)
-9. Banyan
+### Summary
+
+Update **70 condos** that are missing down payment values based on their review type. Most condos already have the correct values - we're just filling in the gaps.
 
 ---
 
-## What Was Built
+## What Will Change
 
-### 1. Database Changes ✅
-- Added `source_prmg` boolean column to `condos` table
-
-### 2. UI Updates ✅
-
-**Condolist.tsx:**
-- Added "PRMG" column with purple checkmark
-- Added "PRMG Approved" filter dropdown
-
-**CondoDetailDialog.tsx:**
-- Added PRMG toggle in the "Approval Sources" card (now 3 columns: UWM, A&D, PRMG)
-
-**CreateCondoModal.tsx:**
-- Added PRMG checkbox when creating new condos
-
-**public-condo-search edge function:**
-- Now includes `source_prmg` in public API results
-
-### 3. Import Function ✅
-- Created `import-prmg-condos` edge function with:
-  - Duplicate detection by condo name (case-insensitive, normalized)
-  - Address matching (street + city + zip)
-  - Review type mapping: "Full Review" → "Conventional Full", "Limited Review" → "Conventional Limited"
-  - Expiration date import
+| Review Type | Primary Down | Second Home Down | Investment Down | Condos to Update |
+|-------------|--------------|------------------|-----------------|------------------|
+| **Conventional Full** | 3% | 10% | 15% | 39 condos |
+| **Conventional Limited** | 10% | 25% | 30% | 31 condos |
 
 ---
 
-## Files Created/Modified
+## Implementation
 
-| File | Action |
-|------|--------|
-| `supabase/migrations/[new].sql` | Created - Added `source_prmg` column |
-| `supabase/functions/import-prmg-condos/index.ts` | Created - Import function |
-| `supabase/functions/public-condo-search/index.ts` | Modified - Added PRMG to results |
-| `src/pages/resources/Condolist.tsx` | Modified - PRMG column + filter |
-| `src/components/CondoDetailDialog.tsx` | Modified - PRMG toggle |
-| `src/components/modals/CreateCondoModal.tsx` | Modified - PRMG checkbox |
+### Database Migration
+
+Create a single SQL migration that updates the down payment fields for all condos based on their review type:
+
+```sql
+-- Update Conventional Full condos with missing down payments
+UPDATE condos
+SET 
+  primary_down = '3%',
+  second_down = '10%',
+  investment_down = '15%',
+  updated_at = NOW()
+WHERE review_type = 'Conventional Full'
+  AND deleted_at IS NULL
+  AND (primary_down IS NULL OR primary_down = '');
+
+-- Update Conventional Limited condos with missing down payments
+UPDATE condos
+SET 
+  primary_down = '10%',
+  second_down = '25%',
+  investment_down = '30%',
+  updated_at = NOW()
+WHERE review_type = 'Conventional Limited'
+  AND deleted_at IS NULL
+  AND (primary_down IS NULL OR primary_down = '');
+```
+
+---
+
+## Result After Migration
+
+- **70 condos** will have their down payment values filled in
+- All **1,560 Conventional condos** will have consistent down payment values based on their review type
+- The condo list UI will display the correct percentages immediately
+
+---
+
+## Files to Create
+
+| File | Description |
+|------|-------------|
+| `supabase/migrations/[timestamp]_update_conventional_down_payments.sql` | Migration to backfill missing down payment values |
+
+---
+
+## Notes
+
+- This migration only updates condos that are **missing** down payment values (NULL or empty)
+- Condos that already have down payment values will **not** be modified
+- The `updated_at` timestamp will be set so you can track when the change was made
+
