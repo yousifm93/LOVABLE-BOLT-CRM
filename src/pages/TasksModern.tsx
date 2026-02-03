@@ -129,6 +129,22 @@ interface TaskChangeLog {
   changed_by_user?: { first_name: string; last_name: string } | null;
 }
 
+// Helper function to get fallback assignee from most recent task for this borrower
+const getFallbackAssignee = (task: ModernTask, allTasks: ModernTask[]): string[] => {
+  if (!task.borrower_id) return [];
+  
+  // Find all tasks for this borrower, sorted by updated_at descending
+  const borrowerTasks = allTasks
+    .filter(t => t.borrower_id === task.borrower_id && t.id !== task.id)
+    .filter(t => (t.assignee_ids && t.assignee_ids.length > 0) || t.assignee_id)
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  
+  if (borrowerTasks.length === 0) return [];
+  
+  const mostRecentTask = borrowerTasks[0];
+  return mostRecentTask.assignee_ids || (mostRecentTask.assignee_id ? [mostRecentTask.assignee_id] : []);
+};
+
 const columns = (
   handleUpdate: (taskId: string, field: string, value: any) => void, 
   handleAssigneesUpdate: (taskId: string, userIds: string[]) => void,
@@ -139,7 +155,8 @@ const columns = (
   canReassign: boolean,
   isAdmin: boolean,
   taskChangeLogs: Record<string, TaskChangeLog[]>,
-  fetchTaskChangeLogs: (taskId: string) => void
+  fetchTaskChangeLogs: (taskId: string) => void,
+  allTasks: ModernTask[]
 ): ColumnDef<ModernTask>[] => {
   const baseColumns: ColumnDef<ModernTask>[] = [
   {
@@ -255,24 +272,30 @@ const columns = (
   {
     accessorKey: "assignee",
     header: "Assigned To",
-    cell: ({ row }) => (
-      canReassign ? (
+    cell: ({ row }) => {
+      // Get effective assignee IDs - use fallback if empty
+      const hasAssignees = (row.original.assignee_ids && row.original.assignee_ids.length > 0) || row.original.assignee_id;
+      const effectiveAssigneeIds = hasAssignees 
+        ? (row.original.assignee_ids || (row.original.assignee_id ? [row.original.assignee_id] : []))
+        : getFallbackAssignee(row.original, allTasks);
+      
+      return canReassign ? (
         <InlineEditMultiAssignee
-          assigneeIds={row.original.assignee_ids || (row.original.assignee_id ? [row.original.assignee_id] : [])}
+          assigneeIds={effectiveAssigneeIds}
           users={users}
           onValueChange={(userIds) => handleAssigneesUpdate(row.original.id, userIds)}
           maxVisible={2}
         />
       ) : (
         <InlineEditMultiAssignee
-          assigneeIds={row.original.assignee_ids || (row.original.assignee_id ? [row.original.assignee_id] : [])}
+          assigneeIds={effectiveAssigneeIds}
           users={users}
           onValueChange={() => {}}
           maxVisible={2}
           disabled={true}
         />
-      )
-    ),
+      );
+    },
     sortable: true,
   },
   {
@@ -1560,7 +1583,7 @@ export default function TasksModern() {
                 <CollapsibleContent>
                   <DataTable
                     key={`open-${tableInstanceKey}`}
-                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, taskChangeLogs, fetchTaskChangeLogs)}
+                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, taskChangeLogs, fetchTaskChangeLogs, tasks)}
                     data={sortedOpenTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
@@ -1593,7 +1616,7 @@ export default function TasksModern() {
                 <CollapsibleContent>
                   <DataTable
                     key={`done-${tableInstanceKey}`}
-                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, taskChangeLogs, fetchTaskChangeLogs)}
+                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, taskChangeLogs, fetchTaskChangeLogs, tasks)}
                     data={sortedDoneTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}

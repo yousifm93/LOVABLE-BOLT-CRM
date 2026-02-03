@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search, Plus, Filter, Phone, Mail, Building2, Upload, Loader2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,6 +121,7 @@ const columns: ColumnDef<any>[] = [
 ];
 
 export default function AgentList() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [agents, setAgents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -137,6 +139,23 @@ export default function AgentList() {
   const [agentToDelete, setAgentToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
+
+  // Handle URL parameter to auto-open agent drawer
+  useEffect(() => {
+    const openAgentId = searchParams.get('openAgent');
+    if (openAgentId && !isLoading && agents.length > 0) {
+      const agent = agents.find(a => a.id === openAgentId);
+      if (agent) {
+        setSelectedAgent(agent);
+        setShowAgentDrawer(true);
+        // Clear param to prevent re-opening on subsequent renders
+        setSearchParams(prev => {
+          prev.delete('openAgent');
+          return prev;
+        }, { replace: true });
+      }
+    }
+  }, [searchParams, agents, isLoading, setSearchParams]);
 
   const handleImportAgents = async () => {
     setIsImporting(true);

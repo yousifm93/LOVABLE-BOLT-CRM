@@ -1374,9 +1374,13 @@ export const databaseService = {
     
     // Insert new assignees
     if (userIds.length > 0) {
+      // Use upsert with onConflict to prevent duplicate key errors during race conditions
       const { error: insertError } = await supabase
         .from('task_assignees')
-        .insert(userIds.map(userId => ({ task_id: taskId, user_id: userId })));
+        .upsert(
+          userIds.map(userId => ({ task_id: taskId, user_id: userId })),
+          { onConflict: 'task_id,user_id', ignoreDuplicates: true }
+        );
       
       if (insertError) throw insertError;
     }
