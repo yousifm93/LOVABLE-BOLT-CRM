@@ -1601,13 +1601,32 @@ export function ClientDetailDrawer({
       'CTC': 'CTC'
     };
     const dbValue = labelToDbValue[statusLabel] || statusLabel;
+    
+    // Determine pipeline_section changes based on status
+    // This mirrors the logic in Active.tsx to ensure consistency
+    const currentSection = (client as any).pipeline_section;
+    let updateData: Record<string, any> = {
+      loan_status: dbValue as "NEW" | "RFP" | "SUV" | "AWC" | "CTC"
+    };
+    
+    // NEW or RFP should always move to Incoming (unless already Closed)
+    if ((statusLabel === 'NEW' || statusLabel === 'RFP') && currentSection !== 'Closed') {
+      updateData.pipeline_section = 'Incoming';
+    }
+    // SUB, AWC, CTC should move from Incoming to Live
+    else if ((statusLabel === 'SUB' || statusLabel === 'AWC' || statusLabel === 'CTC') && currentSection === 'Incoming') {
+      updateData.pipeline_section = 'Live';
+    }
+    
     try {
-      await databaseService.updateLead(leadId, {
-        loan_status: dbValue as "NEW" | "RFP" | "SUV" | "AWC" | "CTC"
-      });
+      await databaseService.updateLead(leadId, updateData);
+      
+      const sectionChanged = updateData.pipeline_section && updateData.pipeline_section !== currentSection;
       toast({
         title: `Loan status updated to ${statusLabel}`,
-        description: "Status updated successfully"
+        description: sectionChanged 
+          ? `Status updated and moved to ${updateData.pipeline_section}` 
+          : "Status updated successfully"
       });
 
       // Refresh parent page data
