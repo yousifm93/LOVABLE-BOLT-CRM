@@ -1,172 +1,187 @@
 
-
-# Plan: Fix Search Navigation, Add Latest File Updates Section & Default Task Assignees
-
-## Summary
-
-This plan addresses four issues:
-1. **Search navigation not opening specific records** - Clicking an agent/lender/contact in sidebar search navigates to the page but doesn't open the specific record's detail view
-2. **Idle functionality error** - Need to investigate database error when trying to idle leads
-3. **Add "Latest File Update" section** - Add this section between "Send Email Templates" and "Pipeline Review" in the Active stage drawer
-4. **Task assignee defaulting** - Tasks with no assignee should show the user who has the most recent task for that lead
-
----
-
-## Issue 1: Search Navigation Not Opening Records
-
-### Problem
-When clicking a search result for an agent, lender, or contact, the app navigates to the correct page (e.g., `/contacts/agents`) but doesn't automatically open that specific record's detail drawer.
-
-### Root Cause
-The `AgentList.tsx`, `ApprovedLenders.tsx`, and `BorrowerList.tsx` pages don't read URL query parameters (`openAgent`, `openLender`, `openContact`) to auto-open the corresponding record.
-
-### Solution
-Add `useSearchParams` hook and effect to each page to detect and handle these URL parameters:
-
-| File | Changes |
-|------|---------|
-| `src/pages/contacts/AgentList.tsx` | Add `useSearchParams`, detect `openAgent` param, auto-open that agent's drawer |
-| `src/pages/contacts/ApprovedLenders.tsx` | Add `useSearchParams`, detect `openLender` param, auto-open that lender's drawer |
-| `src/pages/contacts/BorrowerList.tsx` | Add `useSearchParams`, detect `openContact` param, auto-open that contact's drawer |
-
-**Pattern to follow** (from Leads.tsx and Active.tsx):
-```typescript
-import { useSearchParams } from "react-router-dom";
-
-const [searchParams, setSearchParams] = useSearchParams();
-
-useEffect(() => {
-  const openAgentId = searchParams.get('openAgent');
-  if (openAgentId && !isLoading) {
-    const agent = agents.find(a => a.id === openAgentId);
-    if (agent) {
-      setSelectedAgent(agent);
-      setShowAgentDrawer(true);
-      // Clear param to prevent re-opening
-      setSearchParams(prev => {
-        prev.delete('openAgent');
-        return prev;
-      }, { replace: true });
-    }
-  }
-}, [searchParams, agents, isLoading]);
-```
+## Goals (what you’ll get)
+1. Clicking *any* top-left sidebar search result (Lead, Agent, Lender, Master Contact, Past Client/Idle/etc) will:
+   - Navigate to the correct page **and**
+   - Automatically open that specific record (drawer/dialog) immediately.
+2. The **Active-stage “Latest File Update”** card will:
+   - Be larger (similar height/feel to Pipeline Review, roughly ~70% of “About the Borrower”)
+   - Show **Last updated date/time + who updated it** at the bottom (same pattern as Pipeline Review).
+3. Tasks that still show **“Assign to…”** will be **actually assigned in the database** (not just visually):
+   - Any task missing assignees will be assigned to the user(s) from the **most recent task on that same file (borrower_id)**.
+4. Fix “Failed to move lead to Idle”:
+   - Current failure is caused by a database trigger referencing a non-existent field `OLD.pipeline_stage`.
 
 ---
 
-## Issue 2: Idle Functionality Error
+## What I found (root causes)
 
-### Problem
-User reports error when trying to move leads to Idle stage.
+### A) Search result click: only some pages “auto-open”
+- The sidebar search already navigates with query params like:
+  - `?openLead=...`, `?openAgent=...`, `?openLender=...`, `?openContact=...`
+- Agents/Lenders/Contacts pages now correctly read those params and open the drawer/dialog.
+- **But most pipeline pages (Pending App, Screening, Pre-Qualified, Pre-Approved, Past Clients) do not implement `openLead` handling**, so clicking a Lead/Past Client result takes you to the page but doesn’t open the record.
 
-### Investigation Needed
-Database logs show a duplicate key constraint error on `task_assignees`. This may be triggered by a database automation when the pipeline stage changes.
+### B) Past Clients routing mismatch in sidebar search
+- In `AppSidebar.tsx`, `PIPELINE_STAGE_NAMES` contains Past Clients stage id:
+  - `acdfc6ba-7cbc-47af-a8c6-380d77aef6dd`
+- But `getPipelineRoute()` uses a different id (`e9fc7eb8-...`) for `/past-clients`.
+- Result: Past Clients leads can route incorrectly (often back to `/leads`).
 
-### Solution
-Check and fix the trigger that runs on pipeline stage changes. The error suggests the trigger is trying to insert a duplicate task assignee record.
+### C) Idle transition failure is definitely backend (database trigger)
+From your browser network logs, the PATCH to `leads` fails with:
+- **400** and message: `record "old" has no field "pipeline_stage"`
 
----
+This means a **Postgres trigger function on the `leads` table** is referencing `OLD.pipeline_stage`, but the `leads` table uses `pipeline_stage_id` (uuid). So *any* stage move (including to Idle) can fail depending on which trigger version is active.
 
-## Issue 3: Add "Latest File Update" Section to Active Stage Drawer
-
-### Problem
-The Active stage drawer needs a "Latest File Update" section between "Send Email Templates" and "Pipeline Review" sections.
-
-### Location in Code
-`src/components/ClientDetailDrawer.tsx`, around line 2744-2795
-
-### Solution
-Add a new "Latest File Update" section for Active stage leads:
-
-```typescript
-{/* Latest File Update - For Active stage ONLY, between Email Templates and Pipeline Review */}
-{(() => {
-  const opsStage = client.ops?.stage?.toLowerCase() || '';
-  const isActive = opsStage === 'active';
-  if (!isActive) return null;
-  return (
-    <Card>
-      <CardHeader className="pb-3 bg-white">
-        <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
-      </CardHeader>
-      <CardContent className="bg-gray-50">
-        <MentionableInlineEditNotes
-          value={(client as any).latest_file_updates || ''}
-          onValueChange={(value) => handleLeadUpdate('latest_file_updates', value)}
-          placeholder="Add status updates, notes, or important information..."
-          minHeight={80}
-        />
-      </CardContent>
-    </Card>
-  );
-})()}
-```
+### D) Tasks “Assigned To” still blank because we only added display fallback
+- `TasksModern.tsx` currently *displays* a fallback assignee when missing.
+- But it does **not** persist assignments to the database.
+- So you still see tasks with “Assign to…” because:
+  - Some borrowers have no other tasks loaded with assignees (or the “most recent assigned task” isn’t in the current filtered list), and/or
+  - Nothing is actually backfilled server-side.
 
 ---
 
-## Issue 4: Default Task Assignee to Most Recent Task User
+## Implementation Plan (code + database)
 
-### Problem
-Tasks with no assignee show "Assign to..." placeholder. User wants these to default to the user who has the most recent task for that lead (borrower_id).
+### 1) Make search-click open *every* entity (including every pipeline stage lead)
+**Files to update**
+- `src/pages/PendingApp.tsx`
+- `src/pages/Screening.tsx`
+- `src/pages/PreQualified.tsx` (or `PreQualified.tsx` naming used in your repo)
+- `src/pages/PreApproved.tsx`
+- `src/pages/PastClients.tsx`
 
-### Solution
-Modify the task display logic in `TasksModern.tsx` to compute a fallback assignee when `assignee_ids` is empty:
+**Change**
+- Add the same `useSearchParams` + `useEffect` pattern used in `Leads.tsx` / `Active.tsx`:
+  - Read `openLead`
+  - If the lead exists in the current list, open drawer
+  - If not, fetch it by id (`databaseService.getLeadByIdWithEmbeds(openLeadId)` or a direct supabase query like in `Leads.tsx`)
+  - Clear the query param after opening
 
-1. **Add a helper function** to find the most recent task's assignee for a given borrower_id
-2. **Update the assignee cell renderer** to use this fallback
-
-```typescript
-// Helper to get fallback assignee from most recent task for this borrower
-const getFallbackAssignee = (task: ModernTask, allTasks: ModernTask[]): string[] => {
-  if (!task.borrower_id) return [];
-  
-  // Find all tasks for this borrower, sorted by updated_at descending
-  const borrowerTasks = allTasks
-    .filter(t => t.borrower_id === task.borrower_id && t.id !== task.id)
-    .filter(t => (t.assignee_ids && t.assignee_ids.length > 0) || t.assignee_id)
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-  
-  if (borrowerTasks.length === 0) return [];
-  
-  const mostRecentTask = borrowerTasks[0];
-  return mostRecentTask.assignee_ids || (mostRecentTask.assignee_id ? [mostRecentTask.assignee_id] : []);
-};
-
-// In the assignee cell:
-const effectiveAssigneeIds = 
-  (row.original.assignee_ids?.length > 0 || row.original.assignee_id)
-    ? (row.original.assignee_ids || [row.original.assignee_id])
-    : getFallbackAssignee(row.original, tasks);
-```
+**Result**
+- Clicking a Lead from sidebar search will always open the drawer regardless of which pipeline stage page it belongs to.
 
 ---
 
-## Files to Modify
+### 2) Fix Past Clients pipeline route mapping in sidebar search
+**File to update**
+- `src/components/AppSidebar.tsx`
 
-| File | Changes |
-|------|---------|
-| `src/pages/contacts/AgentList.tsx` | Add URL param handling for `openAgent` |
-| `src/pages/contacts/ApprovedLenders.tsx` | Add URL param handling for `openLender` |
-| `src/pages/contacts/BorrowerList.tsx` | Add URL param handling for `openContact` |
-| `src/components/ClientDetailDrawer.tsx` | Add "Latest File Update" section for Active stage |
-| `src/pages/TasksModern.tsx` | Add fallback assignee logic for empty assignees |
-| Database trigger (if needed) | Fix duplicate key error on idle transition |
+**Change**
+- Update `getPipelineRoute()` so Past Clients uses the correct stage id:
+  - Add route map entry for `acdfc6ba-7cbc-47af-a8c6-380d77aef6dd` → `/past-clients`
+- Optionally remove/replace the incorrect `e9fc7eb8-...` entry if it’s legacy.
 
----
-
-## Expected Results
-
-1. **Search Navigation**: Clicking "David Freed" in sidebar search opens the agent drawer immediately
-2. **Idle Error**: Fixed - leads can be moved to Idle without database errors
-3. **Latest File Update**: New editable section appears between Email Templates and Pipeline Review for Active stage leads
-4. **Task Assignees**: Tasks without assignees show the avatar of the user who has the most recent task for that borrower
+**Result**
+- Past Clients search results navigate to `/past-clients?openLead=...` correctly.
 
 ---
 
-## Testing Steps
+### 3) Make the Active “Latest File Update” match the larger style + show updated metadata
+**File to update**
+- `src/components/ClientDetailDrawer.tsx` (Active section currently around the “Latest File Update” card)
 
-1. Search for "David Freed" in sidebar search, click result, verify drawer opens directly
-2. Open an Active lead, try to move to Idle, verify no error
-3. Open an Active lead, verify "Latest File Update" section appears between Email Templates and Pipeline Review
-4. View tasks list, find a task with "Assign to..." placeholder, verify it now shows the correct default user
+**Changes**
+- Replace the minimal `MentionableInlineEditNotes` block with a layout closer to the other “big text box” sections:
+  - Use a `Textarea` (or keep mentions, but adjust layout so the visible area is larger)
+  - Target height: around `min-h-[140px]` to `min-h-[170px]` (so it’s clearly larger than now but smaller than “About the Borrower” which is ~210px)
+- Add the same footer line currently shown under Pipeline Review:
+  - Show `(client as any).latest_file_updates_updated_at`
+  - Show `fileUpdatesUpdatedByUser` name (already used by Pipeline Review) or fetch it if needed
+- Keep it positioned between **Send Email Templates** and **Pipeline Review** as it is now.
 
+**Result**
+- Bigger box, consistent feel, and always shows who/when last updated.
+
+---
+
+### 4) Actually assign unassigned tasks using “most recent task on the same file”
+**File to update**
+- `src/pages/TasksModern.tsx`
+
+**Approach**
+- Add a backfill step after tasks are loaded (and ideally only for Admins):
+  1. Identify tasks with:
+     - no `assignee_ids` (empty/undefined) AND no `assignee_id`
+     - has a `borrower_id`
+  2. For each such task, compute fallback assignee(s) from the most recent task for that borrower that has assignees.
+     - Use the full `tasks` array (not filtered) to find the most recent by `updated_at` or `created_at`
+  3. Persist to DB:
+     - Update `tasks.assignee_ids` (preferred) and set `tasks.assignee_id` to the first id for compatibility
+  4. Update local state after persistence to remove “Assign to…” immediately.
+
+**Edge cases**
+- If a borrower truly has no tasks with assignees, then:
+  - Fall back to the global fallback user (YM) if that matches your current rule, or
+  - Leave it unassigned (I’ll implement the YM fallback if you confirm you want that behavior here too)
+
+**Result**
+- The column stops showing blanks because the tasks are now truly assigned in the database.
+
+---
+
+### 5) Fix “Failed to move lead to Idle” (database trigger bug)
+**What’s broken**
+- A trigger function (current active version) uses:
+  - `IF OLD.pipeline_stage IS DISTINCT FROM NEW.pipeline_stage THEN`
+- But `leads` doesn’t have `pipeline_stage`.
+
+**Fix**
+- Create a new migration that:
+  1. Replaces the broken `execute_pipeline_stage_changed_automations()` with a correct version that uses:
+     - `OLD.pipeline_stage_id` / `NEW.pipeline_stage_id`
+  2. When it needs a stage name (for comparing to automation config), it will:
+     - Lookup stage names from `pipeline_stages` using the ids
+     - Compare `new_stage_name::text` to the automation’s configured target
+  3. Ensure the trigger is attached to:
+     - `AFTER UPDATE OF pipeline_stage_id ON public.leads`
+
+**Why this will fix Idle**
+- Your Idle move is a simple update to `leads.pipeline_stage_id`.
+- The database error happens before the update can complete.
+- Fixing that trigger removes the 400 error, and the UI will succeed.
+
+**Validation**
+- After deploying migration, I’ll re-test moving a lead to Idle and confirm the PATCH is 200.
+
+---
+
+## Testing checklist (I will do before finishing)
+1. **Search deep link open**
+   - Search a Lead in each stage (Leads, Pending App, Screening, Pre-Qualified, Pre-Approved, Active, Past Clients, Idle)
+   - Click result → correct page loads and drawer opens
+2. **Past Clients route**
+   - Search a Past Client lead → ensure it routes to `/past-clients` (not `/leads`)
+3. **Active Latest File Update UI**
+   - Open an Active lead → confirm box size increased and footer shows last updated timestamp + user
+   - Edit/save → confirm it persists and footer updates
+4. **Task assignments backfill**
+   - Open Tasks → verify previously blank “Assigned To” rows become assigned
+   - Refresh page → verify assignments persist (DB updated)
+5. **Idle move**
+   - From lead drawer, move to Idle → confirm success toast and lead appears in Idle pipeline
+
+---
+
+## Files / areas that will change
+**Frontend**
+- `src/components/AppSidebar.tsx` (Past Clients stage id route mapping)
+- `src/pages/PendingApp.tsx` (add `openLead` handling)
+- `src/pages/Screening.tsx` (add `openLead` handling)
+- `src/pages/PreQualified.tsx` (add `openLead` handling)
+- `src/pages/PreApproved.tsx` (add `openLead` handling)
+- `src/pages/PastClients.tsx` (add `openLead` handling)
+- `src/components/ClientDetailDrawer.tsx` (Active Latest File Update UI + footer)
+- `src/pages/TasksModern.tsx` (persist backfill of missing assignees)
+
+**Database**
+- New migration: fix `execute_pipeline_stage_changed_automations()` so it uses `pipeline_stage_id` + stage name lookup, removing `OLD.pipeline_stage` reference.
+
+---
+
+## One quick confirmation (so I implement exactly what you want)
+For tasks that are unassigned and there is no “most recent assigned task” for that borrower:
+- Should we default to **YM (Yousif Mohamed)** like other fallbacks, or leave it unassigned?
+
+I can implement YM fallback by default if you want consistency with the rest of the CRM.
