@@ -1,52 +1,43 @@
 
-# Plan: Fix Invalid Enum Value Error in Trigger Functions
+# Plan: Fix Task Automation Trigger Function Column Mismatches
 
 ## Summary
 
-The error `invalid input value for enum task_status: "Archived"` is caused by the database trigger functions trying to compare the `status` column against a value that doesn't exist in the `task_status` enum.
+The task automations for AWC exist and are correctly configured, but the trigger function is using **wrong column names** that don't match the actual database schema. This causes the trigger to find zero matching automations.
 
 ---
 
 ## Root Cause
 
-The `task_status` enum only has these valid values:
-- `To Do`
-- `In Progress`
-- `Done`
-- `Working on it`
-- `Need help`
+The `execute_loan_status_changed_automations` trigger function references column names that don't exist:
 
-**There is no "Archived" value!**
+| Trigger Function Uses | Actual Column Name | Location |
+|-----------------------|-------------------|----------|
+| `trigger_config->>'trigger_field'` | `trigger_config->>'field'` | JSON key |
+| `trigger_config->>'trigger_value'` | `trigger_config->>'target_status'` | JSON key |
+| `automation_record.default_assignee_id` | `automation_record.assigned_to_user_id` | Column |
+| `automation_record.task_title` | `automation_record.task_name` | Column |
 
-The trigger functions contain this check:
-```sql
-IF NOT EXISTS (
-  SELECT 1 FROM tasks 
-  WHERE borrower_id = NEW.id 
-  AND automation_id = automation_record.id
-  AND status != 'Archived'   -- PostgreSQL tries to cast 'Archived' to task_status enum = ERROR
-)
+**Evidence from database:**
+```json
+// Actual trigger_config in database:
+{"field": "loan_status", "target_status": "AWC"}
+
+// But trigger function looks for:
+{"trigger_field": "...", "trigger_value": "..."}
 ```
 
-PostgreSQL attempts to compare the enum-typed `status` column against the text `'Archived'`, but since 'Archived' isn't a valid enum value, the query fails before it even runs.
+This mismatch means the query `WHERE (ta.trigger_config->>'trigger_field')::text = 'loan_status'` returns **zero rows** because the JSON key is actually `field`, not `trigger_field`.
 
 ---
 
 ## Solution
 
-Change the exclusion logic from checking for 'Archived' (which doesn't exist) to checking for 'Done' (which does exist and makes sense for "don't create duplicate tasks that are already completed").
-
-Change:
-```sql
-AND status != 'Archived'
-```
-
-To:
-```sql
-AND status::text NOT IN ('Done')
-```
-
-This casts status to text first (avoiding enum validation issues) and excludes completed tasks.
+Create a database migration to fix all 4 trigger functions with the correct column names:
+- `execute_loan_status_changed_automations`
+- `execute_disclosure_status_changed_automations`
+- `execute_pipeline_stage_changed_automations`
+- `execute_lead_created_automations`
 
 ---
 
@@ -54,54 +45,72 @@ This casts status to text first (avoiding enum validation issues) and excludes c
 
 | File | Changes |
 |------|---------|
-| **New Database Migration** | Update all 4 trigger functions to use `status::text NOT IN ('Done')` |
+| **New Database Migration** | Update all 4 trigger functions with correct column names |
 
 ---
 
 ## Technical Details
 
-### Affected Functions
-1. `execute_disclosure_status_changed_automations`
-2. `execute_loan_status_changed_automations`
-3. `execute_pipeline_stage_changed_automations`
-4. `execute_lead_created_automations`
-
 ### SQL Fix Pattern
 
 ```sql
--- OLD (broken - 'Archived' is not a valid enum value)
-IF NOT EXISTS (
-  SELECT 1 FROM tasks 
-  WHERE borrower_id = NEW.id 
-  AND automation_id = automation_record.id
-  AND status != 'Archived'
-)
+-- Current (WRONG - column names don't match schema)
+FOR automation_record IN
+  SELECT ta.* 
+  FROM task_automations ta
+  WHERE ta.is_active = true
+    AND ta.trigger_type = 'status_changed'
+    AND (ta.trigger_config->>'trigger_field')::text = 'loan_status'
+    AND (ta.trigger_config->>'trigger_value')::text = NEW.loan_status::text
+LOOP
+  -- Uses: automation_record.default_assignee_id (doesn't exist)
+  -- Uses: automation_record.task_title (doesn't exist)
 
--- NEW (working - cast to text and check for completed status)
-IF NOT EXISTS (
-  SELECT 1 FROM tasks 
-  WHERE borrower_id = NEW.id 
-  AND automation_id = automation_record.id
-  AND status::text NOT IN ('Done')
-)
+-- Fixed (CORRECT - matches actual schema)
+FOR automation_record IN
+  SELECT ta.* 
+  FROM task_automations ta
+  WHERE ta.is_active = true
+    AND ta.trigger_type = 'status_changed'
+    AND (ta.trigger_config->>'field')::text = 'loan_status'
+    AND (ta.trigger_config->>'target_status')::text = NEW.loan_status::text
+LOOP
+  -- Uses: automation_record.assigned_to_user_id (correct!)
+  -- Uses: automation_record.task_name (correct!)
 ```
+
+### All Column Name Fixes Required
+
+1. **JSON config keys:**
+   - `trigger_field` → `field`
+   - `trigger_value` → `target_status`
+
+2. **Table columns:**
+   - `default_assignee_id` → `assigned_to_user_id`
+   - `task_title` → `task_name`
+   - `task_description` stays the same (correct)
 
 ---
 
 ## Expected Results After Fix
 
-1. **Loan status changes work** - Changing from SUB to AWC will succeed
-2. **Disclosure status changes work** - No more enum errors
-3. **Task automation triggers fire** - Tasks will be created when status changes match automation rules
-4. **Duplicate prevention works correctly** - Excludes tasks marked as "Done" from duplicate checking
+1. **AWC status change creates 3 tasks:**
+   - Intro call (Borrower intro call)
+   - Upload initial approval (Loan AWC - Upload Initial Approval)
+   - Add Approval Conditions
+
+2. **All other status automations work:**
+   - RFP creates Order Title Work, Submit File, Condo Approval
+   - CTC creates call tasks
+   - New status creates Disclose, On-board, Call tasks
+
+3. **Execution logging works:**
+   - Each created task is logged in `task_automation_executions`
 
 ---
 
-## Alternative Consideration
+## Testing Steps
 
-If you actually want an "Archived" status for tasks, we could add it to the enum instead. However, this would require:
-1. Adding 'Archived' to the `task_status` enum
-2. Updating any UI that shows task status options
-3. Deciding where/how tasks get archived
-
-For now, the simpler fix is to use 'Done' since it achieves the same goal (don't recreate tasks that are already completed).
+1. After applying migration, change a loan status from SUB → AWC
+2. Verify 3 tasks are created in the Tasks page
+3. Check task_automation_executions table for logged entries
