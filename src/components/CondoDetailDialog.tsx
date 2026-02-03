@@ -32,6 +32,7 @@ interface Condo {
   zip: string | null;
   source_uwm: boolean | null;
   source_ad: boolean | null;
+  source_prmg: boolean | null;
   review_type: string | null;
   approval_expiration_date: string | null;
   primary_down: string | null;
@@ -290,6 +291,11 @@ export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated, onPr
                     A&D
                   </Badge>
                 )}
+                {condo.source_prmg && (
+                  <Badge variant="outline" className="bg-purple-500/10 text-purple-700 border-purple-500/30">
+                    PRMG
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -364,7 +370,7 @@ export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated, onPr
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="flex items-center justify-between p-2.5 border rounded-lg">
                   <div>
                     <span className="font-medium text-sm">UWM</span>
@@ -383,6 +389,16 @@ export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated, onPr
                   <InlineEditBoolean
                     value={condo.source_ad}
                     onValueChange={(value) => handleFieldUpdate('source_ad', value)}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-2.5 border rounded-lg">
+                  <div>
+                    <span className="font-medium text-sm">PRMG</span>
+                    <p className="text-xs text-muted-foreground">Paramount Residential</p>
+                  </div>
+                  <InlineEditBoolean
+                    value={condo.source_prmg}
+                    onValueChange={(value) => handleFieldUpdate('source_prmg', value)}
                   />
                 </div>
               </div>

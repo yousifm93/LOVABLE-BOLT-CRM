@@ -29,6 +29,7 @@ interface Condo {
   zip: string | null;
   source_uwm: boolean | null;
   source_ad: boolean | null;
+  source_prmg: boolean | null;
   past_mb_closing: boolean | null;
   review_type: string | null;
   approval_expiration_date: string | null;
@@ -150,6 +151,20 @@ const createColumns = (
       <div className="flex justify-center">
         {row.original.source_ad ? (
           <CheckCircle className="h-4 w-4 text-amber-600" />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "source_prmg",
+    header: "PRMG",
+    cell: ({ row }) => (
+      <div className="flex justify-center">
+        {row.original.source_prmg ? (
+          <CheckCircle className="h-4 w-4 text-purple-600" />
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
@@ -347,6 +362,7 @@ export default function Condolist() {
   const [reviewTypeFilter, setReviewTypeFilter] = useState<string>("all");
   const [uwmFilter, setUwmFilter] = useState<string>("all");
   const [adFilter, setAdFilter] = useState<string>("all");
+  const [prmgFilter, setPrmgFilter] = useState<string>("all");
   const [pastMbFilter, setPastMbFilter] = useState<string>("all");
   const [duplicateFilter, setDuplicateFilter] = useState<string>("unique");
   const [selectedCondo, setSelectedCondo] = useState<Condo | null>(null);
@@ -629,6 +645,13 @@ export default function Condolist() {
       result = result.filter(condo => condo.source_ad !== true);
     }
     
+    // PRMG filter
+    if (prmgFilter === "yes") {
+      result = result.filter(condo => condo.source_prmg === true);
+    } else if (prmgFilter === "no") {
+      result = result.filter(condo => condo.source_prmg !== true);
+    }
+    
     // Past MB Closing filter
     if (pastMbFilter === "yes") {
       result = result.filter(condo => condo.past_mb_closing === true);
@@ -654,7 +677,7 @@ export default function Condolist() {
     return result.sort((a, b) => 
       new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
-  }, [condos, targetMarketFilter, reviewTypeFilter, uwmFilter, adFilter, pastMbFilter, duplicateFilter]);
+  }, [condos, targetMarketFilter, reviewTypeFilter, uwmFilter, adFilter, prmgFilter, pastMbFilter, duplicateFilter]);
 
   const columns = createColumns(handleUpdate, handleDocUpdate, handlePreview);
 
@@ -663,6 +686,7 @@ export default function Condolist() {
     reviewTypeFilter !== "all",
     uwmFilter !== "all",
     adFilter !== "all",
+    prmgFilter !== "all",
     pastMbFilter !== "all",
     duplicateFilter !== "unique"
   ].filter(Boolean).length;
@@ -740,6 +764,17 @@ export default function Condolist() {
               </SelectContent>
             </Select>
 
+            <Select value={prmgFilter} onValueChange={setPrmgFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="PRMG" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All PRMG</SelectItem>
+                <SelectItem value="yes">PRMG Approved</SelectItem>
+                <SelectItem value="no">Not PRMG</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Select value={reviewTypeFilter} onValueChange={setReviewTypeFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Review Type" />
@@ -785,6 +820,7 @@ export default function Condolist() {
                   setReviewTypeFilter("all");
                   setUwmFilter("all");
                   setAdFilter("all");
+                  setPrmgFilter("all");
                   setPastMbFilter("all");
                   setDuplicateFilter("unique");
                 }}

@@ -25,7 +25,7 @@ serve(async (req) => {
     // Filter out duplicates and restricted condos for public view
     let query = supabase
       .from('condos')
-      .select('condo_name, street_address, city, state, zip, primary_down, second_down, investment_down, source_uwm, source_ad, past_mb_closing')
+      .select('condo_name, street_address, city, state, zip, primary_down, second_down, investment_down, source_uwm, source_ad, source_prmg, past_mb_closing')
       .or('is_duplicate.is.null,is_duplicate.eq.false') // Only show unique/best records
       .neq('review_type', 'Restricted') // Exclude non-financeable buildings
       .is('deleted_at', null) // Respect soft deletes
@@ -57,6 +57,7 @@ serve(async (req) => {
       approvals: {
         uwm: condo.source_uwm || false,
         ad: condo.source_ad || false,
+        prmg: condo.source_prmg || false,
       },
       pastMbClosing: condo.past_mb_closing || false,
     }));

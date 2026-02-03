@@ -953,6 +953,7 @@ export type Database = {
           review_type: string | null
           second_down: string | null
           source_ad: boolean | null
+          source_prmg: boolean | null
           source_uwm: boolean | null
           state: string | null
           street_address: string | null
@@ -984,6 +985,7 @@ export type Database = {
           review_type?: string | null
           second_down?: string | null
           source_ad?: boolean | null
+          source_prmg?: boolean | null
           source_uwm?: boolean | null
           state?: string | null
           street_address?: string | null
@@ -1015,6 +1017,7 @@ export type Database = {
           review_type?: string | null
           second_down?: string | null
           source_ad?: boolean | null
+          source_prmg?: boolean | null
           source_uwm?: boolean | null
           state?: string | null
           street_address?: string | null
