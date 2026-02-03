@@ -1,69 +1,108 @@
 
-# Plan: Fix Status Change Errors and Validation
+# Plan: Fix Status Change Errors and Upload Button Functionality
 
 ## Summary
 
-I've identified **4 critical issues** causing the errors you're experiencing:
+I've identified the root causes of all your issues:
+
+1. **"column task_status does not exist" error** - Database triggers reference wrong column name
+2. **Upload buttons don't work** - No handler is passed to open the upload dialog
+3. **Disclosure task trigger** - Already correctly set to "Sent" in database, but status changes fail due to issue #1
 
 ---
 
-## Issue 1: Database Trigger Functions Have Invalid SQL
+## Part 1: Fix Database Trigger Functions (Critical)
 
-**Root Cause**: The trigger functions contain code that tries to update columns that don't exist:
+### Root Cause
+The trigger functions reference `task_status` but the actual column in the `tasks` table is called `status`:
+
 ```sql
-UPDATE task_automations 
-SET execution_count = COALESCE(execution_count, 0) + 1,
-    last_run_at = now()
-WHERE id = automation_record.id;
+-- WRONG (current code)
+WHERE borrower_id = NEW.id 
+  AND automation_id = automation_record.id
+  AND task_status != 'Archived'  -- This column doesn't exist!
+
+-- CORRECT (fix)
+WHERE borrower_id = NEW.id 
+  AND automation_id = automation_record.id
+  AND status != 'Archived'  -- Use the actual column name
 ```
 
-The `task_automations` table does NOT have `execution_count` or `last_run_at` columns. This causes the entire transaction to fail with "column does not exist" and rolls back the task creation.
-
-**Fix**: Create a new migration to remove these broken UPDATE statements from all 4 trigger functions:
+### Fix Required
+Create a database migration to update all 4 trigger functions:
 - `execute_disclosure_status_changed_automations`
 - `execute_loan_status_changed_automations`
 - `execute_lead_created_automations`
 - `execute_pipeline_stage_changed_automations`
 
----
-
-## Issue 2: List View Status Dropdowns Bypass Validation
-
-**Root Cause**: In `Active.tsx`, all status fields (disclosure, appraisal, title, condo, etc.) use plain `InlineEditSelect` instead of `ValidatedInlineSelect`. This means validation only works in the Lead Details drawer, not from the list view.
-
-**Fix**: In `Active.tsx`, replace `InlineEditSelect` with `ValidatedInlineSelect` for these status fields:
-- `disclosure_status`
-- `appraisal_status`
-- `title_status`
-- `hoi_status`
-- `condo_status`
-
-This requires passing the loan data to each column cell for validation context.
+Change all occurrences of `task_status` to `status` in the EXISTS check.
 
 ---
 
-## Issue 3: Remove "Ordered" from Title Status Options
+## Part 2: Fix Upload Button Functionality
 
-**User Request**: "Ordered" and "Requested" are functionally the same for title. Remove "Ordered" and have "Requested" operate the same way.
+### Root Cause
+The `ValidatedInlineSelect` component in `Active.tsx` doesn't pass an `onUploadAction` handler:
 
-**Fix**:
-1. Remove "Ordered" from `titleStatusOptions` in both `Active.tsx` and `TitleTab.tsx`
-2. Update `statusChangeValidation.ts` to apply the ETA requirement to "Requested" instead of "Ordered"
-3. Update task automation completion requirement from `compound:title_ordered` to check for `title_status = Requested`
+```typescript
+// Current code - missing onUploadAction
+<ValidatedInlineSelect
+  value={row.original.loan_status || ''}
+  options={loanStatusOptions}
+  onValueChange={(value) => handleUpdate(row.original.id, "loan_status", value)}
+  fieldName="loan_status"
+  lead={row.original}
+  // onUploadAction is not defined! Button does nothing
+/>
+```
+
+### Fix Required
+1. Create an `onUploadAction` handler that opens the lead drawer and navigates to the correct tab
+2. Pass the handler to all `ValidatedInlineSelect` instances in `Active.tsx`
+3. The handler should:
+   - Open the lead detail drawer for that row
+   - Navigate to the appropriate tab (Documents, Loan & Property, etc.)
+   - Optionally scroll to the upload section
+
+### Implementation
+
+```typescript
+// In Active.tsx - add a helper function
+const handleUploadAction = async (loanId: string, fieldName: string) => {
+  // Open the drawer for this loan
+  const loan = activeLoans.find(l => l.id === loanId);
+  if (loan) {
+    await handleRowClick(loan);
+    // The drawer will open - user can navigate to the relevant section
+    toast({
+      title: "Upload Required",
+      description: "Please upload the required document in the lead drawer.",
+    });
+  }
+};
+
+// Then pass to each ValidatedInlineSelect
+<ValidatedInlineSelect
+  value={row.original.loan_status || ''}
+  options={loanStatusOptions}
+  onValueChange={(value) => handleUpdate(row.original.id, "loan_status", value)}
+  fieldName="loan_status"
+  lead={row.original}
+  onUploadAction={() => handleUploadAction(row.original.id, 'loan_status')}  // NEW
+/>
+```
 
 ---
 
-## Issue 4: Condo "Docs Received" Requires Complex Validation
+## Part 3: Verify Disclosure Task Trigger is Correct
 
-**User Requirement**: Before changing condo status to "Docs Received":
-1. A condo must be selected (condo_id populated)
-2. All 3 documents must be uploaded on that condo (budget_doc, mip_doc, cq_doc)
+The database shows the task automation is already correctly configured:
 
-**Fix**:
-1. Update `statusChangeValidation.ts` to add a special rule for `condo_status` = "Received"
-2. The validation function needs to check the related `condos` table for documents
-3. Update `validateStatusChange()` to handle async validation (fetch condo documents)
-4. Update `ValidatedInlineSelect` to support async validation
+| Automation | Trigger | Target Status |
+|------------|---------|---------------|
+| Upload disclosure document | disclosure_status | **Sent** ✓ |
+
+This is correct! The tasks will be created once the database trigger error (Part 1) is fixed.
 
 ---
 
@@ -71,102 +110,58 @@ This requires passing the loan data to each column cell for validation context.
 
 | File | Changes |
 |------|---------|
-| **New Database Migration** | Remove broken UPDATE statements from all 4 trigger functions |
-| `src/pages/Active.tsx` | Replace status InlineEditSelect with ValidatedInlineSelect; remove "Ordered" from title options |
-| `src/components/lead-details/TitleTab.tsx` | Remove "Ordered" from options |
-| `src/services/statusChangeValidation.ts` | Update title rules to use "Requested"; add condo "Received" rule with async validation |
-| `src/hooks/useStatusValidation.tsx` | Update to support async validation |
-| `src/components/ui/validated-inline-select.tsx` | Support async validation and pass loan context |
+| **New Database Migration** | Fix `task_status` → `status` in all 4 trigger functions |
+| `src/pages/Active.tsx` | Add `onUploadAction` handler to all `ValidatedInlineSelect` instances |
 
 ---
 
 ## Technical Details
 
-### Database Migration (Critical Fix)
+### Database Migration SQL
 
 ```sql
--- Remove broken UPDATE statements from all trigger functions
--- They reference non-existent columns: execution_count, last_run_at
-
+-- Fix execute_disclosure_status_changed_automations
 CREATE OR REPLACE FUNCTION execute_disclosure_status_changed_automations()
 RETURNS trigger AS $$
-DECLARE
-  automation_record RECORD;
-  v_due_date date;
-  v_task_id uuid;
-BEGIN
-  FOR automation_record IN
-    SELECT * FROM task_automations 
-    WHERE is_active = true 
-    AND trigger_type = 'status_changed'
-    AND trigger_config->>'field' = 'disclosure_status'
-    AND trigger_config->>'target_status' = NEW.disclosure_status::text
-    -- ... conditions ...
-  LOOP
-    -- Calculate due date
-    v_due_date := CURRENT_DATE + COALESCE((automation_record.due_date_offset_days)::integer, 0);
-    
-    -- Check if task already exists
-    IF NOT EXISTS (...) THEN
-      -- Create the task
-      INSERT INTO tasks (...) VALUES (...) RETURNING id INTO v_task_id;
-      
-      -- REMOVED: The broken UPDATE to task_automations
-      -- KEPT: The INSERT to task_automation_executions
-      INSERT INTO task_automation_executions (...) VALUES (...);
-    END IF;
-  END LOOP;
-  
-  RETURN NEW;
-END;
+-- ... same body but change:
+--   AND task_status != 'Archived'
+-- to:
+--   AND status != 'Archived'
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Same fix for execute_loan_status_changed_automations
 ```
 
-### Condo Async Validation
+### Status Fields Requiring Upload Actions
 
-```typescript
-// statusChangeValidation.ts
-export async function validateCondoDocsReceived(lead: any): Promise<ValidationResult> {
-  // Check if condo is selected
-  if (!lead.condo_id) {
-    return {
-      isValid: false,
-      message: 'Please select a condo before changing status to Docs Received',
-      rule: { requires: 'condo_id', message: '...', actionLabel: 'Select Condo' }
-    };
-  }
-  
-  // Fetch condo documents
-  const { data: condo } = await supabase
-    .from('condos')
-    .select('budget_doc, mip_doc, cq_doc')
-    .eq('id', lead.condo_id)
-    .single();
-  
-  const missing = [];
-  if (!condo?.budget_doc) missing.push('Budget');
-  if (!condo?.mip_doc) missing.push('MIP');
-  if (!condo?.cq_doc) missing.push('Condo Questionnaire');
-  
-  if (missing.length > 0) {
-    return {
-      isValid: false,
-      message: `Please upload the following documents: ${missing.join(', ')}`,
-      rule: { requires: 'condo_documents', message: '...', actionLabel: 'Upload Documents' }
-    };
-  }
-  
-  return { isValid: true };
-}
-```
+| Field | Required Document | Tab to Open |
+|-------|-------------------|-------------|
+| `disclosure_status` → Sent/Signed | `disc_file` | Documents |
+| `loan_status` → AWC | `initial_approval_file` | Documents |
+| `appraisal_status` → Received | `appraisal_file` | Third Party Items > Appraisal |
+| `title_status` → Received | `title_file` | Third Party Items > Title |
+| `hoi_status` → Received | `insurance_policy_file` | Third Party Items > Insurance |
+| `condo_status` → Approved | `condo_file` | Third Party Items > Condo |
 
 ---
 
 ## Expected Results After Fix
 
-1. **Disclosure status changes work** - No more "column does not exist" errors
-2. **List view status validation** - Changing status from Active pipeline list enforces same rules as drawer
-3. **Title status "Requested"** - Requires Title ETA before selecting (replaces "Ordered")
-4. **Condo "Docs Received"** - Blocked until condo is selected AND all 3 documents are uploaded
-5. **Appraisal status "Received"** - Blocked until appraisal report is uploaded (from both list and drawer)
-6. **Task automations fire** - Because the trigger functions no longer fail on UPDATE
+1. **Status changes work** - No more "column task_status does not exist" errors
+2. **Tasks are created** - When disclosure status changes to "Sent", the upload task will be created
+3. **Upload buttons open drawer** - Clicking "Upload Initial Approval" in the modal will open the lead drawer where user can upload
+
+---
+
+## Testing Steps
+
+1. Change disclosure status to "Sent" on any loan
+   - Should work without errors
+   - Should create "Upload disclosure document" task
+   
+2. Try to change loan status to "AWC" without initial approval
+   - Modal should appear asking to upload
+   - Click "Upload Initial Approval" → drawer opens
+   
+3. Upload the initial approval document, then try AWC again
+   - Should now allow the status change
