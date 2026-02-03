@@ -80,7 +80,7 @@ const getPipelineRoute = (pipelineStageId: string | undefined): string => {
     '09162eec-d2b2-48e5-86d0-9e66ee8b2af7': '/pre-qualified',
     '3cbf38ff-752e-4163-a9a3-1757499b4945': '/pre-approved',
     '76eb2e82-e1d9-4f2d-a57d-2120a25696db': '/active',
-    'e9fc7eb8-6519-4768-b49e-3ebdd3738ac0': '/past-clients',
+    'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd': '/past-clients', // Correct Past Clients stage id
     '5c3bd0b1-414b-4eb8-bad8-99c3b5ab8b0a': '/idle',
   };
   return routeMap[pipelineStageId || ''] || '/leads';

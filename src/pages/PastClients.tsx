@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search, Filter, X, Upload, FileCheck, DollarSign, Percent, CalendarCheck, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFields } from "@/contexts/FieldsContext";
@@ -1086,9 +1087,42 @@ const COLUMN_WIDTHS: Record<string, number> = {
     });
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   useEffect(() => {
     loadData();
   }, []);
+  
+  // Handle openLead query param from sidebar search
+  useEffect(() => {
+    const openLeadId = searchParams.get('openLead');
+    if (openLeadId && !loading) {
+      // Try to find in current list first
+      const loan = pastClients.find(l => l.id === openLeadId);
+      if (loan) {
+        handleRowClick(loan);
+      } else {
+        // Fetch directly if not in current list
+        (async () => {
+          try {
+            const dbLead = await databaseService.getLeadByIdWithEmbeds(openLeadId);
+            if (dbLead) {
+              const crmClient = transformLeadToClient(dbLead);
+              setSelectedClient(crmClient);
+              setIsDrawerOpen(true);
+            }
+          } catch (error) {
+            console.error('Error loading lead from URL:', error);
+          }
+        })();
+      }
+      // Clear the param
+      setSearchParams(prev => {
+        prev.delete('openLead');
+        return prev;
+      }, { replace: true });
+    }
+  }, [searchParams, pastClients, loading]);
 
   const loadData = async () => {
     try {

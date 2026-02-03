@@ -2799,11 +2799,27 @@ export function ClientDetailDrawer({
                     <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
                   </CardHeader>
                   <CardContent className="bg-gray-50">
-                    <MentionableInlineEditNotes
-                      value={(client as any).latest_file_updates || ''}
-                      onValueChange={(value) => handleLeadUpdate('latest_file_updates', value)}
-                      placeholder="Add status updates, notes, or important information..."
-                    />
+                    <div className="min-h-[140px]">
+                      <MentionableInlineEditNotes
+                        value={(client as any).latest_file_updates || ''}
+                        onValueChange={(value) => handleLeadUpdate('latest_file_updates', value)}
+                        placeholder="Add status updates, notes, or important information..."
+                        className="min-h-[120px]"
+                      />
+                    </div>
+                    {(client as any).latest_file_updates_updated_at && (
+                      <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
+                        {fileUpdatesUpdatedByUser && (
+                          <>
+                            <span>•</span>
+                            <User className="h-3 w-3" />
+                            {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                          </>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );

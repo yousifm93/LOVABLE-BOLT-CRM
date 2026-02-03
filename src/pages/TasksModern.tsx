@@ -931,6 +931,60 @@ export default function TasksModern() {
   // Check if current user is admin
   const isAdmin = crmUser?.role === 'Admin';
 
+  // Backfill unassigned tasks with assignee from most recent task for same borrower
+  const backfillAssignmentsRef = useRef(false);
+  useEffect(() => {
+    if (loading || tasks.length === 0 || backfillAssignmentsRef.current || !isAdmin) return;
+    
+    const backfillUnassignedTasks = async () => {
+      // Find tasks that have no assignees but have a borrower_id
+      const unassignedTasks = tasks.filter(task => 
+        task.borrower_id && 
+        (!task.assignee_ids || task.assignee_ids.length === 0) && 
+        !task.assignee_id
+      );
+      
+      if (unassignedTasks.length === 0) return;
+      
+      const fallbackUserId = '230ccf6d-48f5-4f3c-89fd-f2907ebdba1e'; // YM
+      const updates: { taskId: string; assigneeIds: string[] }[] = [];
+      
+      for (const task of unassignedTasks) {
+        // Find most recent task for same borrower with assignees
+        const fallbackAssignees = getFallbackAssignee(task, tasks);
+        const assigneeIds = fallbackAssignees.length > 0 ? fallbackAssignees : [fallbackUserId];
+        updates.push({ taskId: task.id, assigneeIds });
+      }
+      
+      // Persist assignments to database in parallel
+      await Promise.allSettled(
+        updates.map(({ taskId, assigneeIds }) => 
+          databaseService.updateTaskAssignees(taskId, assigneeIds)
+        )
+      );
+      
+      // Update local state
+      setTasks(prevTasks => 
+        prevTasks.map(task => {
+          const update = updates.find(u => u.taskId === task.id);
+          if (update) {
+            return { 
+              ...task, 
+              assignee_ids: update.assigneeIds,
+              assignee_id: update.assigneeIds[0]
+            };
+          }
+          return task;
+        })
+      );
+      
+      backfillAssignmentsRef.current = true;
+      console.log(`[TasksModern] Backfilled ${updates.length} unassigned tasks`);
+    };
+    
+    backfillUnassignedTasks();
+  }, [loading, tasks.length, isAdmin]);
+
   // Filter tasks by search term, user filter, and advanced filters
   const filteredTasks = (() => {
     let result = tasks;
