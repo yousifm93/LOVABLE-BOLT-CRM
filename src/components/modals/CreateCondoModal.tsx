@@ -51,6 +51,7 @@ export function CreateCondoModal({
     zip: "",
     source_uwm: false,
     source_ad: false,
+    source_prmg: false,
     review_type: "",
   });
 
@@ -63,6 +64,7 @@ export function CreateCondoModal({
       zip: "",
       source_uwm: false,
       source_ad: false,
+      source_prmg: false,
       review_type: "",
     });
   };
@@ -90,6 +92,7 @@ export function CreateCondoModal({
         zip: formData.zip || null,
         source_uwm: formData.source_uwm,
         source_ad: formData.source_ad,
+        source_prmg: formData.source_prmg,
         review_type: formData.review_type || null,
       });
 
@@ -205,7 +208,7 @@ export function CreateCondoModal({
           {/* Approval Sources */}
           <div className="space-y-3">
             <Label>Approval Sources</Label>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 flex-wrap">
               <div className="flex items-center gap-2">
                 <Switch
                   id="source_uwm"
@@ -228,6 +231,18 @@ export function CreateCondoModal({
                 />
                 <Label htmlFor="source_ad" className="font-normal cursor-pointer">
                   A&D Approved
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="source_prmg"
+                  checked={formData.source_prmg}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, source_prmg: checked }))
+                  }
+                />
+                <Label htmlFor="source_prmg" className="font-normal cursor-pointer">
+                  PRMG Approved
                 </Label>
               </div>
             </div>
