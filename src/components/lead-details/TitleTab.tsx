@@ -21,7 +21,6 @@ interface TitleTabProps {
 }
 
 const titleStatusOptions = [
-  { value: "Ordered", label: "Ordered" },
   { value: "Requested", label: "Requested" },
   { value: "Received", label: "Received" },
   { value: "On Hold", label: "On Hold" }

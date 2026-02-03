@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { validateStatusChange, ValidationResult, StatusChangeRule } from "@/services/statusChangeValidation";
+import { validateStatusChange, validateCondoDocsReceived, ValidationResult, StatusChangeRule } from "@/services/statusChangeValidation";
 
 interface UseStatusValidationProps {
   lead: any;
@@ -15,6 +15,7 @@ interface UseStatusValidationReturn {
   rule: StatusChangeRule | null;
   fieldLabel: string;
   newValue: string;
+  isValidating: boolean;
 }
 
 export function useStatusValidation({ lead, onValidationFailed }: UseStatusValidationProps): UseStatusValidationReturn {
@@ -23,6 +24,7 @@ export function useStatusValidation({ lead, onValidationFailed }: UseStatusValid
   const [rule, setRule] = useState<StatusChangeRule | null>(null);
   const [fieldLabel, setFieldLabel] = useState("");
   const [newValue, setNewValue] = useState("");
+  const [isValidating, setIsValidating] = useState(false);
 
   const clearValidation = useCallback(() => {
     setValidationResult(null);
@@ -30,13 +32,42 @@ export function useStatusValidation({ lead, onValidationFailed }: UseStatusValid
     setRule(null);
     setFieldLabel("");
     setNewValue("");
+    setIsValidating(false);
   }, []);
 
-  const validateAndChange = useCallback((
+  const validateAndChange = useCallback(async (
     fieldName: string,
     value: string,
     onChange: (value: string) => void
   ) => {
+    // Special handling for condo_status "Received" - requires async validation
+    if (fieldName === 'condo_status' && value === 'Received') {
+      setIsValidating(true);
+      try {
+        const asyncResult = await validateCondoDocsReceived(lead);
+        if (asyncResult.isValid) {
+          onChange(value);
+          clearValidation();
+        } else {
+          setValidationResult(asyncResult);
+          setRule(asyncResult.rule || null);
+          setFieldLabel(formatFieldLabel(fieldName));
+          setNewValue(value);
+          setShowModal(true);
+          onValidationFailed?.(asyncResult);
+        }
+      } catch (error) {
+        console.error('Condo validation error:', error);
+        // Allow change on error to not block user
+        onChange(value);
+        clearValidation();
+      } finally {
+        setIsValidating(false);
+      }
+      return;
+    }
+
+    // Standard sync validation for other fields
     const result = validateStatusChange(fieldName, value, lead);
     
     if (result.isValid) {
@@ -62,7 +93,8 @@ export function useStatusValidation({ lead, onValidationFailed }: UseStatusValid
     setShowModal,
     rule,
     fieldLabel,
-    newValue
+    newValue,
+    isValidating
   };
 }
 
