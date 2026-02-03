@@ -29,6 +29,7 @@ import { InlineEditMultiAssignee } from "@/components/ui/inline-edit-multi-assig
 import { InlineEditApprovedLender } from "@/components/ui/inline-edit-approved-lender";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { ValidatedInlineSelect } from "@/components/ui/validated-inline-select";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
@@ -110,6 +111,19 @@ interface ActiveLoan {
   notes: string | null;
   earliest_task_due_date?: string | null;
   tasks?: { id: string; due_date: string | null; title: string; status: string }[];
+  // Validation fields - needed for status change validation
+  disc_file?: string | null;
+  appraisal_file?: string | null;
+  appr_date_time?: string | null;
+  title_file?: string | null;
+  title_eta?: string | null;
+  insurance_policy_file?: string | null;
+  condo_id?: string | null;
+  condo_file?: string | null;
+  condo_ordered_date?: string | null;
+  condo_eta?: string | null;
+  initial_approval_file?: string | null;
+  fcp_file?: string | null;
   lender?: {
     id: string;
     first_name: string;
@@ -471,12 +485,14 @@ const createColumns = (
     headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-      <InlineEditSelect
-        value={row.original.disclosure_status}
+      <ValidatedInlineSelect
+        value={row.original.disclosure_status || ''}
         options={disclosureStatusOptions}
         onValueChange={(value) => 
           handleUpdate(row.original.id, "disclosure_status", value)
         }
+        fieldName="disclosure_status"
+        lead={row.original}
         showAsStatusBadge
         fillCell={true}
         className="w-16"
@@ -509,12 +525,14 @@ const createColumns = (
     headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-      <InlineEditSelect
-        value={row.original.loan_status}
+      <ValidatedInlineSelect
+        value={row.original.loan_status || ''}
         options={loanStatusOptions}
         onValueChange={(value) => 
           handleUpdate(row.original.id, "loan_status", value)
         }
+        fieldName="loan_status"
+        lead={row.original}
         showAsStatusBadge
         fillCell={true}
         className="w-14"
@@ -530,12 +548,14 @@ const createColumns = (
     headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-      <InlineEditSelect
-        value={row.original.appraisal_status}
+      <ValidatedInlineSelect
+        value={row.original.appraisal_status || ''}
         options={appraisalStatusOptions}
         onValueChange={(value) => 
           handleUpdate(row.original.id, "appraisal_status", value)
         }
+        fieldName="appraisal_status"
+        lead={row.original}
         showAsStatusBadge
         fillCell={true}
         className="w-18"
@@ -551,12 +571,14 @@ const createColumns = (
     headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-      <InlineEditSelect
-        value={row.original.title_status}
+      <ValidatedInlineSelect
+        value={row.original.title_status || ''}
         options={titleStatusOptions}
         onValueChange={(value) => 
           handleUpdate(row.original.id, "title_status", value)
         }
+        fieldName="title_status"
+        lead={row.original}
         showAsStatusBadge
         fillCell={true}
         className="w-20"
@@ -572,12 +594,14 @@ const createColumns = (
     headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-      <InlineEditSelect
-        value={row.original.hoi_status}
+      <ValidatedInlineSelect
+        value={row.original.hoi_status || ''}
         options={hoiStatusOptions}
         onValueChange={(value) => 
           handleUpdate(row.original.id, "hoi_status", value)
         }
+        fieldName="hoi_status"
+        lead={row.original}
         showAsStatusBadge
         fillCell={true}
         className="w-14"
@@ -593,12 +617,14 @@ const createColumns = (
     headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-      <InlineEditSelect
-        value={row.original.condo_status}
+      <ValidatedInlineSelect
+        value={row.original.condo_status || ''}
         options={condoStatusOptions}
         onValueChange={(value) => 
           handleUpdate(row.original.id, "condo_status", value)
         }
+        fieldName="condo_status"
+        lead={row.original}
         showAsStatusBadge
         fillCell={true}
         className="w-16"
@@ -1210,21 +1236,8 @@ export default function Active() {
     try {
       const updateData: any = { [field]: value };
       
-      // Block appraisal_status = 'Received' if no appraisal_file exists
-      if (field === 'appraisal_status' && value === 'Received') {
-        const currentLoan = activeLoans.find(loan => loan.id === id);
-        // Check if lead has appraisal file by fetching fresh data
-        const { data: leadData } = await supabase
-          .from('leads')
-          .select('appraisal_file')
-          .eq('id', id)
-          .single();
-        
-        if (!leadData?.appraisal_file) {
-          setShowAppraisalValidationModal(true);
-          return;
-        }
-      }
+      // Note: Status field validation is now handled by ValidatedInlineSelect
+      // This function only handles the database update
       
       // Automation: When SUB, AWC, or CTC, move from Incoming to Live
       if (field === 'loan_status' && ['SUB', 'AWC', 'CTC'].includes(value?.toUpperCase())) {

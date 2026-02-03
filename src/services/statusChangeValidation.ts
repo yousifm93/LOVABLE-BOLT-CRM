@@ -1,6 +1,8 @@
 // Status change validation rules
 // Maps field names to their status values and required conditions
 
+import { supabase } from "@/integrations/supabase/client";
+
 export interface StatusChangeRule {
   requires: string | string[]; // field name(s) that must be populated
   message: string;
@@ -86,9 +88,9 @@ export const statusChangeRules: StatusChangeRules = {
     }
   },
   title_status: {
-    'Ordered': {
+    'Requested': {
       requires: 'title_eta',
-      message: 'Enter a Title ETA before setting status to Ordered',
+      message: 'Enter a Title ETA before setting status to Requested',
       actionLabel: 'Set Title ETA',
       actionType: 'set_field'
     },
@@ -130,6 +132,12 @@ export const statusChangeRules: StatusChangeRules = {
       actionLabel: 'Set Order Details',
       actionType: 'set_field'
     },
+    'Received': {
+      requires: 'condo_documents_check',
+      message: 'Select a condo and upload all required documents (Budget, MIP, and Condo Questionnaire) before changing status to Docs Received',
+      actionLabel: 'Upload Condo Documents',
+      actionType: 'upload_file'
+    },
     'Approved': {
       requires: 'condo_file',
       message: 'Upload condo documents to change status to Approved',
@@ -161,9 +169,20 @@ export function validateStatusChange(
     return { isValid: true };
   }
 
-  // Check if the required field(s) are populated
+  // Special handling for condo_documents_check - this requires async validation
+  // Return a placeholder result that indicates async validation is needed
   const requiredFields = Array.isArray(rule.requires) ? rule.requires : [rule.requires];
-  
+  if (requiredFields.includes('condo_documents_check')) {
+    // Return a special marker - async validation will be handled separately
+    return {
+      isValid: false,
+      rule,
+      fieldName,
+      newValue
+    };
+  }
+
+  // Check if the required field(s) are populated
   for (const fieldToCheck of requiredFields) {
     const requiredValue = lead[fieldToCheck];
     if (!requiredValue || (requiredValue.trim && requiredValue.trim() === '')) {
@@ -174,6 +193,67 @@ export function validateStatusChange(
         newValue
       };
     }
+  }
+
+  return { isValid: true };
+}
+
+// Async validation for condo status "Received" (Docs Received)
+// Checks that a condo is selected and all 3 documents are uploaded
+export async function validateCondoDocsReceived(lead: any): Promise<ValidationResult> {
+  // Check if condo is selected
+  if (!lead.condo_id) {
+    return {
+      isValid: false,
+      rule: {
+        requires: 'condo_id',
+        message: 'Please select a condo before changing status to Docs Received',
+        actionLabel: 'Select Condo',
+        actionType: 'set_field'
+      },
+      fieldName: 'condo_status',
+      newValue: 'Received'
+    };
+  }
+
+  // Fetch condo documents
+  const { data: condo, error } = await supabase
+    .from('condos')
+    .select('budget_doc, mip_doc, cq_doc')
+    .eq('id', lead.condo_id)
+    .single();
+
+  if (error || !condo) {
+    return {
+      isValid: false,
+      rule: {
+        requires: 'condo_id',
+        message: 'Unable to verify condo documents. Please try again.',
+        actionLabel: 'Try Again',
+        actionType: 'set_field'
+      },
+      fieldName: 'condo_status',
+      newValue: 'Received'
+    };
+  }
+
+  const missing: string[] = [];
+  if (!condo.budget_doc) missing.push('Budget');
+  if (!condo.mip_doc) missing.push('Master Insurance Policy (MIP)');
+  if (!condo.cq_doc) missing.push('Condo Questionnaire');
+
+  if (missing.length > 0) {
+    return {
+      isValid: false,
+      rule: {
+        requires: 'condo_documents',
+        message: `Please upload the following condo documents: ${missing.join(', ')}`,
+        actionLabel: 'Upload Condo Documents',
+        actionType: 'upload_file'
+      },
+      fieldName: 'condo_status',
+      newValue: 'Received'
+    };
   }
 
   return { isValid: true };
