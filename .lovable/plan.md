@@ -1,121 +1,69 @@
 
+# Plan: Fix Status Change Errors and Validation
 
-# Plan: Fix Status Change Validation and Task Completion
+## Summary
 
-## Summary of Issues Found
-
-Your status validation and task automation system has **5 critical problems**:
-
-1. **Disclosure status trigger SQL error**: The `execute_disclosure_status_changed_automations` function has a type mismatch comparing `text` to `disclosure_status` enum without casting
-2. **Status dropdowns not validated**: Appraisal, Title, Insurance, and Condo status dropdowns use regular `InlineEditSelect` instead of `ValidatedInlineSelect` - so no document upload requirements are enforced
-3. **Task completion validation not being called**: When marking tasks as Done, the validation isn't being triggered
-4. **Auto-complete not triggered on status updates**: The frontend isn't calling `autoCompleteTasksAfterFieldUpdate` when status fields are updated
-5. **"Ordered" status not in title_status options**: Title status dropdown only has Requested/Received/On Hold - missing "Ordered"
+I've identified **4 critical issues** causing the errors you're experiencing:
 
 ---
 
-## Fix 1: Database - Fix SQL Type Error in Disclosure Trigger
+## Issue 1: Database Trigger Functions Have Invalid SQL
 
-**Problem**: Line 20 in the trigger compares `text = disclosure_status_enum` which PostgreSQL doesn't support.
-
-**Current code**:
+**Root Cause**: The trigger functions contain code that tries to update columns that don't exist:
 ```sql
-AND trigger_config->>'target_status' = NEW.disclosure_status
+UPDATE task_automations 
+SET execution_count = COALESCE(execution_count, 0) + 1,
+    last_run_at = now()
+WHERE id = automation_record.id;
 ```
 
-**Fix**: Explicitly cast the enum to text:
-```sql
-AND trigger_config->>'target_status' = NEW.disclosure_status::text
-```
+The `task_automations` table does NOT have `execution_count` or `last_run_at` columns. This causes the entire transaction to fail with "column does not exist" and rolls back the task creation.
 
-**Migration needed**: Update all 4 status trigger functions to use `::text` casts on enum comparisons.
+**Fix**: Create a new migration to remove these broken UPDATE statements from all 4 trigger functions:
+- `execute_disclosure_status_changed_automations`
+- `execute_loan_status_changed_automations`
+- `execute_lead_created_automations`
+- `execute_pipeline_stage_changed_automations`
 
 ---
 
-## Fix 2: Frontend - Use ValidatedInlineSelect for All Status Fields
+## Issue 2: List View Status Dropdowns Bypass Validation
 
-**Problem**: `TitleTab.tsx`, `CondoTab.tsx`, `AppraisalTab.tsx`, and `InsuranceTab.tsx` use plain `InlineEditSelect` which doesn't enforce document upload requirements.
+**Root Cause**: In `Active.tsx`, all status fields (disclosure, appraisal, title, condo, etc.) use plain `InlineEditSelect` instead of `ValidatedInlineSelect`. This means validation only works in the Lead Details drawer, not from the list view.
 
-**Solution**: Replace `InlineEditSelect` with `ValidatedInlineSelect` in:
+**Fix**: In `Active.tsx`, replace `InlineEditSelect` with `ValidatedInlineSelect` for these status fields:
+- `disclosure_status`
+- `appraisal_status`
+- `title_status`
+- `hoi_status`
+- `condo_status`
 
-| File | Field | Import Change |
-|------|-------|---------------|
-| `src/components/lead-details/AppraisalTab.tsx` | `appraisal_status` | Add ValidatedInlineSelect |
-| `src/components/lead-details/TitleTab.tsx` | `title_status` | Add ValidatedInlineSelect |
-| `src/components/lead-details/InsuranceTab.tsx` | `hoi_status` | Add ValidatedInlineSelect |
-| `src/components/lead-details/CondoTab.tsx` | `condo_status` | Add ValidatedInlineSelect |
-
-Each change will:
-1. Import `ValidatedInlineSelect`
-2. Pass `fieldName` (e.g., `"appraisal_status"`)
-3. Pass the full `lead` object for validation context
-4. Add `onUploadAction` handler to navigate to document upload
+This requires passing the loan data to each column cell for validation context.
 
 ---
 
-## Fix 3: Add "Ordered" to Title Status Options
+## Issue 3: Remove "Ordered" from Title Status Options
 
-**Problem**: Your compound requirement `compound:title_ordered` expects `title_status = 'Ordered'` but the dropdown only shows: Requested, Received, On Hold.
+**User Request**: "Ordered" and "Requested" are functionally the same for title. Remove "Ordered" and have "Requested" operate the same way.
 
-**Solution**: Add "Ordered" to the title status options in `TitleTab.tsx`:
-
-```typescript
-const titleStatusOptions = [
-  { value: 'Ordered', label: 'Ordered' },
-  { value: 'Requested', label: 'Requested' },
-  { value: 'Received', label: 'Received' },
-  { value: 'On Hold', label: 'On Hold' },
-];
-```
+**Fix**:
+1. Remove "Ordered" from `titleStatusOptions` in both `Active.tsx` and `TitleTab.tsx`
+2. Update `statusChangeValidation.ts` to apply the ETA requirement to "Requested" instead of "Ordered"
+3. Update task automation completion requirement from `compound:title_ordered` to check for `title_status = Requested`
 
 ---
 
-## Fix 4: Update statusChangeRules for Ordered Status
+## Issue 4: Condo "Docs Received" Requires Complex Validation
 
-**Problem**: The `statusChangeValidation.ts` doesn't have rules for "Ordered" status requiring ETA fields.
+**User Requirement**: Before changing condo status to "Docs Received":
+1. A condo must be selected (condo_id populated)
+2. All 3 documents must be uploaded on that condo (budget_doc, mip_doc, cq_doc)
 
-**Solution**: Add rules for title and condo "Ordered" status in `statusChangeValidation.ts`:
-
-```typescript
-title_status: {
-  'Received': {
-    requires: 'title_file',
-    message: 'Upload the title work to change status to Received',
-    actionLabel: 'Upload Title File',
-    actionType: 'upload_file'
-  },
-  'Ordered': {
-    requires: 'title_eta',
-    message: 'Enter a Title ETA before setting status to Ordered',
-    actionLabel: 'Set Title ETA',
-    actionType: 'set_field'
-  }
-},
-condo_status: {
-  'Approved': {
-    requires: 'condo_file',
-    message: 'Upload condo documents to change status to Approved',
-    actionLabel: 'Upload Condo Documents',
-    actionType: 'upload_file'
-  },
-  'Ordered': {
-    requires: ['condo_ordered_date', 'condo_eta'],
-    message: 'Enter Order Date and ETA before setting status to Ordered',
-    actionLabel: 'Set Order Details',
-    actionType: 'set_field'
-  }
-}
-```
-
----
-
-## Fix 5: Task Completion Validation Enforcement
-
-**Problem**: Tasks can be marked as Done without the completion requirement being checked.
-
-**Solution**: Ensure the task update handler in `TaskDetailModal.tsx` and task board components always call `validateTaskCompletion()` before allowing status change to "Done".
-
-The modal already has validation logic, but we need to verify it's being called in all places tasks are marked complete (task list checkboxes, task board drag-drop, etc.).
+**Fix**:
+1. Update `statusChangeValidation.ts` to add a special rule for `condo_status` = "Received"
+2. The validation function needs to check the related `condos` table for documents
+3. Update `validateStatusChange()` to handle async validation (fetch condo documents)
+4. Update `ValidatedInlineSelect` to support async validation
 
 ---
 
@@ -123,54 +71,102 @@ The modal already has validation logic, but we need to verify it's being called 
 
 | File | Changes |
 |------|---------|
-| **Database Migration** | Fix type casting in all 4 status trigger functions |
-| `src/components/lead-details/AppraisalTab.tsx` | Use ValidatedInlineSelect |
-| `src/components/lead-details/TitleTab.tsx` | Use ValidatedInlineSelect, add "Ordered" option |
-| `src/components/lead-details/InsuranceTab.tsx` | Use ValidatedInlineSelect |
-| `src/components/lead-details/CondoTab.tsx` | Use ValidatedInlineSelect |
-| `src/services/statusChangeValidation.ts` | Add Ordered status rules for title & condo |
+| **New Database Migration** | Remove broken UPDATE statements from all 4 trigger functions |
+| `src/pages/Active.tsx` | Replace status InlineEditSelect with ValidatedInlineSelect; remove "Ordered" from title options |
+| `src/components/lead-details/TitleTab.tsx` | Remove "Ordered" from options |
+| `src/services/statusChangeValidation.ts` | Update title rules to use "Requested"; add condo "Received" rule with async validation |
+| `src/hooks/useStatusValidation.tsx` | Update to support async validation |
+| `src/components/ui/validated-inline-select.tsx` | Support async validation and pass loan context |
 
 ---
 
 ## Technical Details
 
-### Type Casting in PostgreSQL Triggers
-PostgreSQL enums cannot be directly compared to text without explicit casting. All status fields (disclosure_status, loan_status, appraisal_status, etc.) are likely enums, so any comparison with JSON text values must use `::text`:
+### Database Migration (Critical Fix)
 
 ```sql
--- Wrong (causes "operator does not exist: text = enum_type")
-AND trigger_config->>'field' = NEW.disclosure_status
+-- Remove broken UPDATE statements from all trigger functions
+-- They reference non-existent columns: execution_count, last_run_at
 
--- Correct
-AND trigger_config->>'field' = NEW.disclosure_status::text
+CREATE OR REPLACE FUNCTION execute_disclosure_status_changed_automations()
+RETURNS trigger AS $$
+DECLARE
+  automation_record RECORD;
+  v_due_date date;
+  v_task_id uuid;
+BEGIN
+  FOR automation_record IN
+    SELECT * FROM task_automations 
+    WHERE is_active = true 
+    AND trigger_type = 'status_changed'
+    AND trigger_config->>'field' = 'disclosure_status'
+    AND trigger_config->>'target_status' = NEW.disclosure_status::text
+    -- ... conditions ...
+  LOOP
+    -- Calculate due date
+    v_due_date := CURRENT_DATE + COALESCE((automation_record.due_date_offset_days)::integer, 0);
+    
+    -- Check if task already exists
+    IF NOT EXISTS (...) THEN
+      -- Create the task
+      INSERT INTO tasks (...) VALUES (...) RETURNING id INTO v_task_id;
+      
+      -- REMOVED: The broken UPDATE to task_automations
+      -- KEPT: The INSERT to task_automation_executions
+      INSERT INTO task_automation_executions (...) VALUES (...);
+    END IF;
+  END LOOP;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
-### ValidatedInlineSelect Props
+### Condo Async Validation
+
 ```typescript
-<ValidatedInlineSelect
-  value={data.appraisal_status}
-  options={appraisalStatusOptions}
-  onValueChange={(value) => onUpdate('appraisal_status', value)}
-  fieldName="appraisal_status"  // NEW: Required for validation
-  lead={leadData}               // NEW: Required for validation context
-  placeholder="Select status"
-  showAsStatusBadge={true}
-  onUploadAction={() => {       // NEW: Navigate to upload section
-    // Scroll to document upload area or open upload modal
-  }}
-/>
+// statusChangeValidation.ts
+export async function validateCondoDocsReceived(lead: any): Promise<ValidationResult> {
+  // Check if condo is selected
+  if (!lead.condo_id) {
+    return {
+      isValid: false,
+      message: 'Please select a condo before changing status to Docs Received',
+      rule: { requires: 'condo_id', message: '...', actionLabel: 'Select Condo' }
+    };
+  }
+  
+  // Fetch condo documents
+  const { data: condo } = await supabase
+    .from('condos')
+    .select('budget_doc, mip_doc, cq_doc')
+    .eq('id', lead.condo_id)
+    .single();
+  
+  const missing = [];
+  if (!condo?.budget_doc) missing.push('Budget');
+  if (!condo?.mip_doc) missing.push('MIP');
+  if (!condo?.cq_doc) missing.push('Condo Questionnaire');
+  
+  if (missing.length > 0) {
+    return {
+      isValid: false,
+      message: `Please upload the following documents: ${missing.join(', ')}`,
+      rule: { requires: 'condo_documents', message: '...', actionLabel: 'Upload Documents' }
+    };
+  }
+  
+  return { isValid: true };
+}
 ```
 
 ---
 
 ## Expected Results After Fix
 
-1. **Disclosure status**: Changes work without SQL errors; tasks are created when disclosure status changes
-2. **Appraisal status to Received**: Blocked until appraisal report is uploaded
-3. **Title status to Ordered**: Requires Title ETA to be set first
-4. **Title status to Received**: Blocked until title file is uploaded
-5. **Condo status to Ordered**: Requires Order Date and ETA
-6. **Condo status to Approved**: Blocked until condo documents uploaded
-7. **Insurance status to Received**: Blocked until insurance policy is uploaded
-8. **Tasks with completion requirements**: Cannot be manually completed until requirements are met
-
+1. **Disclosure status changes work** - No more "column does not exist" errors
+2. **List view status validation** - Changing status from Active pipeline list enforces same rules as drawer
+3. **Title status "Requested"** - Requires Title ETA before selecting (replaces "Ordered")
+4. **Condo "Docs Received"** - Blocked until condo is selected AND all 3 documents are uploaded
+5. **Appraisal status "Received"** - Blocked until appraisal report is uploaded (from both list and drawer)
+6. **Task automations fire** - Because the trigger functions no longer fail on UPDATE
