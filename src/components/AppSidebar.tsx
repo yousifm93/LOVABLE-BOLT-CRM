@@ -166,7 +166,7 @@ export function AppSidebar() {
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // Handle search with debounce
+  // Handle search with debounce - parallel queries with individual error handling
   const handleSearch = useCallback(async (term: string) => {
     if (term.length < 2) {
       setSearchResults([]);
@@ -180,15 +180,43 @@ export function AppSidebar() {
     try {
       const results: SearchResult[] = [];
       
-      // Search leads (borrowers) - include pipeline_stage_id for routing
-      const { data: leads } = await supabase
-        .from('leads')
-        .select('id, first_name, last_name, email, pipeline_stage_id')
-        .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
-        .limit(5);
+      // Run all searches in parallel for better performance
+      const [leadsResult, agentsResult, lendersResult, contactsResult] = await Promise.all([
+        // Search leads (borrowers)
+        supabase
+          .from('leads')
+          .select('id, first_name, last_name, email, pipeline_stage_id')
+          .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
+          .limit(5),
+        
+        // Search agents (Real Estate Agents)
+        supabase
+          .from('buyer_agents')
+          .select('id, first_name, last_name, brokerage')
+          .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,brokerage.ilike.%${term}%`)
+          .is('deleted_at', null)
+          .limit(5),
+        
+        // Search lenders
+        supabase
+          .from('lenders')
+          .select('id, lender_name, account_executive')
+          .or(`lender_name.ilike.%${term}%,account_executive.ilike.%${term}%`)
+          .limit(5),
+        
+        // Search contacts (Master Contact List)
+        supabase
+          .from('contacts')
+          .select('id, first_name, last_name, email, type')
+          .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
+          .limit(5),
+      ]);
       
-      if (leads) {
-        results.push(...leads.map(l => ({
+      // Process leads with error logging
+      if (leadsResult.error) {
+        console.error('Leads search error:', leadsResult.error);
+      } else if (leadsResult.data) {
+        results.push(...leadsResult.data.map(l => ({
           id: l.id,
           type: 'lead' as const,
           name: `${l.first_name || ''} ${l.last_name || ''}`.trim() || 'Unknown',
@@ -197,32 +225,23 @@ export function AppSidebar() {
         })));
       }
       
-      // Search agents
-      const { data: agents } = await supabase
-        .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage')
-        .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,brokerage.ilike.%${term}%`)
-        .is('deleted_at', null)
-        .limit(5);
-      
-      if (agents) {
-        results.push(...agents.map(a => ({
+      // Process agents with error logging
+      if (agentsResult.error) {
+        console.error('Agents search error:', agentsResult.error);
+      } else if (agentsResult.data) {
+        results.push(...agentsResult.data.map(a => ({
           id: a.id,
           type: 'agent' as const,
           name: `${a.first_name || ''} ${a.last_name || ''}`.trim() || 'Unknown',
-          subtext: a.brokerage || undefined,
+          subtext: a.brokerage || 'Realtor',
         })));
       }
       
-      // Search lenders
-      const { data: lenders } = await supabase
-        .from('lenders')
-        .select('id, lender_name, account_executive')
-        .or(`lender_name.ilike.%${term}%,account_executive.ilike.%${term}%`)
-        .limit(5);
-      
-      if (lenders) {
-        results.push(...lenders.map(l => ({
+      // Process lenders with error logging
+      if (lendersResult.error) {
+        console.error('Lenders search error:', lendersResult.error);
+      } else if (lendersResult.data) {
+        results.push(...lendersResult.data.map(l => ({
           id: l.id,
           type: 'lender' as const,
           name: l.lender_name || 'Unknown',
@@ -230,15 +249,11 @@ export function AppSidebar() {
         })));
       }
       
-      // Search contacts (master contact list)
-      const { data: contacts } = await supabase
-        .from('contacts')
-        .select('id, first_name, last_name, email, type')
-        .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
-        .limit(5);
-      
-      if (contacts) {
-        results.push(...contacts.map(c => ({
+      // Process contacts with error logging
+      if (contactsResult.error) {
+        console.error('Contacts search error:', contactsResult.error);
+      } else if (contactsResult.data) {
+        results.push(...contactsResult.data.map(c => ({
           id: c.id,
           type: 'contact' as const,
           name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
