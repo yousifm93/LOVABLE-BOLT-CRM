@@ -526,6 +526,18 @@ export default function Leads() {
           case 'dueDate':
             leadValue = lead.dueDate || '';
             break;
+          case 'teammate_assigned':
+          case 'user':
+            // Check both legacy field and multi-user array for "any assigned user" matching
+            const teammateIds = (lead as any).teammate_assigned_ids?.length 
+              ? (lead as any).teammate_assigned_ids 
+              : (lead.user ? [lead.user] : []);
+            if (filter.operator === 'is') {
+              return teammateIds.includes(filter.value);
+            } else if (filter.operator === 'is_not') {
+              return !teammateIds.includes(filter.value);
+            }
+            return true;
           default:
             return true;
         }
