@@ -1,204 +1,121 @@
 
-# Plan: Task Completion Validation and New Automated Tasks
 
-## Summary
-This plan addresses:
-1. **Disclosure document task cannot be manually completed** - requires uploading the disclosure doc first, then auto-completes
-2. **New task automations** - 3 new automations triggered by AWC and disclosure status changes
-3. **Complex completion requirements** - for Order Title and Order Condo tasks
+# Plan: Fix Status Change Validation and Task Completion
+
+## Summary of Issues Found
+
+Your status validation and task automation system has **5 critical problems**:
+
+1. **Disclosure status trigger SQL error**: The `execute_disclosure_status_changed_automations` function has a type mismatch comparing `text` to `disclosure_status` enum without casting
+2. **Status dropdowns not validated**: Appraisal, Title, Insurance, and Condo status dropdowns use regular `InlineEditSelect` instead of `ValidatedInlineSelect` - so no document upload requirements are enforced
+3. **Task completion validation not being called**: When marking tasks as Done, the validation isn't being triggered
+4. **Auto-complete not triggered on status updates**: The frontend isn't calling `autoCompleteTasksAfterFieldUpdate` when status fields are updated
+5. **"Ordered" status not in title_status options**: Title status dropdown only has Requested/Received/On Hold - missing "Ordered"
 
 ---
 
-## Part 1: Disclosure Document Task - Block Manual Completion + Auto-Complete
+## Fix 1: Database - Fix SQL Type Error in Disclosure Trigger
 
-### Current State
-- A task "Upload disclosure document" is created when `disclosure_status = Sent` (automation ID: `b33fd14f-4e26-4572-9790-317e808bf201`)
-- It has `completion_requirement_type: field_populated:disc_file`
-- This blocks manual completion until `disc_file` is uploaded ✓
-- However, users CAN still manually mark as Done after uploading
+**Problem**: Line 20 in the trigger compares `text = disclosure_status_enum` which PostgreSQL doesn't support.
 
-### Desired State
-- Task should NEVER be manually completable
-- Task should auto-complete ONLY when `disc_file` is populated
-- A popup should explain this to users
+**Current code**:
+```sql
+AND trigger_config->>'target_status' = NEW.disclosure_status
+```
 
-### Implementation
+**Fix**: Explicitly cast the enum to text:
+```sql
+AND trigger_config->>'target_status' = NEW.disclosure_status::text
+```
 
-**A. Update taskCompletionValidation.ts**
-Add a new check for tasks that should ONLY be auto-completed (never manually):
+**Migration needed**: Update all 4 status trigger functions to use `::text` casts on enum comparisons.
+
+---
+
+## Fix 2: Frontend - Use ValidatedInlineSelect for All Status Fields
+
+**Problem**: `TitleTab.tsx`, `CondoTab.tsx`, `AppraisalTab.tsx`, and `InsuranceTab.tsx` use plain `InlineEditSelect` which doesn't enforce document upload requirements.
+
+**Solution**: Replace `InlineEditSelect` with `ValidatedInlineSelect` in:
+
+| File | Field | Import Change |
+|------|-------|---------------|
+| `src/components/lead-details/AppraisalTab.tsx` | `appraisal_status` | Add ValidatedInlineSelect |
+| `src/components/lead-details/TitleTab.tsx` | `title_status` | Add ValidatedInlineSelect |
+| `src/components/lead-details/InsuranceTab.tsx` | `hoi_status` | Add ValidatedInlineSelect |
+| `src/components/lead-details/CondoTab.tsx` | `condo_status` | Add ValidatedInlineSelect |
+
+Each change will:
+1. Import `ValidatedInlineSelect`
+2. Pass `fieldName` (e.g., `"appraisal_status"`)
+3. Pass the full `lead` object for validation context
+4. Add `onUploadAction` handler to navigate to document upload
+
+---
+
+## Fix 3: Add "Ordered" to Title Status Options
+
+**Problem**: Your compound requirement `compound:title_ordered` expects `title_status = 'Ordered'` but the dropdown only shows: Requested, Received, On Hold.
+
+**Solution**: Add "Ordered" to the title status options in `TitleTab.tsx`:
 
 ```typescript
-// Check for auto-complete-only tasks (cannot be manually completed)
-if (requirementType === 'auto_complete_only:field_populated:disc_file' || 
-    (task.title?.toLowerCase().includes('upload disclosure') && requirementType?.includes('disc_file'))) {
-  const borrowerId = task.borrower_id;
-  if (borrowerId) {
-    const { data: lead } = await supabase
-      .from('leads')
-      .select('disc_file')
-      .eq('id', borrowerId)
-      .single();
+const titleStatusOptions = [
+  { value: 'Ordered', label: 'Ordered' },
+  { value: 'Requested', label: 'Requested' },
+  { value: 'Received', label: 'Received' },
+  { value: 'On Hold', label: 'On Hold' },
+];
+```
 
-    // If disc_file is NOT uploaded, block completion
-    if (!lead?.disc_file) {
-      return {
-        canComplete: false,
-        message: 'Please upload the disclosure document under the Disclosures tab first. This task will auto-complete once the document is uploaded.',
-        missingRequirement: 'auto_complete_disc_file',
-      };
-    }
-    // If disc_file IS uploaded, still block MANUAL completion - it should only auto-complete
-    return {
-      canComplete: false,
-      message: 'This task is auto-completed when the disclosure document is uploaded. It cannot be manually completed.',
-      missingRequirement: 'manual_completion_blocked',
-    };
+---
+
+## Fix 4: Update statusChangeRules for Ordered Status
+
+**Problem**: The `statusChangeValidation.ts` doesn't have rules for "Ordered" status requiring ETA fields.
+
+**Solution**: Add rules for title and condo "Ordered" status in `statusChangeValidation.ts`:
+
+```typescript
+title_status: {
+  'Received': {
+    requires: 'title_file',
+    message: 'Upload the title work to change status to Received',
+    actionLabel: 'Upload Title File',
+    actionType: 'upload_file'
+  },
+  'Ordered': {
+    requires: 'title_eta',
+    message: 'Enter a Title ETA before setting status to Ordered',
+    actionLabel: 'Set Title ETA',
+    actionType: 'set_field'
+  }
+},
+condo_status: {
+  'Approved': {
+    requires: 'condo_file',
+    message: 'Upload condo documents to change status to Approved',
+    actionLabel: 'Upload Condo Documents',
+    actionType: 'upload_file'
+  },
+  'Ordered': {
+    requires: ['condo_ordered_date', 'condo_eta'],
+    message: 'Enter Order Date and ETA before setting status to Ordered',
+    actionLabel: 'Set Order Details',
+    actionType: 'set_field'
   }
 }
 ```
 
-**B. Update the automation's completion_requirement_type**
-Change from `field_populated:disc_file` to `auto_complete_only:disc_file` to indicate it can ONLY be auto-completed.
-
-**C. Update TaskCompletionRequirementModal.tsx**
-Add a case to show appropriate UI for auto-complete-only tasks with a button to navigate to the Disclosures section.
-
-**D. Ensure auto-completion is triggered**
-When `disc_file` is updated on a lead, the `autoCompleteTasksAfterFieldUpdate` function is called. We need to ensure:
-1. Tasks with `auto_complete_only:disc_file` are matched
-2. The task is marked as Done automatically
-
 ---
 
-## Part 2: New Task Automations
+## Fix 5: Task Completion Validation Enforcement
 
-### Automation 1: Borrower Intro Call (AWC)
-| Field | Value |
-|-------|-------|
-| Trigger | When `loan_status` changes to `AWC` |
-| Task Name | Borrower intro call |
-| Description | Call the borrower to introduce yourself and request conditions verbally with ETAs |
-| Assigned To | Ashley Merizio (`3dca68fc-ee7e-46cc-91a1-0c6176d4c32a`) |
-| Due Date | Today (0 offset) |
-| Priority | High |
-| Completion Requirement | `log_call_borrower` |
+**Problem**: Tasks can be marked as Done without the completion requirement being checked.
 
-### Automation 2: Order Title Work (Disclosure Signed)
-| Field | Value |
-|-------|-------|
-| Trigger | When `disclosure_status` changes to `Signed` |
-| Task Name | Order Title Work |
-| Description | Disclosures have been signed. Please order title work. |
-| Assigned To | Ashley Merizio (`3dca68fc-ee7e-46cc-91a1-0c6176d4c32a`) |
-| Due Date | Today (0 offset) |
-| Priority | High |
-| Completion Requirement | Complex: `title_status = Ordered` AND `title_eta` populated |
+**Solution**: Ensure the task update handler in `TaskDetailModal.tsx` and task board components always call `validateTaskCompletion()` before allowing status change to "Done".
 
-### Automation 3: Order Condo Docs (Disclosure Signed + Condo Property)
-| Field | Value |
-|-------|-------|
-| Trigger | When `disclosure_status` changes to `Signed` AND `property_type` contains `Condo` |
-| Task Name | Order condo docs |
-| Description | Disclosures have been signed. Please order condo documents. |
-| Assigned To | Ashley Merizio (`3dca68fc-ee7e-46cc-91a1-0c6176d4c32a`) |
-| Due Date | Today (0 offset) |
-| Priority | High |
-| Completion Requirement | Complex: `condo_status = Ordered` AND `condo_ordered_date` populated AND `condo_eta` populated |
-
----
-
-## Part 3: Complex Completion Requirements
-
-### Current State
-The system supports simple requirements:
-- `field_populated:field_name` - single field must have value
-- `field_value:field=value1,value2` - single field must equal one of values
-
-### Needed for New Tasks
-- **Order Title Work**: `title_status = Ordered` AND `title_eta` is populated
-- **Order Condo Docs**: `condo_status = Ordered` AND `condo_ordered_date` is populated AND `condo_eta` is populated
-
-### Implementation
-
-**A. Add new completion requirement types**
-Add to TaskAutomationModal.tsx dropdown:
-```typescript
-<SelectItem value="compound:title_ordered">Require Title Ordered + ETA</SelectItem>
-<SelectItem value="compound:condo_ordered">Require Condo Ordered + Order Date + ETA</SelectItem>
-```
-
-**B. Update taskCompletionValidation.ts**
-Add compound requirement validation:
-
-```typescript
-// Compound: Title Ordered
-if (requirementType === 'compound:title_ordered') {
-  const { data: lead } = await supabase
-    .from('leads')
-    .select('title_status, title_eta')
-    .eq('id', task.borrower_id)
-    .single();
-
-  const unmet = [];
-  if (lead?.title_status !== 'Ordered') unmet.push('Title Status = Ordered');
-  if (!lead?.title_eta) unmet.push('Title ETA');
-
-  if (unmet.length > 0) {
-    return {
-      canComplete: false,
-      message: `The following requirements must be met: ${unmet.join(', ')}`,
-      missingRequirement: requirementType,
-    };
-  }
-}
-
-// Compound: Condo Ordered
-if (requirementType === 'compound:condo_ordered') {
-  const { data: lead } = await supabase
-    .from('leads')
-    .select('condo_status, condo_ordered_date, condo_eta')
-    .eq('id', task.borrower_id)
-    .single();
-
-  const unmet = [];
-  if (lead?.condo_status !== 'Ordered') unmet.push('Condo Status = Ordered');
-  if (!lead?.condo_ordered_date) unmet.push('Condo Order Date');
-  if (!lead?.condo_eta) unmet.push('Condo ETA');
-
-  if (unmet.length > 0) {
-    return {
-      canComplete: false,
-      message: `The following requirements must be met: ${unmet.join(', ')}`,
-      missingRequirement: requirementType,
-    };
-  }
-}
-```
-
-**C. Add auto-complete triggers for compound requirements**
-Update `autoCompleteTasksAfterFieldUpdate` in database.ts to handle compound requirements:
-
-```typescript
-// Handle compound requirements
-if (req === 'compound:title_ordered') {
-  // Must check all conditions are met
-  const { data: lead } = await supabase
-    .from('leads')
-    .select('title_status, title_eta')
-    .eq('id', leadId)
-    .single();
-  return lead?.title_status === 'Ordered' && lead?.title_eta;
-}
-
-if (req === 'compound:condo_ordered') {
-  const { data: lead } = await supabase
-    .from('leads')
-    .select('condo_status, condo_ordered_date, condo_eta')
-    .eq('id', leadId)
-    .single();
-  return lead?.condo_status === 'Ordered' && lead?.condo_ordered_date && lead?.condo_eta;
-}
-```
+The modal already has validation logic, but we need to verify it's being called in all places tasks are marked complete (task list checkboxes, task board drag-drop, etc.).
 
 ---
 
@@ -206,124 +123,54 @@ if (req === 'compound:condo_ordered') {
 
 | File | Changes |
 |------|---------|
-| `src/services/taskCompletionValidation.ts` | Add compound requirement validation, add auto-complete-only logic |
-| `src/services/database.ts` | Update `autoCompleteTasksAfterFieldUpdate` for compound requirements |
-| `src/components/modals/TaskCompletionRequirementModal.tsx` | Add UI for auto-complete-only and compound requirements |
-| `src/components/admin/TaskAutomationModal.tsx` | Add new completion requirement options to dropdown |
-
-## Database Changes
-
-**Insert 3 new task automations:**
-
-```sql
--- 1. Borrower intro call (AWC)
-INSERT INTO task_automations (
-  name, task_name, task_description, trigger_type, trigger_config, 
-  assigned_to_user_id, task_priority, due_date_offset_days, 
-  is_active, category, subcategory, completion_requirement_type
-) VALUES (
-  'Borrower intro call',
-  'Borrower intro call',
-  'Call the borrower to introduce yourself and request conditions verbally with ETAs',
-  'status_changed',
-  '{"field": "loan_status", "target_status": "AWC"}',
-  '3dca68fc-ee7e-46cc-91a1-0c6176d4c32a',
-  'High',
-  0,
-  true,
-  'active_loan',
-  'submission',
-  'log_call_borrower'
-);
-
--- 2. Order Title Work (Disclosure Signed)
-INSERT INTO task_automations (
-  name, task_name, task_description, trigger_type, trigger_config,
-  assigned_to_user_id, task_priority, due_date_offset_days,
-  is_active, category, subcategory, completion_requirement_type
-) VALUES (
-  'Order Title Work',
-  'Order Title Work',
-  'Disclosures have been signed. Please order title work.',
-  'status_changed',
-  '{"field": "disclosure_status", "target_status": "Signed"}',
-  '3dca68fc-ee7e-46cc-91a1-0c6176d4c32a',
-  'High',
-  0,
-  true,
-  'active_loan',
-  'submission',
-  'compound:title_ordered'
-);
-
--- 3. Order Condo Docs (Disclosure Signed + Condo)
-INSERT INTO task_automations (
-  name, task_name, task_description, trigger_type, trigger_config,
-  assigned_to_user_id, task_priority, due_date_offset_days,
-  is_active, category, subcategory, completion_requirement_type
-) VALUES (
-  'Order condo docs',
-  'Order condo docs',
-  'Disclosures have been signed. Please order condo documents.',
-  'status_changed',
-  '{"field": "disclosure_status", "target_status": "Signed", "condition_field": "property_type", "condition_value": "Condo"}',
-  '3dca68fc-ee7e-46cc-91a1-0c6176d4c32a',
-  'High',
-  0,
-  true,
-  'active_loan',
-  'submission',
-  'compound:condo_ordered'
-);
-
--- 4. Update existing disclosure task to use auto-complete-only
-UPDATE task_automations 
-SET completion_requirement_type = 'auto_complete_only:disc_file'
-WHERE id = 'b33fd14f-4e26-4572-9790-317e808bf201';
-```
+| **Database Migration** | Fix type casting in all 4 status trigger functions |
+| `src/components/lead-details/AppraisalTab.tsx` | Use ValidatedInlineSelect |
+| `src/components/lead-details/TitleTab.tsx` | Use ValidatedInlineSelect, add "Ordered" option |
+| `src/components/lead-details/InsuranceTab.tsx` | Use ValidatedInlineSelect |
+| `src/components/lead-details/CondoTab.tsx` | Use ValidatedInlineSelect |
+| `src/services/statusChangeValidation.ts` | Add Ordered status rules for title & condo |
 
 ---
 
 ## Technical Details
 
-### Auto-Complete Flow
-1. User updates a field on lead (e.g., uploads `disc_file`, sets `title_status = Ordered`)
-2. Frontend calls `databaseService.autoCompleteTasksAfterFieldUpdate()`
-3. Function finds all open tasks for that lead with matching completion requirements
-4. For compound requirements, it checks ALL conditions are met
-5. If met, task is marked as Done and toast shows success
+### Type Casting in PostgreSQL Triggers
+PostgreSQL enums cannot be directly compared to text without explicit casting. All status fields (disclosure_status, loan_status, appraisal_status, etc.) are likely enums, so any comparison with JSON text values must use `::text`:
 
-### Title Status Values
-The `title_status` field uses options: `Requested`, `Received`, `On Hold`. We need to add `Ordered` as an option or use `Requested` as the equivalent. Based on the user's screenshots showing "Ordered" in the Third Party Items section, we should add `Ordered` to the status options.
+```sql
+-- Wrong (causes "operator does not exist: text = enum_type")
+AND trigger_config->>'field' = NEW.disclosure_status
 
-### Condo Status Values
-The `condo_status` field has options including `Ordered` which is correct.
+-- Correct
+AND trigger_config->>'field' = NEW.disclosure_status::text
+```
+
+### ValidatedInlineSelect Props
+```typescript
+<ValidatedInlineSelect
+  value={data.appraisal_status}
+  options={appraisalStatusOptions}
+  onValueChange={(value) => onUpdate('appraisal_status', value)}
+  fieldName="appraisal_status"  // NEW: Required for validation
+  lead={leadData}               // NEW: Required for validation context
+  placeholder="Select status"
+  showAsStatusBadge={true}
+  onUploadAction={() => {       // NEW: Navigate to upload section
+    // Scroll to document upload area or open upload modal
+  }}
+/>
+```
 
 ---
 
-## Testing After Implementation
+## Expected Results After Fix
 
-1. **Disclosure Document Task**:
-   - Change disclosure_status to "Sent" on a file
-   - Verify "Upload disclosure document" task is created
-   - Try to manually complete it → should see popup explaining it's auto-complete only
-   - Upload a disclosure document under Disclosures tab
-   - Verify task auto-completes with a toast notification
+1. **Disclosure status**: Changes work without SQL errors; tasks are created when disclosure status changes
+2. **Appraisal status to Received**: Blocked until appraisal report is uploaded
+3. **Title status to Ordered**: Requires Title ETA to be set first
+4. **Title status to Received**: Blocked until title file is uploaded
+5. **Condo status to Ordered**: Requires Order Date and ETA
+6. **Condo status to Approved**: Blocked until condo documents uploaded
+7. **Insurance status to Received**: Blocked until insurance policy is uploaded
+8. **Tasks with completion requirements**: Cannot be manually completed until requirements are met
 
-2. **Borrower Intro Call (AWC)**:
-   - Change loan_status to "AWC"
-   - Verify "Borrower intro call" task is created, assigned to Ashley
-   - Try to complete → should require call log first
-
-3. **Order Title Work**:
-   - Change disclosure_status to "Signed"
-   - Verify "Order Title Work" task is created
-   - Try to complete → should show "Title Status = Ordered and Title ETA required"
-   - Set title_status to Ordered and add title_eta
-   - Task should either auto-complete or allow manual completion
-
-4. **Order Condo Docs**:
-   - On a Condo property, change disclosure_status to "Signed"
-   - Verify "Order condo docs" task is created
-   - Try to complete → should require all 3 condo fields
-   - Fill in all 3 fields → task should complete
