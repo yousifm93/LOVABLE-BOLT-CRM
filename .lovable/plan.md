@@ -1,122 +1,46 @@
 
-# Comprehensive Task Automation Fix
+The lender email tracking system currently has the foundational pieces in place (schema columns on the `lenders` table and a basic sync function), but it lacks the end-to-end automation and reliable data linkage needed for real-time tracking of opens and replies.
 
-## Executive Summary
-After a thorough audit of all 60 task automations, I found that only the 14 `loan_status` automations (including the 4 CTC tasks) are currently working after my recent fix. The remaining 46 automations have various issues ranging from incorrect column names to completely missing trigger handlers.
+I will implement a comprehensive tracking system that links outgoing emails to lenders, captures SendGrid events (like opens), and automatically identifies replies from lender domains.
 
-## Issues Found
+### 1. Database Schema Hardening
+I will link the `email_logs` table directly to the `lenders` table to ensure we can precisely track every interaction.
+- Add `lender_id` column to the `email_logs` table (UUID, referencing `lenders.id`).
+- Ensure the `lenders` table has tracking columns for `last_email_opened`, `last_email_opened_at`, `last_email_replied`, and `last_email_replied_at`.
 
-### 1. Pipeline Stage Changed Automations (8 automations) - BROKEN
-**Affected tasks:**
-- "Screen new application" (Screening stage) ← This is why your Screening task isn't creating
-- "Follow up on pending app" (Pending App stage)
-- "New pre-qualified client - Call Borrower" (Pre-Qualified)
-- "New pre-qualified client - Call Buyer's Agent" (Pre-Qualified)
-- "Home Search Check In (HSCI)" (Pre-Qualified)
-- "New pre-approved borrower call" (Pre-Approved)
-- "New pre-approved borrower - Call Buyer's Agent" (Pre-Approved)
-- "Past client call" (Past Clients)
+### 2. Upgrading the Email Delivery Engine (`send-direct-email`)
+The core email function will be updated to handle the heavy lifting of tracking.
+- **Atomic Logging**: When an email is sent to a lender, the function will automatically create an entry in `email_logs` with the correct `lender_id`.
+- **Lender Updates**: It will automatically update the `lenders` table with `last_email_sent_at` and `last_email_subject`, removing the need for redundant frontend code.
+- **Custom Tracking Args**: It will pass the `lender_id` and `email_log_id` as `custom_args` to SendGrid. This ensures that when an "Open" or "Click" occurs, the webhook knows exactly which lender and which specific email it belongs to.
 
-**Bug:** The function queries for `trigger_type = 'status_changed'` instead of `'pipeline_stage_changed'`, so it finds zero matching automations.
+### 3. Real-time Event Tracking (`email-webhooks`)
+The webhook handler will be updated to propagate events back to the CRM.
+- When SendGrid reports an "Open" event, the function will look for the `lender_id` in the event metadata.
+- It will then update `last_email_opened_at` and set `last_email_opened = true` on the corresponding lender record in real-time.
 
-### 2. Appraisal Status Automations (4 automations) - BROKEN
-**Affected tasks:**
-- "Appraisal Scheduled - Call Buyer's Agent"
-- "Appraisal Scheduled - Call Listing Agent"
-- "Appraisal Received - Call Buyer's Agent"
-- "Appraisal Received - Upload Appraisal Document"
+### 4. Robust Reply Detection (`inbound-email-webhook` & `sync-lender-email-replies`)
+I will implement two layers of reply detection to ensure no message is missed.
+- **Real-time Detection**: The `inbound-email-webhook` (which handles incoming mail to scenarios@mortgagebolt.org) will be updated to match the sender's email against the `lenders` table. If a match is found, the incoming email will be logged with the correct `lender_id`.
+- **Automated Sync (Fallback)**: I will schedule the `sync-lender-email-replies` function to run every hour using a database cron job. This function uses domain-based matching (e.g., catching any reply from `@uwm.com`) to identify replies that might not have been perfectly matched by the inbound webhook.
 
-**Bug:** Uses wrong column names (`task_status`, `task_priority`, `assigned_to` instead of `status`, `priority`, `assignee_id`).
+### 5. Frontend Simplification
+With the backend handling the complexity, the frontend modals (`SendLenderEmailModal` and `BulkLenderEmailModal`) will be simplified.
+- They will simply pass the `lender_id` to the email function.
+- All "last sent" and "subject" tracking will happen automatically on the server, ensuring data consistency across the entire application.
 
-### 3. Package Status Automations (3 automations) - BROKEN
-**Affected tasks:**
-- "Package Final - Final Borrower Call"
-- "Package Final - Upload Final Closing Package"
-- "Package Finalized - Call Buyer's Agent"
+### Technical Implementation Details
+- **Migration**: A single SQL migration will add the `lender_id` column and set up the `pg_cron` schedule.
+- **Logging**: Every outgoing lender email will now have a permanent audit trail in `email_logs`, visible in the CRM history.
+- **Error Handling**: I'll include guards to handle cases where a lender might have multiple AE emails or shared domains.
 
-**Bug:** The function queries `trigger_type = 'package_status_change'` but all automations have `trigger_type = 'status_changed'` with `field = 'package_status'`. Will never match.
+### Technical Steps
 
-### 4. Missing Trigger Handlers (5 automations) - NO HANDLER
-**These status fields have automations configured but no trigger function exists:**
-- `hoi_status` - "Insurance Bound - Upload HOI Policy" 
-- `title_status` - "Title Received - Upload Title Work"
-- `condo_status` - "Condo Received - Upload Condo Docs"
-- `cd_status` - "CD Sent - Upload CD"
-- `rate_lock_expiration` - "Rate Locked - Upload Rate Confirmation"
-
-### 5. Other Status Functions (Disclosure, EPO, Lead Created)
-- Minor issues with explicit `status`/`priority` in INSERT (should use defaults)
-- Missing case-insensitive matching
-- EPO uses 'Working on it' status which may not exist
-
-## Technical Solution
-
-### Migration 1: Fix pipeline_stage_changed trigger
-```sql
-CREATE OR REPLACE FUNCTION execute_pipeline_stage_changed_automations()
--- Key fixes:
--- 1. Query trigger_type = 'pipeline_stage_changed' 
--- 2. Match by target_stage_id instead of stage name
--- 3. Use correct column names (status, priority, assignee_id)
--- 4. Omit status/priority to use DB defaults
--- 5. Add error logging
+```text
+1. Run SQL migration to add email_logs.lender_id and setup cron.
+2. Update supabase/functions/send-direct-email/index.ts to handle logging and custom_args.
+3. Update supabase/functions/email-webhooks/index.ts to sync 'open' events to lenders.
+4. Update supabase/functions/inbound-email-webhook/index.ts to link incoming lender mail.
+5. Update src/components/modals/SendLenderEmailModal.tsx to pass lender_id.
+6. Update src/components/modals/BulkLenderEmailModal.tsx to pass lender_id and remove manual updates.
 ```
-
-### Migration 2: Fix appraisal_status trigger
-```sql
-CREATE OR REPLACE FUNCTION execute_appraisal_status_changed_automations()
--- Key fixes:
--- 1. Use correct columns: status, priority, assignee_id
--- 2. Case-insensitive matching
--- 3. Omit status/priority to use defaults
--- 4. Add error logging
-```
-
-### Migration 3: Fix package_status trigger
-```sql
-CREATE OR REPLACE FUNCTION execute_package_status_changed_automations()
--- Key fixes:
--- 1. Query trigger_type = 'status_changed' AND field = 'package_status'
--- 2. Case-insensitive matching
--- 3. Add error logging
-```
-
-### Migration 4: Create generic status field handler
-```sql
-CREATE OR REPLACE FUNCTION execute_generic_status_changed_automations()
--- Handles: hoi_status, title_status, condo_status, cd_status, rate_lock_expiration
--- Creates one trigger that handles all these fields
-```
-
-### Migration 5: Fix disclosure_status, epo_status, lead_created triggers
-```sql
--- Apply same pattern: omit status/priority, case-insensitive, error logging
-```
-
-## Implementation Order
-1. First: Fix `execute_pipeline_stage_changed_automations` (will fix Screening)
-2. Second: Fix `execute_appraisal_status_changed_automations`
-3. Third: Fix `execute_package_status_changed_automations`
-4. Fourth: Create generic handler for missing fields
-5. Fifth: Fix remaining minor issues
-
-## Verification Strategy
-After each fix:
-1. Run SQL query to verify trigger function source is updated
-2. Change a lead's status to trigger the automation
-3. Query `task_automation_executions` to confirm success
-4. Query `tasks` to confirm task was created
-5. Check UI to confirm task appears
-
-## Expected Outcome
-All 60 task automations will work correctly:
-- 14 loan_status automations (already fixed)
-- 8 pipeline_stage_changed automations (will be fixed)
-- 4 appraisal_status automations (will be fixed)
-- 6 disclosure_status automations (will be fixed)
-- 3 package_status automations (will be fixed)
-- 1 epo_status automation (will be fixed)
-- 1 lead_created automation (will be fixed)
-- 5 generic status automations (will be fixed with new handler)
-- 8 date_based automations (separate system, needs verification)
-- 7 scheduled automations (separate system, needs verification)
