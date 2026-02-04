@@ -53,29 +53,30 @@ Deno.serve(async (req) => {
     const emails = imapData.emails || [];
     console.log(`Fetched ${emails.length} emails from Scenarios inbox`);
 
-    // Step 2: Build domain-to-email map (most recent email per domain)
-    const domainEmailMap = new Map<string, { date: string; fromEmail: string }>();
+    // Step 2: Build domain-to-emails map (all emails per domain with rawDate for filtering)
+    const domainEmailsMap = new Map<string, Array<{ rawDate: string; fromEmail: string }>>();
     for (const email of emails) {
       if (!email.fromEmail) continue;
       const domain = email.fromEmail.split("@")[1]?.toLowerCase();
       // Exclude mortgagebolt.org emails (our own emails)
       if (domain && !domain.includes("mortgagebolt")) {
-        // Keep the most recent email per domain (emails are sorted by date desc)
-        if (!domainEmailMap.has(domain)) {
-          domainEmailMap.set(domain, { 
-            date: email.date || new Date().toISOString(), 
-            fromEmail: email.fromEmail 
-          });
+        if (!domainEmailsMap.has(domain)) {
+          domainEmailsMap.set(domain, []);
         }
+        domainEmailsMap.get(domain)!.push({ 
+          rawDate: email.rawDate || new Date().toISOString(), 
+          fromEmail: email.fromEmail 
+        });
       }
     }
-    console.log(`Built domain map with ${domainEmailMap.size} unique domains`);
+    console.log(`Built domain map with ${domainEmailsMap.size} unique domains`);
 
-    // Step 3: Get all lenders with email addresses
+    // Step 3: Get all lenders with email addresses AND their last_email_sent_at
     const { data: lenders, error: lendersError } = await supabase
       .from("lenders")
-      .select("id, lender_name, account_executive_email, last_email_replied")
-      .not("account_executive_email", "is", null);
+      .select("id, lender_name, account_executive_email, last_email_replied, last_email_sent_at")
+      .not("account_executive_email", "is", null)
+      .not("last_email_sent_at", "is", null); // Only check lenders we've actually emailed
 
     if (lendersError) {
       console.error("Error fetching lenders:", lendersError);
@@ -87,30 +88,43 @@ Deno.serve(async (req) => {
 
     let updatedCount = 0;
 
-    // Step 4: For each lender, check if their AE domain appears in the emails map
+    // Step 4: For each lender, check if their AE domain has a reply AFTER we sent our email
     for (const lender of lenders || []) {
-      if (!lender.account_executive_email) continue;
+      if (!lender.account_executive_email || !lender.last_email_sent_at) continue;
 
       const aeDomain = lender.account_executive_email.split("@")[1]?.toLowerCase();
+      const lastSentAt = new Date(lender.last_email_sent_at).getTime();
       
-      if (aeDomain && domainEmailMap.has(aeDomain)) {
-        const emailInfo = domainEmailMap.get(aeDomain)!;
+      if (aeDomain && domainEmailsMap.has(aeDomain)) {
+        const emailsFromDomain = domainEmailsMap.get(aeDomain)!;
         
-        // Update lender as having replied
-        const { error: updateError } = await supabase
-          .from("lenders")
-          .update({
-            last_email_replied: true,
-            last_email_replied_at: new Date().toISOString(),
-          })
-          .eq("id", lender.id);
+        // Find a reply that came AFTER our last sent email
+        const validReply = emailsFromDomain.find(email => {
+          const replyDate = new Date(email.rawDate).getTime();
+          return replyDate > lastSentAt;
+        });
+        
+        if (validReply) {
+          // Update lender as having replied
+          const { error: updateError } = await supabase
+            .from("lenders")
+            .update({
+              last_email_replied: true,
+              last_email_replied_at: new Date().toISOString(),
+            })
+            .eq("id", lender.id);
 
-        if (updateError) {
-          console.error(`Error updating ${lender.lender_name}:`, updateError);
+          if (updateError) {
+            console.error(`Error updating ${lender.lender_name}:`, updateError);
+          } else {
+            updatedCount++;
+            console.log(
+              `Updated ${lender.lender_name} - reply detected from ${validReply.fromEmail} at ${validReply.rawDate} (sent at: ${lender.last_email_sent_at})`
+            );
+          }
         } else {
-          updatedCount++;
           console.log(
-            `Updated ${lender.lender_name} - reply detected from ${emailInfo.fromEmail} at ${emailInfo.date}`
+            `Skipped ${lender.lender_name} - domain found but no reply after ${lender.last_email_sent_at}`
           );
         }
       }
@@ -121,7 +135,7 @@ Deno.serve(async (req) => {
         success: true,
         message: `Synced email replies for ${updatedCount} lenders`,
         updated_count: updatedCount,
-        domains_found: domainEmailMap.size,
+        domains_found: domainEmailsMap.size,
         emails_scanned: emails.length,
       }),
       { status: 200, headers: corsHeaders }

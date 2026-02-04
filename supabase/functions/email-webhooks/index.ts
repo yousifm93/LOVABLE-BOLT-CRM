@@ -168,16 +168,45 @@ serve(async (req) => {
         } else if (mappedEventType === 'open') {
           updates.opened_at = occurredAt;
           
-          // Sync to lenders table if metadata exists
-          const lenderId = event.lender_id || emailLog.lender_id;
-          if (lenderId) {
-            await supabase
+          // Sync to lenders table if metadata exists - but only for the LATEST sent email
+          const lenderIdForOpen = event.lender_id || emailLog.lender_id;
+          if (lenderIdForOpen) {
+            // Get lender's last_email_sent_at to verify this is the most recent email
+            const { data: lenderData } = await supabase
               .from('lenders')
-              .update({ 
-                last_email_opened: true, 
-                last_email_opened_at: occurredAt 
-              })
-              .eq('id', lenderId);
+              .select('last_email_sent_at')
+              .eq('id', lenderIdForOpen)
+              .single();
+            
+            if (lenderData && emailLog.created_at) {
+              const emailSentAt = new Date(emailLog.created_at).getTime();
+              const lastSentAt = lenderData.last_email_sent_at 
+                ? new Date(lenderData.last_email_sent_at).getTime() 
+                : 0;
+              
+              // Only update lender if this email was sent at or after last_email_sent_at
+              if (emailSentAt >= lastSentAt) {
+                await supabase
+                  .from('lenders')
+                  .update({ 
+                    last_email_opened: true, 
+                    last_email_opened_at: occurredAt 
+                  })
+                  .eq('id', lenderIdForOpen);
+                console.log(`Updated lender ${lenderIdForOpen} open status - email is most recent`);
+              } else {
+                console.log(`Skipping lender ${lenderIdForOpen} open update - email is older than last sent`);
+              }
+            } else if (!lenderData?.last_email_sent_at) {
+              // No tracking timestamp yet, update anyway
+              await supabase
+                .from('lenders')
+                .update({ 
+                  last_email_opened: true, 
+                  last_email_opened_at: occurredAt 
+                })
+                .eq('id', lenderIdForOpen);
+            }
           }
         } else if (mappedEventType === 'click') {
           updates.clicked_at = occurredAt;
@@ -192,15 +221,33 @@ serve(async (req) => {
       }
 
       // Handle lender fallback case - update lender directly using lender_id from custom_args
+      // Only update if this appears to be a recent email
       if (hasLenderFallback && mappedEventType === 'open') {
-        console.log(`Updating lender ${lenderId} via fallback for open event`);
-        await supabase
+        // Get lender's last_email_sent_at for validation
+        const { data: lenderData } = await supabase
           .from('lenders')
-          .update({ 
-            last_email_opened: true, 
-            last_email_opened_at: occurredAt 
-          })
-          .eq('id', lenderId);
+          .select('last_email_sent_at')
+          .eq('id', lenderId)
+          .single();
+        
+        const eventTime = new Date(timestamp * 1000).getTime();
+        const lastSentAt = lenderData?.last_email_sent_at 
+          ? new Date(lenderData.last_email_sent_at).getTime() 
+          : 0;
+        
+        // Only update if the open event happened after the last email was sent
+        if (eventTime >= lastSentAt) {
+          console.log(`Updating lender ${lenderId} via fallback for open event`);
+          await supabase
+            .from('lenders')
+            .update({ 
+              last_email_opened: true, 
+              last_email_opened_at: occurredAt 
+            })
+            .eq('id', lenderId);
+        } else {
+          console.log(`Skipping lender ${lenderId} fallback update - event is before last sent email`);
+        }
       }
 
       // Record the event for campaign emails
