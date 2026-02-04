@@ -2833,53 +2833,30 @@ export function ClientDetailDrawer({
               return (
             <Card>
               <CardHeader className="pb-3 bg-white">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-sm font-bold">Pipeline Review</CardTitle>
-                  {isAdmin && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        if (isRecordingFileUpdates) {
-                          handleVoiceRecordingStop();
-                        } else {
-                          handleVoiceRecordingStart();
-                        }
-                      }}
-                      disabled={isSummarizingTranscript}
-                      className={cn(
-                        "w-8 h-8 rounded-full transition-all",
-                        isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
-                      )}
-                      title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
-                    >
-                      {isSummarizingTranscript ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
-                      )}
-                    </Button>
-                  )}
-                </div>
+                <CardTitle className="text-sm font-bold">Pipeline Review</CardTitle>
               </CardHeader>
-              <CardContent className="bg-gray-50">
-                {localFileUpdates ? (
-                  <FileUpdatesDisplay content={localFileUpdates} />
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">
-                    Click the microphone to record a voice note
-                  </p>
-                )}
-                {(client as any).latest_file_updates_updated_at && <div className="mt-1 pt-1 border-t text-xs text-muted-foreground flex items-center gap-2">
+              <CardContent className="bg-gray-50 max-h-[280px] overflow-y-auto">
+                <div className="min-h-[100px]">
+                  <MentionableInlineEditNotes
+                    value={(client as any).latest_file_updates || ''}
+                    onValueChange={(value) => handleLeadUpdate('latest_file_updates', value)}
+                    placeholder="Add pipeline review notes..."
+                    className="min-h-[80px]"
+                  />
+                </div>
+                {(client as any).latest_file_updates_updated_at && (
+                  <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
                     <Clock className="h-3 w-3" />
                     Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
-                    {fileUpdatesUpdatedByUser && <>
+                    {fileUpdatesUpdatedByUser && (
+                      <>
                         <span>•</span>
                         <User className="h-3 w-3" />
                         {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
-                      </>}
-                  </div>}
+                      </>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
               );

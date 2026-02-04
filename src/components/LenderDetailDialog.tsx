@@ -121,6 +121,14 @@ interface Lender {
   max_ltv?: number;
   // Other
   epo_period?: string;
+  // Email tracking
+  last_email_sent_at?: string;
+  last_email_subject?: string;
+  last_email_opened?: boolean;
+  last_email_opened_at?: string;
+  last_email_replied?: boolean;
+  last_email_replied_at?: string;
+  last_email_reply_content?: string;
   // Custom fields
   custom_fields?: Record<string, { value: any; type: string; label: string }>;
 }
@@ -1141,11 +1149,11 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
             <Separator />
 
-            {/* Email History */}
+            {/* Email Activity */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                <History className="h-4 w-4" />
-                Email History ({emailLogs.length})
+                <Mail className="h-4 w-4" />
+                Email Activity
               </h3>
               {loadingEmails ? (
                 <p className="text-sm text-muted-foreground">Loading...</p>
@@ -1154,31 +1162,44 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
               ) : emailLogs.length === 0 ? (
                 <p className="text-sm text-muted-foreground italic">No emails sent to this lender yet.</p>
               ) : (
-                <div className="space-y-2 max-h-40 overflow-y-auto">
+                <div className="space-y-2 max-h-60 overflow-y-auto">
                   {emailLogs.map((email) => (
                     <div
                       key={email.id}
-                      className="flex items-center justify-between p-2 bg-muted/30 rounded-md text-sm"
+                      className="p-3 bg-muted/30 rounded-md text-sm space-y-2"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <span className="font-medium truncate">{email.subject}</span>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2 flex-1 min-w-0">
+                          <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium block truncate">{email.subject}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {email.direction === 'In' ? 'Received' : 'Sent'} • {formatDate(email.timestamp)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {email.delivery_status && (
+                            <Badge variant="outline" className={`text-xs ${getDeliveryStatusColor(email.delivery_status)}`}>
+                              {email.delivery_status}
+                            </Badge>
+                          )}
+                          {email.opened_at ? (
+                            <Badge variant="outline" className="text-xs bg-green-500/20 text-green-700">
+                              Opened
+                            </Badge>
+                          ) : email.direction !== 'In' && (
+                            <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
+                              Not Opened
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 text-muted-foreground flex-shrink-0">
-                        {email.delivery_status && (
-                          <Badge variant="outline" className={`text-xs ${getDeliveryStatusColor(email.delivery_status)}`}>
-                            {email.delivery_status}
-                          </Badge>
-                        )}
-                        {email.opened_at && (
-                          <Badge variant="outline" className="text-xs bg-green-500/20 text-green-700">
-                            Opened
-                          </Badge>
-                        )}
-                        <span className="text-xs">
-                          {formatDate(email.timestamp)}
-                        </span>
-                      </div>
+                      {email.direction === 'In' && (
+                        <div className="pl-6 text-xs text-muted-foreground">
+                          <span className="font-medium text-primary">Reply received</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
