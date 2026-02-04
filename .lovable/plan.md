@@ -1,109 +1,89 @@
 
-# Plan: Fix CTC Task Automation (8th Attempt)
+## What’s actually happening (based on database evidence)
+### 1) The loan_status updates are real, but **no tasks are being inserted at all**
+For lead **Gaurav Sharma (New)** `7da2997e-a8b1-4177-bedc-84a6157c4617`, the audit log shows multiple loan_status transitions today, including **AWC → CTC** (so the UI is saving status changes and the trigger should be firing).
 
-## 1. Diagnosis
-The previous migration used incorrect column names for the `tasks` table. 
-- **Error 1**: `task_status::text NOT IN ('Done')` -> Should be `status::text NOT IN ('Done')`.
-- **Error 2**: `INSERT INTO tasks (... task_status ...)` -> Should be `INSERT INTO tasks (... status ...)`.
+However, querying `tasks` for that lead shows **zero tasks created today** (even during the timestamps where loan_status became CTC). That means the automation insert is failing or being skipped.
 
-These errors caused the automation to fail every time a loan status was changed to CTC, but because of the `EXCEPTION` block, the error was swallowed and logged internally rather than stopping the status update.
+### 2) The CTC automations exist and match correctly
+There are **4 active task_automations** for:
+- trigger_type = `status_changed`
+- trigger_config.field = `loan_status`
+- trigger_config.target_status = `CTC`
 
-## 2. Technical Steps
+A direct SQL count confirms these 4 automations exist and match “CTC”.
 
-### Database Migration
-I will update the `execute_loan_status_changed_automations` function with the following corrections:
-1. Change all references of `task_status` to `status`.
-2. Ensure the `trigger_config` matching logic is robust by explicitly casting to `text`.
-3. Verify that the task insertion includes the `automation_id` to prevent future duplicates correctly.
-4. Keep the fallback assignee logic: use the automation's assigned user first, then fall back to the lead's current assignee.
+### 3) A real database error is happening during task creation (not just “no match”)
+Postgres logs show an error:
+- `null value in column "status" of relation "tasks" violates not-null constraint`
 
-```sql
-CREATE OR REPLACE FUNCTION execute_loan_status_changed_automations()
-RETURNS TRIGGER AS $$
-DECLARE
-  automation RECORD;
-  new_task_id UUID;
-  task_count INT;
-BEGIN
-  -- 1. Only run when loan_status changes
-  IF OLD.loan_status IS NOT DISTINCT FROM NEW.loan_status THEN
-    RETURN NEW;
-  END IF;
+This is a strong signal that some code path is attempting to insert a task with `status = NULL` (or explicitly setting it null), which would abort the insert. Even if our trigger sets status, the safest way to eliminate this entire class of failure is to stop writing `status` in the INSERT and rely on the column default (`'To Do'::task_status`), which is already configured on the table.
 
-  -- 2. Iterate through matching task automations
-  FOR automation IN
-    SELECT id, name, task_name, task_priority, assigned_to_user_id, trigger_config
-    FROM task_automations
-    WHERE trigger_type = 'status_changed'
-      AND (trigger_config->>'field')::text = 'loan_status'
-      AND (trigger_config->>'target_status')::text = NEW.loan_status::text
-      AND is_active = true
-  LOOP
-    -- 3. Check for duplicate incomplete tasks (Corrected column name: status)
-    SELECT COUNT(*) INTO task_count
-    FROM tasks
-    WHERE borrower_id = NEW.id
-      AND automation_id = automation.id
-      AND status::text NOT IN ('Done') -- FIXED: task_status -> status
-      AND deleted_at IS NULL
-      AND created_at > NOW() - INTERVAL '14 days';
+### 4) Broader symptom (“no tasks for New / Screening / Pending App”) indicates config/value mismatch too
+Your “New should create Disclose, etc.” automations use `trigger_config.target_status = "New"` in some rows, while the frontend often writes `loan_status = "NEW"` (uppercase) when moving into Active.
+So even once inserts work, matching can still fail unless we make comparisons tolerant (case-insensitive / normalized).
 
-    IF task_count > 0 THEN
-      CONTINUE;
-    END IF;
+## Implementation approach (DB-first, then UI verification)
+### A) Harden the trigger INSERT so it cannot fail on status
+Update `execute_loan_status_changed_automations()` so:
+1. It **does not include the `status` column** in the INSERT at all (uses DB default).
+2. It **does not include `priority` either** unless necessary (optional; priority already has a default too). If we do set it, we’ll keep it safe via COALESCE.
+3. It adds per-automation error logging into `task_automation_executions` with `success=false` and an `error_message` (we’ll add a nullable column if it doesn’t exist; if schema change is undesirable, we can log error text into an existing JSON/log field if available).
+4. It does not swallow everything silently; it should keep processing other automations even if one fails.
 
-    -- 4. Create the task (Corrected column name: status)
-    INSERT INTO tasks (
-      borrower_id,
-      automation_id,
-      title,
-      status, -- FIXED: task_status -> status
-      priority,
-      created_at,
-      assignee_id,
-      due_date
-    ) VALUES (
-      NEW.id,
-      automation.id,
-      automation.task_name,
-      'To Do'::task_status,
-      COALESCE(automation.task_priority, 'Medium')::task_priority,
-      NOW(),
-      COALESCE(automation.assigned_to_user_id, NEW.assignee_id),
-      CURRENT_DATE
-    ) RETURNING id INTO new_task_id;
+### B) Make matching robust so “New” and “NEW” both trigger
+Update the automation selection WHERE clause to match like:
+- `upper(trigger_config->>'target_status') = upper(NEW.loan_status::text)`
 
-    -- 5. Log execution
-    INSERT INTO task_automation_executions (
-      automation_id,
-      lead_id,
-      task_id,
-      success,
-      executed_at
-    ) VALUES (
-      automation.id,
-      NEW.id,
-      new_task_id,
-      true,
-      NOW()
-    );
-  END LOOP;
+This preserves your existing automation config and fixes the “none of the tasks populate” symptom when casing differs.
 
-  RETURN NEW;
-EXCEPTION WHEN OTHERS THEN
-  -- Log the actual error to postgres logs for debugging
-  RAISE LOG 'execute_loan_status_changed_automations error for lead %: % %', NEW.id, SQLSTATE, SQLERRM;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-```
+### C) Ensure we can prove the trigger ran and inserted rows
+Add deterministic “execution breadcrumbs”:
+- Always insert a row in `task_automation_executions` for each matched automation, whether success or failure.
+- On failure, store the SQLSTATE / error message somewhere we can query.
 
-## 3. Verification Strategy
-Since I cannot manually interact with the UI, I will perform the following "backend test":
-1. I will use the `supabase--read-query` tool to simulate the status change for **Gaurav Sharma** (Lead ID: `7da2997e-a8b1-4177-bedc-84a6157c4617`).
-2. I will verify that 4 new records appear in the `tasks` table for this borrower.
-3. I will verify that the `task_automation_executions` table shows 4 successful entries.
-4. I will check the `postgres_logs` immediately after to ensure no silent errors occurred.
+This gives us a single place to verify “trigger ran, tried to insert, succeeded/failed, why”.
 
-I will not report back as "Done" until I have verified the database state confirms the tasks exist.
+## Step-by-step changes I will make (once you approve)
+1. **Database migration** (new migration file):
+   - `CREATE OR REPLACE FUNCTION execute_loan_status_changed_automations()` with:
+     - case-insensitive match on target_status
+     - duplicate prevention still based on `(borrower_id, automation_id)` + “not Done” + 14-day window
+     - INSERT into `tasks` that omits `status` (and optionally omits `priority`) so defaults apply
+     - strong execution logging (success + failure)
+2. (If needed) **Small schema update**:
+   - If `task_automation_executions` does not have a place for error text, add a nullable `error_message text` column (or `details jsonb`) so we can store the failure reason. This is optional but recommended to stop the “silent failure” loop permanently.
 
+## How I will test it on my side (and only then report back)
+I will do all of the following before I tell you it’s fixed:
+
+### 1) Backend verification (authoritative)
+For lead `7da2997e-a8b1-4177-bedc-84a6157c4617`:
+- Set loan_status to a non-CTC value, then set it to **CTC** (ensuring an actual change).
+- Query `tasks` and confirm **4 new tasks** exist with:
+  - `borrower_id = 7da2997e...`
+  - `automation_id IN (the four CTC automation IDs)`
+  - `deleted_at IS NULL`
+  - `created_at` after the change timestamp
+- Query `task_automation_executions` and confirm **4 success rows** for that lead/status change.
+
+### 2) UI verification (what you asked for)
+Using the preview browser session (since you’re logged in):
+- Navigate to the exact lead drawer / area shown in your screenshot (the “task section”).
+- Change Gaurav Sharma to **CTC** in the UI.
+- Confirm the 4 tasks appear in that UI list (not just in SQL).
+- Capture a screenshot on my side showing the 4 tasks present.
+
+## Expected outcome
+After this change:
+- Changing **loan_status → CTC** will reliably create exactly these 4 tasks:
+  - File is CTC - Call Borrower
+  - File is CTC - Call Buyer's Agent
+  - File is CTC - Call Listing Agent
+  - Finalize Closing Package
+- “New” / “NEW” mismatches will no longer prevent automations from triggering.
+- If anything still fails, we’ll have a queryable execution log explaining exactly why (no more guessing).
+
+## Notes / constraints
+- Right now we are stuck in a loop because failures are either silent or not easily attributable. The key part of this plan is making the system self-diagnosing via executions logging and removing fragile inserts (status).
+- I will not mark this complete until both SQL verification and UI confirmation are done exactly as you requested.
