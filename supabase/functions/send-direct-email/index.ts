@@ -148,24 +148,45 @@ serve(async (req: Request): Promise<Response> => {
 
     // Atomic logging to email_logs and lender record
     if (lender_id) {
-      // 1. Log the email
-      await supabase.from('email_logs').insert({
-        lender_id: lender_id,
-        recipient_email: to,
-        subject: subject,
-        body: sanitizedHtml,
-        direction: 'Out',
-        provider_message_id: providerMessageId,
-        delivery_status: 'sent'
-      });
+      try {
+        // 1. Log the email with correct column names
+        const { error: logError } = await supabase.from('email_logs').insert({
+          lender_id: lender_id,
+          to_email: to,
+          from_email: from_email,
+          subject: subject,
+          html_body: sanitizedHtml,
+          direction: 'outbound',
+          provider_message_id: providerMessageId,
+          delivery_status: 'sent'
+        });
 
-      // 2. Update lender record
-      await supabase.from('lenders').update({
-        last_email_sent_at: new Date().toISOString(),
-        last_email_subject: subject,
-        last_email_opened: false, // Reset tracking for new email
-        last_email_replied: false
-      }).eq('id', lender_id);
+        if (logError) {
+          console.error("Error logging email to email_logs:", logError);
+          throw logError;
+        }
+
+        console.log("Email logged successfully for lender:", lender_id);
+
+        // 2. Update lender record
+        const { error: updateError } = await supabase.from('lenders').update({
+          last_email_sent_at: new Date().toISOString(),
+          last_email_subject: subject,
+          last_email_opened: false, // Reset tracking for new email
+          last_email_replied: false
+        }).eq('id', lender_id);
+
+        if (updateError) {
+          console.error("Error updating lender record:", updateError);
+          throw updateError;
+        }
+
+        console.log("Lender record updated successfully");
+      } catch (loggingError: any) {
+        console.error("Error during email logging process:", loggingError);
+        // Don't throw - email was sent successfully, just log the tracking error
+        console.warn("Email sent but tracking failed. Please check email_logs table.");
+      }
     }
 
     return new Response(
