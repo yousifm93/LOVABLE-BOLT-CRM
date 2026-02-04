@@ -53,6 +53,7 @@ interface EmailMessage {
   to: string;
   subject: string;
   date: string;
+  rawDate: string; // ISO date for programmatic comparison
   snippet: string;
   unread: boolean;
   starred: boolean;
@@ -349,6 +350,7 @@ serve(async (req) => {
             to: toEmail,
             subject: cleanedSubject,
             date: dateStr,
+            rawDate: emailDate.toISOString(),
             snippet: "",
             unread: !flags.has("\\Seen"),
             starred: flags.has("\\Flagged"),
@@ -462,6 +464,7 @@ serve(async (req) => {
             to: toEmail,
             subject: cleanedSubject,
             date: dateStr,
+            rawDate: emailDate.toISOString(),
             snippet: "", // Would need to fetch body for snippet
             unread: !flags.has("\\Seen"),
             starred: flags.has("\\Flagged"),
