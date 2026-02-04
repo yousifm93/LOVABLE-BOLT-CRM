@@ -184,8 +184,10 @@ serve(async (req) => {
                 ? new Date(lenderData.last_email_sent_at).getTime() 
                 : 0;
               
-              // Only update lender if this email was sent at or after last_email_sent_at
-              if (emailSentAt >= lastSentAt) {
+              // Allow 5-second tolerance for timing differences between email_logs.created_at and lenders.last_email_sent_at
+              const toleranceMs = 5000;
+              // Only update lender if this email was sent at or after last_email_sent_at (with tolerance)
+              if (emailSentAt >= lastSentAt - toleranceMs) {
                 await supabase
                   .from('lenders')
                   .update({ 
