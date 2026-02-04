@@ -1,179 +1,134 @@
 
-# Plan: Fix Three CRM Issues
+# Plan: Fix Multiple CRM Issues
 
 ## Summary
 
-Fixing three issues reported by the user:
-1. **Latest File Update formatting** - Improve spacing and readability in the `FileUpdatesDisplay` component
-2. **"Finalize Closing Package" task not created for CTC** - The automation is blocked because an old task with the same name already exists in "To Do" status
-3. **Emails not marked as read** - The IMAP edge function doesn't have functionality to mark emails as read when viewing them
+This plan addresses seven distinct issues reported by the user:
+
+1. **Latest File Update formatting** - Should look like "About the Borrower" section (simple editable box)
+2. **CTC Task automations not populating** - Tasks exist from January but trigger isn't creating new ones
+3. **Lender email merge tag not working** - `{{AccountExecutiveFirstName}}` shows "Team" instead of actual name
+4. **Lender email tracking** - Add columns for tracking email activity on lenders
+5. **Approved Lenders default columns** - Should default to first 9 columns only
+6. **Condo List pagination** - Change from 15 to 20 results per page
+7. **Condo List title** - Change "Condolist" to "Condo List" (two words)
 
 ---
 
 ## Issue Analysis
 
-### 1. Latest File Update Formatting Issues
-**Current Problems:**
-- Minimal spacing (`space-y-1`) makes entries hard to read
-- Top padding creates unwanted space
-- Text is cramped and not user-friendly
+### 1. Latest File Update Formatting
+**Current State:** Uses `FileUpdatesDisplay` component with complex parsing, timestamps bolding, and collapsible history.
 
-**Solution:**
-- Increase spacing between entries from `space-y-1` to `space-y-3`
-- Remove top padding in the container
-- Add better visual separation between update entries
-- Add bullet points for each entry for clearer visual structure
+**User Request:** Make it look like "About the Borrower" section - a simple text box you can type into with "who updated" at the bottom.
 
-### 2. "Finalize Closing Package" Task Not Created
-**Root Cause Found:**
-The database has a task "Finalize Closing Package" (created 2026-01-13) that is still in "To Do" status. The automation's duplicate prevention logic correctly blocks creating a new task because:
-```sql
-IF NOT EXISTS (
-  SELECT 1 FROM tasks t
-  WHERE t.borrower_id = NEW.id
-    AND t.title = automation_record.task_name
-    AND t.status::text NOT IN ('Done')
-)
-```
+**The Fix:** The Latest File Update section already uses `MentionableInlineEditNotes` (lines 2803-2808 in ClientDetailDrawer.tsx) for the Active stage. The issue is the `FileUpdatesDisplay` component is being used in the Pipeline Review section (line 2868) which shows the parsed/formatted view. The user wants both sections to be simple editable boxes. We need to replace `FileUpdatesDisplay` with a simple click-to-edit display.
 
-**Solution:**
-This is **working as designed** - the automation prevents duplicate tasks. The old task should be completed before changing status again, OR we should consider allowing re-creation if the previous task was created more than X days ago.
+### 2. CTC Task Automations Not Populating
+**Root Cause:** Gaurav Sharma's tasks from the CTC trigger (Call Borrower, Call Buyer's Agent, Call Listing Agent, Finalize Closing Package) were created on 2026-01-13 and are still in "To Do" status. The duplicate prevention logic blocks re-creation because:
+- Tasks are not "Done"
+- Tasks are NOT older than 30 days (created 2026-01-13, today is 2026-02-04 = 22 days)
 
-**Recommended Fix:**
-Update the trigger to allow re-creation if the previous matching task is older than 30 days OR if the loan status was previously changed away from CTC and back. This is a database trigger change.
+**The 30-day fix was just deployed** but 22 days < 30 days, so it correctly blocked.
 
-### 3. Emails Not Marked as Read
-**Root Cause Found:**
-The `fetch-emails-imap` edge function fetches email content when clicked but **never calls** `client.messageFlagsAdd` to set the `\Seen` flag on the IMAP server.
+**User Expectation:** When flipping to CTC again, new tasks should be created.
 
-**Solution:**
-Add mark-as-read functionality when fetching email content:
+**The Fix:** Either:
+- Reduce the window from 30 days to a shorter period (e.g., 7 days)
+- OR change logic to allow re-creation if the status changed FROM CTC and back TO CTC
+
+Recommended: Reduce to 14 days as a more practical window for operational workflows.
+
+### 3. Lender Email Merge Tag Not Working
+**Root Cause Found:** In `ApprovedLenders.tsx` line 1025-1029, the lenders passed to `BulkLenderEmailModal` only include:
 ```typescript
-// After fetching content, mark as read
-await client.messageFlagsAdd(String(messageUid), ['\\Seen'], { uid: true });
+lenders={lenders.filter(l => selectedIds.has(l.id)).map(l => ({
+  id: l.id,
+  lender_name: l.lender_name,
+  account_executive_email: l.account_executive_email
+  // MISSING: account_executive field!
+}))}
 ```
 
-Also update the frontend to:
-1. Update local unread state after selecting an email
-2. Update folder/account unread counts
+The `account_executive` field is NOT passed, so `replaceMergeTags` falls back to "Team".
+
+**The Fix:** Add `account_executive` to the mapped lender object.
+
+### 4. Lender Email Tracking
+**User Request:** Add columns to track:
+- Last email sent (date and content)
+- Whether lender opened the email
+- Whether lender replied and what they said
+
+**The Fix:** 
+- Add new database columns to `lenders` table: `last_email_sent_at`, `last_email_subject`, `last_email_opened`, `last_email_reply`
+- Update the bulk email sending logic to record when emails are sent
+- Note: Open/reply tracking requires email service integration (SendGrid webhooks) - this is a more complex feature
+
+For immediate implementation: Add `last_email_sent_at` and `last_email_subject` columns and update after sending.
+
+### 5. Approved Lenders Default Columns
+**Current State:** `initialColumns` array defines column visibility, with first 8 columns visible by default plus Notes.
+
+**User Request:** Only show first 9 columns (up to "Send Email"), plus Notes and Actions.
+
+**The Fix:** Update `initialColumns` to set `visible: true` for the first 9 columns only.
+
+### 6. Condo List Pagination
+**Current State:** `pageSize={15}` on line 854 of Condolist.tsx
+
+**The Fix:** Change to `pageSize={20}`
+
+### 7. Condo List Title
+**Current State:** `<h1>Condolist</h1>` on line 711
+
+**The Fix:** Change to `<h1>Condo List</h1>`
 
 ---
 
-## Implementation Details
+## Technical Implementation
 
 ### File 1: `src/components/lead-details/FileUpdatesDisplay.tsx`
-**Changes:**
-- Increase `space-y-1` to `space-y-3` for better entry separation
-- Add visual bullet/separator for each entry
-- Remove excess top padding (`p-2` to `pt-0 px-2 pb-2`)
-- Add margin-bottom to entry paragraphs
+Simplify to a basic display format matching "About the Borrower" style - remove complex parsing, timestamps formatting, and collapsible sections.
 
-### File 2: `supabase/functions/fetch-emails-imap/index.ts`
-**Changes:**
-- Add `action: 'markRead'` support OR automatically mark as read when fetching content
-- Call `client.messageFlagsAdd(uid, ['\\Seen'])` after content fetch
-- Return updated `unread: false` status in response
+### File 2: `src/components/ClientDetailDrawer.tsx`
+Update Pipeline Review section to use same simple display as About the Borrower - a click-to-edit box.
 
-### File 3: `src/pages/Email.tsx`
-**Changes:**
-- After fetching email content, update local email state to show as read
-- Update `accountUnreadCounts` to decrement when email is opened
-- Update `folderCounts` to decrement when email is opened
+### File 3: `src/pages/contacts/ApprovedLenders.tsx`
+1. Add `account_executive` to the lender object passed to BulkLenderEmailModal
+2. Update `initialColumns` to only show first 9 columns by default (rowNumber through send_email), plus notes
 
-### File 4: Database Migration (for task automation fix)
-**Changes:**
-- Update `execute_loan_status_changed_automations` trigger to allow re-creation of tasks if:
-  - The previous matching task was created more than 30 days ago, OR
-  - The task was previously completed and the status is being changed again
+### File 4: `src/pages/resources/Condolist.tsx`
+1. Change pageSize from 15 to 20
+2. Change title from "Condolist" to "Condo List"
 
----
+### File 5: Database Migration
+1. Reduce task automation duplicate window from 30 days to 14 days
+2. Add lender email tracking columns: `last_email_sent_at`, `last_email_subject`
 
-## Technical Changes
-
-### FileUpdatesDisplay.tsx Changes
-
-| Section | Current | New |
-|---------|---------|-----|
-| Today's Updates container | `space-y-1` | `space-y-3` |
-| Entry wrapper | No visual marker | Left border indicator |
-| Main container padding | `p-2` | `pt-1 px-2 pb-2` |
-| Entry paragraph margin | `mb-1` | `mb-2` |
-| History entries | `space-y-2` | `space-y-3` |
-
-### IMAP Edge Function Changes
-
-Add after line 265 (after content fetch):
-```typescript
-// Mark email as read after viewing
-try {
-  await client.messageFlagsAdd(String(messageUid), ['\\Seen'], { uid: true });
-  console.log(`Marked email UID ${messageUid} as read`);
-} catch (flagError) {
-  console.error('Error marking email as read:', flagError);
-}
-```
-
-### Email.tsx Changes
-
-In `handleSelectEmail` function, after fetching content:
-```typescript
-// Update local state to mark as read
-setEmails(prev => prev.map(e => 
-  e.uid === email.uid ? { ...e, unread: false } : e
-));
-
-// Update unread counts
-if (email.unread) {
-  setFolderCounts(prev => ({
-    ...prev,
-    [selectedFolder]: Math.max(0, (prev[selectedFolder] || 0) - 1)
-  }));
-  setAccountUnreadCounts(prev => ({
-    ...prev,
-    [selectedAccount]: Math.max(0, (prev[selectedAccount] || 0) - 1)
-  }));
-}
-```
-
-### Database Trigger Update
-
-Modify duplicate prevention to consider task age:
-```sql
-IF NOT EXISTS (
-  SELECT 1 FROM tasks t
-  WHERE t.borrower_id = NEW.id
-    AND t.title = automation_record.task_name
-    AND t.status::text NOT IN ('Done')
-    AND t.created_at > (CURRENT_TIMESTAMP - INTERVAL '30 days')
-)
-```
+### File 6: `src/components/modals/BulkLenderEmailModal.tsx`
+After sending emails, update the lender record with `last_email_sent_at` and `last_email_subject`.
 
 ---
 
 ## Files to Modify
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/components/lead-details/FileUpdatesDisplay.tsx` | Modify | Improve spacing and readability |
-| `supabase/functions/fetch-emails-imap/index.ts` | Modify | Add mark-as-read functionality |
-| `src/pages/Email.tsx` | Modify | Update local state when email is read |
-| New migration file | Create | Update task automation trigger with 30-day window |
+| File | Changes |
+|------|---------|
+| `src/components/lead-details/FileUpdatesDisplay.tsx` | Simplify to basic display format |
+| `src/components/ClientDetailDrawer.tsx` | Make Pipeline Review use simple click-to-edit |
+| `src/pages/contacts/ApprovedLenders.tsx` | Fix merge tag + default columns |
+| `src/pages/resources/Condolist.tsx` | Page size 20, title "Condo List" |
+| `src/components/modals/BulkLenderEmailModal.tsx` | Add email tracking update |
+| New migration SQL | Reduce duplicate window, add lender columns |
 
 ---
 
 ## Expected Results
 
-1. **Latest File Update section** will have better spacing, clearer visual structure, and no unwanted top padding
-2. **Task automations** will create new tasks even if an old matching task exists (if older than 30 days)
-3. **Email read status** will update immediately when an email is clicked:
-   - Blue dot indicator will disappear
-   - Unread count will decrement in folder and account badges
-   - The change will persist on the IMAP server
-
----
-
-## Notes
-
-- The Pipeline Review section is **already present** in the code (lines 2828-2886) and shows alongside Latest File Update. No change needed there.
-- The task automation issue is by design but can be improved with the 30-day window
-- The email read status was simply missing from the implementation
+1. **Latest File Update** - Simple text box like "About the Borrower", with edit capability and "who updated when" footer
+2. **CTC Tasks** - New tasks will be created if previous ones are older than 14 days
+3. **Merge Tags** - `{{AccountExecutiveFirstName}}` will correctly show "David" instead of "Team"
+4. **Email Tracking** - Lenders table will show when last email was sent
+5. **Default Columns** - Only essential columns visible by default
+6. **Condo List** - Shows 20 results, title displays as "Condo List"
