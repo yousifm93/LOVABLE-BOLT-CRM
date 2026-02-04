@@ -970,9 +970,32 @@ export default function Email() {
     setEmailComments([]); // Clear previous comments
     setCommentText("");
     
+    // Track if email was unread before we load content (for UI update)
+    const wasUnread = email.unread;
+    
     // Await email content load so we have the full body for contact parsing
     const content = await fetchEmailContent(email);
     fetchComments(email);
+    
+    // Update local state to mark email as read immediately (server marks it on fetch)
+    if (wasUnread) {
+      setEmails(prev => prev.map(e => 
+        e.uid === email.uid ? { ...e, unread: false } : e
+      ));
+      
+      // Update folder unread counts
+      const currentFolder = selectedFolder || 'Inbox';
+      setFolderCounts(prev => ({
+        ...prev,
+        [currentFolder]: Math.max(0, (prev[currentFolder] || 0) - 1)
+      }));
+      
+      // Update account unread counts
+      setAccountUnreadCounts(prev => ({
+        ...prev,
+        [selectedAccount]: Math.max(0, (prev[selectedAccount] || 0) - 1)
+      }));
+    }
     
     // Trigger contact parsing if in "new-contacts" view - pass the loaded body content
     if (emailView === 'new-contacts' && content) {

@@ -24,10 +24,10 @@ export function FileUpdatesDisplay({ content, onClick }: FileUpdatesDisplayProps
     return lines.map((line, i) => {
       const parts = line.split(/(\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\])/gi);
       return (
-        <p key={`${keyPrefix}-${i}`} className="mb-1 last:mb-0">
+        <p key={`${keyPrefix}-${i}`} className="mb-2 last:mb-0 leading-relaxed">
           {parts.map((part, j) => 
             /^\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\]$/i.test(part) 
-              ? <span key={j} className="font-bold">{part}</span> 
+              ? <span key={j} className="font-semibold text-foreground">{part}</span> 
               : part
           ) || <br />}
         </p>
@@ -51,7 +51,7 @@ export function FileUpdatesDisplay({ content, onClick }: FileUpdatesDisplayProps
 
   return (
     <div 
-      className="bg-white rounded-md p-2 text-xs border cursor-pointer hover:border-primary/50 transition-colors min-h-[80px] max-h-[180px] overflow-y-auto"
+      className="bg-white rounded-md pt-1 px-2 pb-2 text-xs border cursor-pointer hover:border-primary/50 transition-colors min-h-[80px] max-h-[180px] overflow-y-auto"
       onClick={(e) => {
         // Only trigger onClick if not clicking on the collapsible trigger
         if (!(e.target as HTMLElement).closest('[data-history-trigger]')) {
@@ -61,9 +61,9 @@ export function FileUpdatesDisplay({ content, onClick }: FileUpdatesDisplayProps
     >
       {/* Today's Updates */}
       {todayUpdates.length > 0 ? (
-        <div className="space-y-1">
+        <div className="space-y-3">
           {todayUpdates.map((entry, i) => (
-            <div key={`today-${i}`}>
+            <div key={`today-${i}`} className="pl-2 border-l-2 border-primary/40">
               {renderEntry(entry, `today-${i}`)}
             </div>
           ))}
@@ -90,7 +90,7 @@ export function FileUpdatesDisplay({ content, onClick }: FileUpdatesDisplayProps
             )}
             <span>View History ({olderCount} older {olderCount === 1 ? 'entry' : 'entries'})</span>
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 space-y-2 max-h-[200px] overflow-y-auto">
+          <CollapsibleContent className="mt-3 space-y-3 max-h-[200px] overflow-y-auto">
             {olderUpdates.map((entry, i) => (
               <div key={`older-${i}`} className="pl-2 border-l-2 border-muted">
                 {renderEntry(entry, `older-${i}`)}
