@@ -39,6 +39,7 @@ interface BulkLenderEmailModalProps {
   isOpen: boolean;
   onClose: () => void;
   lenders: Lender[];
+  onEmailSent?: () => void;
 }
 
 const MERGE_TAGS = [
@@ -47,7 +48,7 @@ const MERGE_TAGS = [
   { tag: "{{LenderName}}", description: "Lender company name" },
 ];
 
-export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEmailModalProps) {
+export function BulkLenderEmailModal({ isOpen, onClose, lenders, onEmailSent }: BulkLenderEmailModalProps) {
   const { toast } = useToast();
   const { user, crmUser } = useAuth();
   const [isSending, setIsSending] = useState(false);
@@ -185,20 +186,23 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
         }
       }
 
-      if (successCount > 0) {
-        toast({
-          title: "Emails Sent",
-          description: `Successfully sent ${successCount} email${successCount > 1 ? 's' : ''}${errorCount > 0 ? `. ${errorCount} failed.` : ''}`,
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to send emails.",
-          variant: "destructive"
-        });
-      }
+       if (successCount > 0) {
+         toast({
+           title: "Emails Sent",
+           description: `Successfully sent ${successCount} email${successCount > 1 ? 's' : ''}${errorCount > 0 ? `. ${errorCount} failed.` : ''}`,
+         });
+         
+         // Trigger callback to refresh lenders list
+         onEmailSent?.();
+       } else {
+         toast({
+           title: "Error",
+           description: "Failed to send emails.",
+           variant: "destructive"
+         });
+       }
 
-      onClose();
+       onClose();
     } catch (error: any) {
       console.error('Error sending bulk emails:', error);
       toast({

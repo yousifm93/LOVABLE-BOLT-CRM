@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, Filter, Phone, Mail, Building, Users, Upload, Eye, ChevronDown, ChevronRight, Plus, Sparkles } from "lucide-react";
+import { Search, Filter, Phone, Mail, Building, Users, Upload, Eye, ChevronDown, ChevronRight, Plus, Sparkles, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -328,6 +328,7 @@ export default function ApprovedLenders() {
   const [searchTerm, setSearchTerm] = useState("");
   const [lenders, setLenders] = useState<Lender[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalDefaultStatus, setCreateModalDefaultStatus] = useState<string>("Active");
   const [selectedLender, setSelectedLender] = useState<Lender | null>(null);
@@ -392,7 +393,13 @@ export default function ApprovedLenders() {
       });
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadLenders();
   };
 
   // Apply filters to lender data
@@ -927,6 +934,15 @@ export default function ApprovedLenders() {
             />
             <Button 
               variant="outline" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              title="Refresh lenders list"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button 
+              variant="outline" 
               onClick={() => setIsAISearchOpen(true)}
             >
               <Sparkles className="h-4 w-4 mr-2" />
@@ -1090,6 +1106,7 @@ export default function ApprovedLenders() {
           setEmailModalLender(null);
         }}
         lender={emailModalLender}
+        onEmailSent={loadLenders}
       />
 
       <BulkLenderEmailModal
@@ -1104,6 +1121,7 @@ export default function ApprovedLenders() {
           account_executive: l.account_executive,
           account_executive_email: l.account_executive_email
         }))}
+        onEmailSent={loadLenders}
       />
 
       <DeleteConfirmationDialog
