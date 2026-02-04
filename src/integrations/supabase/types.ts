@@ -2338,6 +2338,7 @@ export type Database = {
           id: string
           is_lender_marketing: boolean | null
           lead_id: string | null
+          lender_id: string | null
           lender_marketing_category: string | null
           lender_marketing_data: Json | null
           opened_at: string | null
@@ -2365,6 +2366,7 @@ export type Database = {
           id?: string
           is_lender_marketing?: boolean | null
           lead_id?: string | null
+          lender_id?: string | null
           lender_marketing_category?: string | null
           lender_marketing_data?: Json | null
           opened_at?: string | null
@@ -2392,6 +2394,7 @@ export type Database = {
           id?: string
           is_lender_marketing?: boolean | null
           lead_id?: string | null
+          lender_id?: string | null
           lender_marketing_category?: string | null
           lender_marketing_data?: Json | null
           opened_at?: string | null
@@ -2416,6 +2419,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_lender_id_fkey"
+            columns: ["lender_id"]
+            isOneToOne: false
+            referencedRelation: "lenders"
             referencedColumns: ["id"]
           },
           {

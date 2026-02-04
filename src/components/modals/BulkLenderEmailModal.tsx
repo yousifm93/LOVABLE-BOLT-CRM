@@ -168,6 +168,7 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
               from_email: "scenarios@mortgagebolt.org",
               from_name: senderName,
               reply_to: replyToEmail,
+              lender_id: lender.id, // Server now handles tracking updates
               attachments: attachmentPayloads.length > 0 ? attachmentPayloads : undefined
             }
           });
@@ -177,13 +178,6 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
             errorCount++;
           } else {
             successCount++;
-            // Update lender with last email sent info
-            await supabase.from('lenders')
-              .update({
-                last_email_sent_at: new Date().toISOString(),
-                last_email_subject: personalizedSubject
-              })
-              .eq('id', lender.id);
           }
         } catch (err) {
           console.error(`Error sending to ${lender.lender_name}:`, err);

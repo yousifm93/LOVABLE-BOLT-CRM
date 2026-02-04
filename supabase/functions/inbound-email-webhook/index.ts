@@ -319,28 +319,49 @@ serve(async (req) => {
 
     // STEP 1: Try to match by actual sender email (only if we have a valid non-team email)
     if (actualSenderEmail && !EXCLUDED_TEAM_EMAILS.includes(actualSenderEmail.toLowerCase())) {
-      const { data: matchingLeads, error: leadError } = await supabase
+      // Check for lead match
+      const { data: matchingLeads } = await supabase
         .from('leads')
         .select('id, first_name, last_name, email')
         .or(`email.ilike.%${actualSenderEmail}%,co_borrower_email.ilike.%${actualSenderEmail}%`)
         .limit(1);
 
-      if (leadError) {
-        console.error('[Inbound Email Webhook] Error searching leads by sender:', leadError);
+      if (matchingLeads?.[0] && !isTeamMemberLead(matchingLeads[0])) {
+        leadId = matchingLeads[0].id;
+        matchMethod = 'sender_email';
+        console.log('[Inbound Email Webhook] Matched lead by sender email:', leadId);
       }
 
-      if (matchingLeads?.[0]) {
-        // Make sure it's not a team member lead
-        if (!isTeamMemberLead(matchingLeads[0])) {
-          leadId = matchingLeads[0].id;
-          matchMethod = 'sender_email';
-          console.log('[Inbound Email Webhook] Matched lead by sender email:', leadId);
-        } else {
-          console.log('[Inbound Email Webhook] Skipping team member lead match');
-        }
+      // Check for lender match
+      const { data: matchingLenders } = await supabase
+        .from('lenders')
+        .select('id, lender_name')
+        .ilike('account_executive_email', actualSenderEmail)
+        .limit(1);
+
+      if (matchingLenders?.[0]) {
+        const lender = matchingLenders[0];
+        console.log('[Inbound Email Webhook] Matched lender by sender email:', lender.id);
+        
+        // Log to email_logs with lender_id
+        await supabase.from('email_logs').insert({
+          lender_id: lender.id,
+          lead_id: leadId,
+          recipient_email: recipientEmail,
+          sender_email: actualSenderEmail,
+          subject: subject,
+          body: textBody,
+          html_body: htmlBody,
+          direction: 'In',
+          delivery_status: 'received'
+        });
+
+        // Update lender record for reply tracking
+        await supabase.from('lenders').update({
+          last_email_replied: true,
+          last_email_replied_at: new Date().toISOString()
+        }).eq('id', lender.id);
       }
-    } else {
-      console.log('[Inbound Email Webhook] Skipping sender-based matching (no valid sender or team email)');
     }
 
     // STEP 2: If no match by sender, try matching by subject/content (ALWAYS do this for forwarded emails)

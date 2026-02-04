@@ -117,6 +117,18 @@ serve(async (req) => {
           updates.delivery_status = 'complained';
         } else if (mappedEventType === 'open') {
           updates.opened_at = occurredAt;
+          
+          // Sync to lenders table if metadata exists
+          const lenderId = event.lender_id || emailLog.lender_id;
+          if (lenderId) {
+            await supabase
+              .from('lenders')
+              .update({ 
+                last_email_opened: true, 
+                last_email_opened_at: occurredAt 
+              })
+              .eq('id', lenderId);
+          }
         } else if (mappedEventType === 'click') {
           updates.clicked_at = occurredAt;
         }
