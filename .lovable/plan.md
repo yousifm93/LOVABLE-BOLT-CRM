@@ -1,183 +1,140 @@
 
 
-# Fix Email-Specific Open and Reply Tracking
+# Fix Email Open and Reply Tracking Issues
 
-## Root Cause Analysis
+## Problems Identified
 
-### Problem 1: Email Opened Shows 3 Instead of 2
-The `email-webhooks` function updates `lenders.last_email_opened` whenever ANY open event is received for that lender - even if it's from a previously sent email. So when you sent 3 new emails, previous opens on older emails still update the lender-level flag.
+### Problem 1: Email Opens Not Registering
+**Symptom**: You opened all 3 emails but none show "Opened: Yes"
 
-### Problem 2: Replied Shows 11 Instead of 1
-The `sync-lender-email-replies` function matches ANY email from the lender's domain (e.g., `@angeloakms.com`) in the Scenarios inbox. If there are 11 emails from lenders in that inbox (from any time), it marks all 11 lenders as "replied".
+**Root Cause**: The logs show `Skipping lender ... open update - email is older than last sent`. The comparison between `emailLog.created_at` and `lender.last_email_sent_at` is failing due to slight timing differences - both are set at nearly the same time when sending, but millisecond differences cause the check to fail.
 
----
-
-## Solution: Track Opens and Replies Per-Email, Not Per-Lender
-
-The lender-level columns (`last_email_opened`, `last_email_replied`) should ONLY reflect the status of the **most recently sent email** to that lender, not any email ever sent.
-
-### Change 1: Only Update Lender Open Status for the LATEST Sent Email
-
-**File: `supabase/functions/email-webhooks/index.ts`**
-
-When an open event is received:
-1. Match it to a specific `email_logs` record (already working)
-2. Before updating `lenders.last_email_opened`, check if this email is the most recent one sent to that lender
-3. Only update the lender flag if `email_logs.created_at >= lenders.last_email_sent_at`
-
-```text
-Current flow:
-  Open event → Find email_log → Update lenders.last_email_opened = true
-
-New flow:
-  Open event → Find email_log → 
-    → Check if email_log.created_at >= lender.last_email_sent_at
-    → If yes, update lenders.last_email_opened = true
-    → If no, skip lender update (it's an old email)
-```
-
-### Change 2: Only Detect Replies That Are AFTER the Last Sent Email
-
-**File: `supabase/functions/sync-lender-email-replies/index.ts`**
-
-When checking for replies:
-1. Get `lenders.last_email_sent_at` for each lender
-2. Only count inbox emails that have a date AFTER `last_email_sent_at`
-3. Match by domain AND ensure the reply came after the email was sent
-
-```text
-Current flow:
-  Fetch inbox → Match any email from lender domain → Mark as replied
-
-New flow:
-  Fetch inbox → For each lender:
-    → Get last_email_sent_at
-    → Find inbox email from lender domain where email.date > last_email_sent_at
-    → Only then mark as replied
-```
+**Fix**: Compare with a small tolerance (e.g., 5 seconds) OR store the `email_log_id` in `custom_args` and match by that instead of timestamp.
 
 ---
 
-## Technical Implementation
+### Problem 2: All 3 Lenders Marked as Replied (but only 1 replied)
+**Symptom**: You replied to 1 email, but all 3 lenders show "Replied: Yes"
+
+**Root Cause**: The logs reveal:
+```text
+Updated ACRA - reply detected from mbborrower@gmail.com
+Updated ADVANCIAL - reply detected from mbborrower@gmail.com  
+Updated BAC - reply detected from mbborrower@gmail.com
+```
+
+All 3 lenders have Account Executive emails at the same domain (`gmail.com`). Since domain matching is used, a single reply from `mbborrower@gmail.com` matches all lenders with `@gmail.com` AE emails.
+
+**Fix**: For common public email domains (gmail.com, yahoo.com, outlook.com, hotmail.com, etc.), use **exact email match** instead of domain match. Only use domain matching for corporate domains.
+
+---
+
+### Problem 3: Reply Status Not Resetting When New Email Sent
+**Symptom**: 11 lenders still showed "Replied: Yes" after sending new emails
+
+**Root Cause**: The `send-direct-email` function only resets `last_email_opened` and `last_email_replied` to `false`, but doesn't reset the `_at` timestamp columns to `null`. Also, lenders who weren't in the new batch (the other 8) weren't updated at all.
+
+**Fix**: Reset both boolean AND timestamp columns. Also ensure the logic correctly identifies that only lenders who received the NEW email should be evaluated.
+
+---
+
+## Technical Changes
 
 ### File 1: `supabase/functions/email-webhooks/index.ts`
 
-Add a check before updating lender open status (around lines 172-181):
+**Fix Open Detection Timing Issue**
+
+Change the timestamp comparison to allow a 5-second tolerance window:
 
 ```typescript
-// Before updating lenders, verify this email is the most recent one sent
-if (lenderId) {
-  // Get the lender's last_email_sent_at
-  const { data: lender } = await supabase
-    .from('lenders')
-    .select('last_email_sent_at')
-    .eq('id', lenderId)
-    .single();
-  
-  // Only update lender if this email was sent at or after last_email_sent_at
-  if (lender && emailLog && emailLog.created_at) {
-    const emailSentAt = new Date(emailLog.created_at).getTime();
-    const lastSentAt = lender.last_email_sent_at 
-      ? new Date(lender.last_email_sent_at).getTime() 
-      : 0;
-    
-    if (emailSentAt >= lastSentAt) {
-      await supabase
-        .from('lenders')
-        .update({ 
-          last_email_opened: true, 
-          last_email_opened_at: occurredAt 
-        })
-        .eq('id', lenderId);
-    } else {
-      console.log(`Skipping lender update - email is older than last sent email`);
-    }
-  }
-}
+// Current problematic code:
+if (emailSentAt >= lastSentAt) { ... }
+
+// Fixed code - allow 5-second tolerance:
+const toleranceMs = 5000; // 5 seconds
+if (emailSentAt >= lastSentAt - toleranceMs) { ... }
 ```
+
+This accounts for the small time difference between when `email_logs.created_at` and `lenders.last_email_sent_at` are set.
+
+---
 
 ### File 2: `supabase/functions/sync-lender-email-replies/index.ts`
 
-Modify to include `last_email_sent_at` in the lender query and only match replies that came after:
+**Fix Domain Matching for Public Domains**
+
+Add a list of public email domains that require exact email matching:
 
 ```typescript
-// Step 3: Get all lenders with email addresses AND their last_email_sent_at
-const { data: lenders, error: lendersError } = await supabase
-  .from("lenders")
-  .select("id, lender_name, account_executive_email, last_email_replied, last_email_sent_at")
-  .not("account_executive_email", "is", null)
-  .not("last_email_sent_at", "is", null); // Only check lenders we've emailed
+const PUBLIC_DOMAINS = new Set([
+  'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 
+  'aol.com', 'icloud.com', 'protonmail.com', 'live.com',
+  'msn.com', 'me.com', 'mail.com', 'ymail.com'
+]);
 
-// Step 4: For each lender, check if reply came AFTER we sent our email
-for (const lender of lenders || []) {
-  const aeDomain = lender.account_executive_email.split("@")[1]?.toLowerCase();
-  
-  if (aeDomain && domainEmailMap.has(aeDomain)) {
-    const emailInfo = domainEmailMap.get(aeDomain)!;
-    
-    // Parse the reply date from IMAP (need to get raw date from IMAP)
-    // For now, we'll need to modify fetch-emails-imap to return rawDate
-    // OR use the current approach but reset replied status when sending new emails
-  }
+// For each lender:
+const aeDomain = lender.account_executive_email.split("@")[1]?.toLowerCase();
+const aeEmail = lender.account_executive_email.toLowerCase();
+
+let matched = false;
+
+if (PUBLIC_DOMAINS.has(aeDomain)) {
+  // Exact email match required for public domains
+  matched = emailsFromDomain.some(email => 
+    email.fromEmail.toLowerCase() === aeEmail && 
+    new Date(email.rawDate).getTime() > lastSentAt
+  );
+} else {
+  // Domain match for corporate domains
+  matched = emailsFromDomain.some(email => 
+    new Date(email.rawDate).getTime() > lastSentAt
+  );
 }
 ```
 
-### Change 3: Reset Tracking When Sending New Email
+Also build an email-level map in addition to domain-level map for exact matching.
 
-**File: Email sending function (send-direct-email or similar)**
+---
 
-When a new email is sent to a lender, reset the tracking flags:
+### File 3: `supabase/functions/send-direct-email/index.ts`
+
+**Reset All Tracking Fields When Sending New Email**
+
+Update the lender update to also clear the timestamp columns:
 
 ```typescript
-// When sending email, reset the open/reply tracking for fresh tracking
-await supabase
-  .from('lenders')
-  .update({
-    last_email_sent_at: new Date().toISOString(),
-    last_email_subject: subject,
-    last_email_opened: false,        // Reset
-    last_email_opened_at: null,      // Reset
-    last_email_replied: false,       // Reset
-    last_email_replied_at: null,     // Reset
-  })
-  .eq('id', lenderId);
+const { error: updateError } = await supabase.from('lenders').update({
+  last_email_sent_at: new Date().toISOString(),
+  last_email_subject: subject,
+  last_email_opened: false,
+  last_email_opened_at: null,     // ADD THIS
+  last_email_replied: false,
+  last_email_replied_at: null,    // ADD THIS
+}).eq('id', lender_id);
 ```
-
-This ensures that after sending a new email:
-- `last_email_opened` starts as `false` until THIS email is opened
-- `last_email_replied` starts as `false` until a reply to THIS email is detected
 
 ---
 
 ## Summary of Changes
 
-| File | Change |
-|------|--------|
-| `email-webhooks/index.ts` | Only update lender open status if email is the most recent sent |
-| `sync-lender-email-replies/index.ts` | Only count replies that came after `last_email_sent_at` |
-| Email sending logic | Reset `last_email_opened` and `last_email_replied` to false when sending |
+| File | Change | Fixes |
+|------|--------|-------|
+| `email-webhooks/index.ts` | Add 5-second tolerance to timestamp comparison | Opens not registering |
+| `sync-lender-email-replies/index.ts` | Use exact email match for public domains (gmail, etc.) | All 3 marked as replied when only 1 replied |
+| `send-direct-email/index.ts` | Reset `_at` timestamp columns to null | Reply status not resetting |
 
 ---
 
 ## Expected Behavior After Fix
 
-1. You send emails to 3 lenders → All 3 have:
-   - `last_email_opened = false`
-   - `last_email_replied = false`
-   
-2. You open 2 of the emails → Only those 2 show:
-   - `last_email_opened = true`
-   - The 3rd remains `false`
+1. **Send emails to 3 lenders** → All 3 have:
+   - `last_email_opened = false`, `last_email_opened_at = null`
+   - `last_email_replied = false`, `last_email_replied_at = null`
 
-3. You reply to 1 email, click "Check Replies" → Only that 1 shows:
+2. **Open 2 of the 3 emails** → Only those 2 show:
+   - `last_email_opened = true` (within 5-second tolerance window)
+
+3. **Reply to 1 email from gmail lender** → Only that 1 lender shows:
    - `last_email_replied = true`
-   - The other 2 remain `false`
-
----
-
-## Files to Modify
-
-1. **`supabase/functions/email-webhooks/index.ts`** - Add date comparison before updating lender
-2. **`supabase/functions/sync-lender-email-replies/index.ts`** - Filter replies by date after last sent
-3. **Email sending component/function** - Reset open/reply flags when sending new email
+   - Other gmail lenders remain `false` (exact email match used)
 
