@@ -110,11 +110,15 @@ interface Lender {
   max_ltv?: number;
   // Other
   epo_period?: string;
+  // Email tracking
+  last_email_sent_at?: string;
+  last_email_subject?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   custom_fields?: any;
 }
 
 // Initial columns - comprehensive list of all lender fields
+// Default: first 9 columns visible (up to Send Email), plus notes
 const initialColumns = [
   { id: "rowNumber", label: "#", visible: true },
   { id: "lender_name", label: "Lender Name", visible: true },
@@ -124,13 +128,14 @@ const initialColumns = [
   { id: "ae_phone", label: "AE Phone", visible: true },
   { id: "broker_portal_url", label: "Broker Portal", visible: true },
   { id: "send_email", label: "Send Email", visible: true },
-  // Loan Limits & Dates
+  { id: "last_email_sent", label: "Last Email Sent", visible: true },
+  // Loan Limits & Dates - hidden by default
   { id: "min_loan_amount", label: "Min Loan", visible: false },
   { id: "max_loan_amount", label: "Max Loan", visible: false },
   { id: "initial_approval_date", label: "Initial Approval", visible: false },
   { id: "renewed_on", label: "Renewed On", visible: false },
   { id: "epo_period", label: "EPO Period", visible: false },
-  // Products
+  // Products - hidden by default
   { id: "product_fha", label: "FHA", visible: false },
   { id: "product_va", label: "VA", visible: false },
   { id: "product_conv", label: "Conventional", visible: false },
@@ -632,6 +637,26 @@ export default function ApprovedLenders() {
       });
     }
 
+    // Last Email Sent
+    if (isColumnVisible("last_email_sent")) {
+      cols.push({
+        accessorKey: "last_email_sent_at",
+        header: "Last Email Sent",
+        cell: ({ row }) => {
+          const sentAt = row.original.last_email_sent_at;
+          const subject = row.original.last_email_subject;
+          if (!sentAt) return <span className="text-muted-foreground text-xs">—</span>;
+          return (
+            <div className="text-xs">
+              <div className="font-medium">{format(new Date(sentAt), 'MMM dd, yyyy')}</div>
+              {subject && <div className="text-muted-foreground truncate max-w-[150px]" title={subject}>{subject}</div>}
+            </div>
+          );
+        },
+        sortable: true,
+      } as ColumnDef<Lender & { rowNumber?: number }>);
+    }
+
     // Loan limits
     if (isColumnVisible("min_loan_amount")) {
       cols.push({
@@ -1025,6 +1050,7 @@ export default function ApprovedLenders() {
         lenders={lenders.filter(l => selectedIds.has(l.id)).map(l => ({
           id: l.id,
           lender_name: l.lender_name,
+          account_executive: l.account_executive,
           account_executive_email: l.account_executive_email
         }))}
       />

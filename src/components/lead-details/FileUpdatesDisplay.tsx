@@ -1,103 +1,28 @@
 import * as React from "react";
-import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { parseFileUpdatesByDate } from "@/utils/fileUpdatesParser";
 import { cn } from "@/lib/utils";
 
 interface FileUpdatesDisplayProps {
   content: string;
   onClick?: () => void;
+  className?: string;
 }
 
 /**
- * Renders file updates with today's entries visible and older entries in a collapsible section
+ * Simple display for file updates - click to edit, shows content in a clean box
  */
-export function FileUpdatesDisplay({ content, onClick }: FileUpdatesDisplayProps) {
-  const [historyOpen, setHistoryOpen] = useState(false);
-  
-  const { todayUpdates, olderUpdates, olderCount } = parseFileUpdatesByDate(content);
-
-  // Render a single entry with bolded timestamps
-  const renderEntry = (text: string, keyPrefix: string) => {
-    const lines = text.split('\n');
-    return lines.map((line, i) => {
-      const parts = line.split(/(\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\])/gi);
-      return (
-        <p key={`${keyPrefix}-${i}`} className="mb-2 last:mb-0 leading-relaxed">
-          {parts.map((part, j) => 
-            /^\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\]$/i.test(part) 
-              ? <span key={j} className="font-semibold text-foreground">{part}</span> 
-              : part
-          ) || <br />}
-        </p>
-      );
-    });
-  };
-
-  // If no parsed entries, show raw content
-  if (todayUpdates.length === 0 && olderUpdates.length === 0) {
-    return (
-      <div 
-        className="bg-white rounded-md p-2 text-xs border cursor-pointer hover:border-primary/50 transition-colors min-h-[80px]"
-        onClick={onClick}
-      >
-        {content.split('\n').map((line, i) => (
-          <p key={i} className="mb-1 last:mb-0">{line || <br />}</p>
-        ))}
-      </div>
-    );
-  }
-
+export function FileUpdatesDisplay({ content, onClick, className }: FileUpdatesDisplayProps) {
   return (
     <div 
-      className="bg-white rounded-md pt-1 px-2 pb-2 text-xs border cursor-pointer hover:border-primary/50 transition-colors min-h-[80px] max-h-[180px] overflow-y-auto"
-      onClick={(e) => {
-        // Only trigger onClick if not clicking on the collapsible trigger
-        if (!(e.target as HTMLElement).closest('[data-history-trigger]')) {
-          onClick?.();
-        }
-      }}
-    >
-      {/* Today's Updates */}
-      {todayUpdates.length > 0 ? (
-        <div className="space-y-3">
-          {todayUpdates.map((entry, i) => (
-            <div key={`today-${i}`} className="pl-2 border-l-2 border-primary/40">
-              {renderEntry(entry, `today-${i}`)}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-muted-foreground italic mb-2">No updates today</p>
+      className={cn(
+        "bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors min-h-[100px] whitespace-pre-wrap",
+        className
       )}
-
-      {/* Older Updates - Collapsible */}
-      {olderCount > 0 && (
-        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
-          <CollapsibleTrigger 
-            data-history-trigger
-            className={cn(
-              "flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-3 pt-2 border-t w-full",
-              "transition-colors cursor-pointer"
-            )}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {historyOpen ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
-            )}
-            <span>View History ({olderCount} older {olderCount === 1 ? 'entry' : 'entries'})</span>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-3 space-y-3 max-h-[200px] overflow-y-auto">
-            {olderUpdates.map((entry, i) => (
-              <div key={`older-${i}`} className="pl-2 border-l-2 border-muted">
-                {renderEntry(entry, `older-${i}`)}
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
+      onClick={onClick}
+    >
+      {content ? (
+        <p className="leading-relaxed text-foreground">{content}</p>
+      ) : (
+        <p className="text-muted-foreground italic">Click to add notes...</p>
       )}
     </div>
   );

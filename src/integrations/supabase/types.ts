@@ -3880,6 +3880,8 @@ export type Database = {
           initial_approval_date: string | null
           insurance_clause: string | null
           jumbo_max_ltv: number | null
+          last_email_sent_at: string | null
+          last_email_subject: string | null
           lender_name: string
           lender_type: Database["public"]["Enums"]["lender_type"]
           ltv_1099: number | null
@@ -3966,6 +3968,8 @@ export type Database = {
           initial_approval_date?: string | null
           insurance_clause?: string | null
           jumbo_max_ltv?: number | null
+          last_email_sent_at?: string | null
+          last_email_subject?: string | null
           lender_name: string
           lender_type?: Database["public"]["Enums"]["lender_type"]
           ltv_1099?: number | null
@@ -4052,6 +4056,8 @@ export type Database = {
           initial_approval_date?: string | null
           insurance_clause?: string | null
           jumbo_max_ltv?: number | null
+          last_email_sent_at?: string | null
+          last_email_subject?: string | null
           lender_name?: string
           lender_type?: Database["public"]["Enums"]["lender_type"]
           ltv_1099?: number | null
