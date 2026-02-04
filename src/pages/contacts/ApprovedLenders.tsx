@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, Filter, Phone, Mail, Building, Users, Upload, Eye, ChevronDown, ChevronRight, Plus, Sparkles, RefreshCw } from "lucide-react";
+import { Search, Filter, Phone, Mail, Building, Users, Eye, ChevronDown, ChevronRight, Plus, Sparkles, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -337,7 +337,7 @@ export default function ApprovedLenders() {
   const [emailModalLender, setEmailModalLender] = useState<Lender | null>(null);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isBulkEmailModalOpen, setIsBulkEmailModalOpen] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
+  
   const [lenderToDelete, setLenderToDelete] = useState<Lender | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -400,6 +400,10 @@ export default function ApprovedLenders() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await loadLenders();
+    toast({
+      title: "Refreshed",
+      description: "Lender data updated from database.",
+    });
   };
 
   // Apply filters to lender data
@@ -407,45 +411,6 @@ export default function ApprovedLenders() {
     return applyAdvancedFilters(lenders, filters);
   }, [lenders, filters]);
 
-  const handleImportLenders = async () => {
-    setIsImporting(true);
-    toast({
-      title: "Importing...",
-      description: "Fetching lender data from CSV file.",
-    });
-
-    try {
-      const response = await fetch('/lenders-import.csv');
-      if (!response.ok) {
-        throw new Error('Failed to fetch CSV file');
-      }
-      const csvData = await response.text();
-
-      const { data, error } = await supabase.functions.invoke('import-lenders', {
-        body: { csvData }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Import Complete",
-        description: `Created: ${data.created}, Updated: ${data.updated}, Skipped: ${data.skipped}, Errors: ${data.errors}`,
-      });
-
-      await loadLenders();
-    } catch (error) {
-      console.error('Error importing lenders:', error);
-      toast({
-        title: "Import Failed",
-        description: error instanceof Error ? error.message : "Failed to import lenders.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsImporting(false);
-    }
-  };
 
   const handleUpdateLender = async (id: string, updates: Partial<Lender>) => {
     try {
@@ -947,14 +912,6 @@ export default function ApprovedLenders() {
             >
               <Sparkles className="h-4 w-4 mr-2" />
               AI Search
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleImportLenders}
-              disabled={isImporting}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              {isImporting ? "Importing..." : "Import from CSV"}
             </Button>
             {selectedIds.size > 0 && (
               <>
