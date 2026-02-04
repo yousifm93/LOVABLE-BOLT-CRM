@@ -329,6 +329,7 @@ export default function ApprovedLenders() {
   const [lenders, setLenders] = useState<Lender[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCheckingReplies, setIsCheckingReplies] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalDefaultStatus, setCreateModalDefaultStatus] = useState<string>("Active");
   const [selectedLender, setSelectedLender] = useState<Lender | null>(null);
@@ -404,6 +405,36 @@ export default function ApprovedLenders() {
       title: "Refreshed",
       description: "Lender data updated from database.",
     });
+  };
+
+  const handleCheckReplies = async () => {
+    setIsCheckingReplies(true);
+    try {
+      const response = await supabase.functions.invoke('sync-lender-email-replies');
+      
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+      
+      const data = response.data;
+      await loadLenders();
+      
+      toast({
+        title: "Replies Checked",
+        description: data.updated_count > 0 
+          ? `Found ${data.updated_count} new replies from ${data.emails_scanned} emails scanned.`
+          : `No new replies found. Scanned ${data.emails_scanned} emails.`,
+      });
+    } catch (error) {
+      console.error('Error checking replies:', error);
+      toast({
+        title: "Error",
+        description: "Failed to check for email replies.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCheckingReplies(false);
+    }
   };
 
   // Apply filters to lender data
@@ -905,6 +936,15 @@ export default function ApprovedLenders() {
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleCheckReplies}
+              disabled={isCheckingReplies}
+              title="Check Scenarios inbox for lender replies"
+            >
+              <Mail className={`h-4 w-4 mr-2 ${isCheckingReplies ? 'animate-pulse' : ''}`} />
+              {isCheckingReplies ? 'Checking...' : 'Check Replies'}
             </Button>
             <Button 
               variant="outline" 

@@ -16,15 +16,65 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") || "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    console.log("Fetching emails from Scenarios inbox via IMAP...");
+
+    // Step 1: Fetch last 100 emails from Scenarios inbox via internal call to fetch-emails-imap
+    const imapResponse = await fetch(
+      `${supabaseUrl}/functions/v1/fetch-emails-imap`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${supabaseServiceKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          account: "scenarios",
+          folder: "INBOX",
+          limit: 100,
+        }),
+      }
     );
 
-    // Get all lenders with email addresses
+    if (!imapResponse.ok) {
+      const errorText = await imapResponse.text();
+      console.error("IMAP fetch failed:", errorText);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch emails from IMAP", details: errorText }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
+    const imapData = await imapResponse.json();
+    const emails = imapData.emails || [];
+    console.log(`Fetched ${emails.length} emails from Scenarios inbox`);
+
+    // Step 2: Build domain-to-email map (most recent email per domain)
+    const domainEmailMap = new Map<string, { date: string; fromEmail: string }>();
+    for (const email of emails) {
+      if (!email.fromEmail) continue;
+      const domain = email.fromEmail.split("@")[1]?.toLowerCase();
+      // Exclude mortgagebolt.org emails (our own emails)
+      if (domain && !domain.includes("mortgagebolt")) {
+        // Keep the most recent email per domain (emails are sorted by date desc)
+        if (!domainEmailMap.has(domain)) {
+          domainEmailMap.set(domain, { 
+            date: email.date || new Date().toISOString(), 
+            fromEmail: email.fromEmail 
+          });
+        }
+      }
+    }
+    console.log(`Built domain map with ${domainEmailMap.size} unique domains`);
+
+    // Step 3: Get all lenders with email addresses
     const { data: lenders, error: lendersError } = await supabase
       .from("lenders")
-      .select("id, lender_name, account_executive_email")
+      .select("id, lender_name, account_executive_email, last_email_replied")
       .not("account_executive_email", "is", null);
 
     if (lendersError) {
@@ -37,38 +87,21 @@ Deno.serve(async (req) => {
 
     let updatedCount = 0;
 
-    // For each lender, check for reply emails
+    // Step 4: For each lender, check if their AE domain appears in the emails map
     for (const lender of lenders || []) {
       if (!lender.account_executive_email) continue;
 
-      // Extract domain from lender's AE email
-      const aeEmail = lender.account_executive_email;
-      const domain = aeEmail.split("@")[1];
-
-      // Find emails FROM the lender domain TO scenarios inbox (replies)
-      const { data: replyEmails, error: emailError } = await supabase
-        .from("email_logs")
-        .select("id, subject, from_email, body, html_body, timestamp")
-        .eq("to_email", "scenarios@mortgagebolt.org")
-        .ilike("from_email", `%@${domain}`)
-        .eq("direction", "In")
-        .order("timestamp", { ascending: false })
-        .limit(1);
-
-      if (emailError) {
-        console.error(`Error fetching emails for ${lender.lender_name}:`, emailError);
-        continue;
-      }
-
-      // If we found a reply, update the lender
-      if (replyEmails && replyEmails.length > 0) {
-        const latestReply = replyEmails[0];
+      const aeDomain = lender.account_executive_email.split("@")[1]?.toLowerCase();
+      
+      if (aeDomain && domainEmailMap.has(aeDomain)) {
+        const emailInfo = domainEmailMap.get(aeDomain)!;
+        
+        // Update lender as having replied
         const { error: updateError } = await supabase
           .from("lenders")
           .update({
             last_email_replied: true,
-            last_email_replied_at: latestReply.timestamp,
-            last_email_reply_content: latestReply.body || latestReply.html_body || "Email received",
+            last_email_replied_at: emailInfo.date,
           })
           .eq("id", lender.id);
 
@@ -77,7 +110,7 @@ Deno.serve(async (req) => {
         } else {
           updatedCount++;
           console.log(
-            `Updated ${lender.lender_name} - reply detected at ${latestReply.timestamp}`
+            `Updated ${lender.lender_name} - reply detected from ${emailInfo.fromEmail} at ${emailInfo.date}`
           );
         }
       }
@@ -88,6 +121,8 @@ Deno.serve(async (req) => {
         success: true,
         message: `Synced email replies for ${updatedCount} lenders`,
         updated_count: updatedCount,
+        domains_found: domainEmailMap.size,
+        emails_scanned: emails.length,
       }),
       { status: 200, headers: corsHeaders }
     );
