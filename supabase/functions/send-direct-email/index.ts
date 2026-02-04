@@ -156,7 +156,7 @@ serve(async (req: Request): Promise<Response> => {
           from_email: from_email,
           subject: subject,
           html_body: sanitizedHtml,
-          direction: 'outbound',
+          direction: 'Out',
           provider_message_id: providerMessageId,
           delivery_status: 'sent'
         });

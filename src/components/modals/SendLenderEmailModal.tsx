@@ -25,9 +25,10 @@ interface SendLenderEmailModalProps {
   isOpen: boolean;
   onClose: () => void;
   lender: Lender | null;
+  onEmailSent?: () => void;
 }
 
-export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmailModalProps) {
+export function SendLenderEmailModal({ isOpen, onClose, lender, onEmailSent }: SendLenderEmailModalProps) {
   const { toast } = useToast();
   const { user, crmUser } = useAuth();
   const [isSending, setIsSending] = useState(false);
@@ -107,6 +108,8 @@ export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmai
         description: `Email sent to ${lender.account_executive_email}`,
       });
 
+      // Trigger callback to refresh lenders list
+      onEmailSent?.();
       onClose();
     } catch (error: any) {
       console.error('Error sending email:', error);

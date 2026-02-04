@@ -179,7 +179,8 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
   const [showPassword, setShowPassword] = useState(false);
   const [associatedClients, setAssociatedClients] = useState<AssociatedClient[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
-  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
+  const [sentEmails, setSentEmails] = useState<EmailLog[]>([]);
+  const [receivedEmails, setReceivedEmails] = useState<EmailLog[]>([]);
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -193,7 +194,8 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
   useEffect(() => {
     if (lender?.id && isOpen) {
       loadAssociatedClients();
-      loadEmailLogs();
+      loadSentScenarioEmails();
+      loadReceivedLenderEmails();
       loadEmailTemplates();
     }
   }, [lender?.id, isOpen]);
@@ -217,29 +219,55 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
     }
   };
 
-  const loadEmailLogs = async () => {
+  const loadSentScenarioEmails = async () => {
+    if (!lender?.id) {
+      setSentEmails([]);
+      return;
+    }
+    setLoadingEmails(true);
+    try {
+      // Query emails sent FROM CRM to this lender (direction = 'Out', lender_id matches)
+      const { data, error } = await supabase
+        .from('email_logs')
+        .select('id, subject, timestamp, delivery_status, opened_at, from_email, to_email, direction')
+        .eq('lender_id', lender.id)
+        .eq('direction', 'Out')
+        .order('timestamp', { ascending: false })
+        .limit(20);
+      
+      if (error) throw error;
+      setSentEmails(data || []);
+    } catch (error) {
+      console.error('Error loading sent scenario emails:', error);
+    } finally {
+      setLoadingEmails(false);
+    }
+  };
+
+  const loadReceivedLenderEmails = async () => {
     if (!lender?.account_executive_email) {
-      setEmailLogs([]);
+      setReceivedEmails([]);
       return;
     }
     setLoadingEmails(true);
     try {
       const aeEmail = lender.account_executive_email;
-      // Extract domain from AE email (e.g., "admortgage.com" from "david@admortgage.com")
+      // Extract domain from AE email
       const domain = aeEmail.split('@')[1];
       
-      // Query emails TO the AE, FROM the AE, or FROM the same domain
+      // Query emails FROM lender (direction = 'In') 
       const { data, error } = await supabase
         .from('email_logs')
         .select('id, subject, timestamp, delivery_status, opened_at, from_email, to_email, direction')
-        .or(`to_email.eq.${aeEmail},from_email.eq.${aeEmail},from_email.ilike.%@${domain}`)
+        .eq('direction', 'In')
+        .or(`from_email.eq.${aeEmail},from_email.ilike.%@${domain}`)
         .order('timestamp', { ascending: false })
         .limit(20);
       
       if (error) throw error;
-      setEmailLogs(data || []);
+      setReceivedEmails(data || []);
     } catch (error) {
-      console.error('Error loading email logs:', error);
+      console.error('Error loading received lender emails:', error);
     } finally {
       setLoadingEmails(false);
     }
@@ -398,13 +426,14 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
       if (error) throw error;
 
-      toast({
-        title: "Email Sent",
-        description: `Email sent to ${lender.account_executive_email}`,
-      });
+       toast({
+         title: "Email Sent",
+         description: `Email sent to ${lender.account_executive_email}`,
+       });
 
-      // Reload email logs
-      loadEmailLogs();
+       // Reload email logs
+       await loadSentScenarioEmails();
+       await loadReceivedLenderEmails();
     } catch (error) {
       console.error('Error sending email:', error);
       toast({
@@ -1138,62 +1167,105 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
              <Separator />
 
-             {/* Scenario Emails */}
-             <div>
-               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                 <Mail className="h-4 w-4" />
-                 Scenario Emails
-               </h3>
-              {loadingEmails ? (
-                <p className="text-sm text-muted-foreground">Loading...</p>
-              ) : !lender.account_executive_email ? (
-                <p className="text-sm text-muted-foreground italic">No email address configured for this lender.</p>
-              ) : emailLogs.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">No emails sent to this lender yet.</p>
-              ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {emailLogs.map((email) => (
-                    <div
-                      key={email.id}
-                      className="p-3 bg-muted/30 rounded-md text-sm space-y-2"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-2 flex-1 min-w-0">
-                          <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium block truncate">{email.subject}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {email.direction === 'In' ? 'Received' : 'Sent'} • {formatDate(email.timestamp)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {email.delivery_status && (
-                            <Badge variant="outline" className={`text-xs ${getDeliveryStatusColor(email.delivery_status)}`}>
-                              {email.delivery_status}
-                            </Badge>
-                          )}
-                          {email.opened_at ? (
-                            <Badge variant="outline" className="text-xs bg-green-500/20 text-green-700">
-                              Opened
-                            </Badge>
-                          ) : email.direction !== 'In' && (
-                            <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
-                              Not Opened
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      {email.direction === 'In' && (
-                        <div className="pl-6 text-xs text-muted-foreground">
-                          <span className="font-medium text-primary">Reply received</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-               )}
-             </div>
+             {/* Scenario Emails - Sent from CRM */}
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Scenario Emails
+                </h3>
+               {loadingEmails ? (
+                 <p className="text-sm text-muted-foreground">Loading...</p>
+               ) : !lender.account_executive_email ? (
+                 <p className="text-sm text-muted-foreground italic">No email address configured for this lender.</p>
+               ) : sentEmails.length === 0 ? (
+                 <p className="text-sm text-muted-foreground italic">No scenario emails sent to this lender yet.</p>
+               ) : (
+                 <div className="space-y-2 max-h-60 overflow-y-auto">
+                   {sentEmails.map((email) => (
+                     <div
+                       key={email.id}
+                       className="p-3 bg-muted/30 rounded-md text-sm space-y-2"
+                     >
+                       <div className="flex items-start justify-between gap-2">
+                         <div className="flex items-start gap-2 flex-1 min-w-0">
+                           <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                           <div className="flex-1 min-w-0">
+                             <span className="font-medium block truncate">{email.subject}</span>
+                             <span className="text-xs text-muted-foreground">
+                               Sent • {formatDate(email.timestamp)}
+                             </span>
+                           </div>
+                         </div>
+                         <div className="flex items-center gap-2 flex-shrink-0">
+                           {email.delivery_status && (
+                             <Badge variant="outline" className={`text-xs ${getDeliveryStatusColor(email.delivery_status)}`}>
+                               {email.delivery_status}
+                             </Badge>
+                           )}
+                           {email.opened_at ? (
+                             <Badge variant="outline" className="text-xs bg-green-500/20 text-green-700">
+                               Opened
+                             </Badge>
+                           ) : (
+                             <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
+                               Not Opened
+                             </Badge>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Lender Emails - Received from Lender */}
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Lender Emails
+                </h3>
+               {loadingEmails ? (
+                 <p className="text-sm text-muted-foreground">Loading...</p>
+               ) : !lender.account_executive_email ? (
+                 <p className="text-sm text-muted-foreground italic">No email address configured for this lender.</p>
+               ) : receivedEmails.length === 0 ? (
+                 <p className="text-sm text-muted-foreground italic">No emails received from this lender yet.</p>
+               ) : (
+                 <div className="space-y-2 max-h-60 overflow-y-auto">
+                   {receivedEmails.map((email) => (
+                     <div
+                       key={email.id}
+                       className="p-3 bg-muted/30 rounded-md text-sm space-y-2"
+                     >
+                       <div className="flex items-start justify-between gap-2">
+                         <div className="flex items-start gap-2 flex-1 min-w-0">
+                           <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                           <div className="flex-1 min-w-0">
+                             <span className="font-medium block truncate">{email.subject}</span>
+                             <span className="text-xs text-muted-foreground">
+                               Received • {formatDate(email.timestamp)}
+                             </span>
+                           </div>
+                         </div>
+                         <div className="flex items-center gap-2 flex-shrink-0">
+                           {email.delivery_status && (
+                             <Badge variant="outline" className={`text-xs ${getDeliveryStatusColor(email.delivery_status)}`}>
+                               {email.delivery_status}
+                             </Badge>
+                           )}
+                           <Badge variant="outline" className="text-xs bg-blue-500/20 text-blue-700">
+                             Reply
+                           </Badge>
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+                )}
+              </div>
 
              <Separator />
 
