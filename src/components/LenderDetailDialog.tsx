@@ -1127,34 +1127,23 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
             <Separator />
 
             {/* EPO */}
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3">EPO Period</h3>
-              <InlineEditText
-                value={lender.epo_period}
-                onValueChange={(value) => handleFieldUpdate('epo_period', value)}
-                placeholder="Enter EPO details..."
-              />
-            </div>
+             <div>
+               <h3 className="text-sm font-semibold text-muted-foreground mb-3">EPO Period</h3>
+               <InlineEditText
+                 value={lender.epo_period}
+                 onValueChange={(value) => handleFieldUpdate('epo_period', value)}
+                 placeholder="Enter EPO details..."
+               />
+             </div>
 
-            <Separator />
+             <Separator />
 
-            {/* Files Section */}
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                <Paperclip className="h-4 w-4" />
-                Files
-              </h3>
-              <LenderFilesSection lenderId={lender.id} />
-            </div>
-
-            <Separator />
-
-            {/* Email Activity */}
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Email Activity
-              </h3>
+             {/* Scenario Emails */}
+             <div>
+               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                 <Mail className="h-4 w-4" />
+                 Scenario Emails
+               </h3>
               {loadingEmails ? (
                 <p className="text-sm text-muted-foreground">Loading...</p>
               ) : !lender.account_executive_email ? (
@@ -1203,12 +1192,23 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+               )}
+             </div>
 
-            <Separator />
+             <Separator />
 
-            {/* Associated Clients */}
+             {/* Files Section */}
+             <div>
+               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                 <Paperclip className="h-4 w-4" />
+                 Files
+               </h3>
+               <LenderFilesSection lenderId={lender.id} />
+             </div>
+
+             <Separator />
+
+             {/* Associated Clients */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
                 <Users className="h-4 w-4" />
