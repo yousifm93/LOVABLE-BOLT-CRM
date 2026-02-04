@@ -343,24 +343,45 @@ serve(async (req) => {
         const lender = matchingLenders[0];
         console.log('[Inbound Email Webhook] Matched lender by sender email:', lender.id);
         
-        // Log to email_logs with lender_id
-        await supabase.from('email_logs').insert({
-          lender_id: lender.id,
-          lead_id: leadId,
-          recipient_email: recipientEmail,
-          sender_email: actualSenderEmail,
-          subject: subject,
-          body: textBody,
-          html_body: htmlBody,
-          direction: 'In',
-          delivery_status: 'received'
-        });
+        // Log to email_logs with lender_id (use correct column names)
+        try {
+          const { error: emailLogError } = await supabase.from('email_logs').insert({
+            lender_id: lender.id,
+            lead_id: leadId,
+            to_email: recipientEmail,
+            from_email: actualSenderEmail,
+            subject: subject,
+            body: textBody,
+            html_body: htmlBody,
+            direction: 'In',
+            delivery_status: 'received',
+            timestamp: new Date().toISOString(),
+          });
+          
+          if (emailLogError) {
+            console.error('[Inbound Email Webhook] Error logging lender reply email:', emailLogError);
+          } else {
+            console.log('[Inbound Email Webhook] Successfully logged lender reply email');
+          }
+        } catch (logError) {
+          console.error('[Inbound Email Webhook] Exception logging lender reply:', logError);
+        }
 
-        // Update lender record for reply tracking
-        await supabase.from('lenders').update({
-          last_email_replied: true,
-          last_email_replied_at: new Date().toISOString()
-        }).eq('id', lender.id);
+        // Update lender record for reply tracking (always attempt even if logging fails)
+        try {
+          const { error: lenderUpdateError } = await supabase.from('lenders').update({
+            last_email_replied: true,
+            last_email_replied_at: new Date().toISOString()
+          }).eq('id', lender.id);
+          
+          if (lenderUpdateError) {
+            console.error('[Inbound Email Webhook] Error updating lender reply flags:', lenderUpdateError);
+          } else {
+            console.log('[Inbound Email Webhook] Successfully updated lender reply flags');
+          }
+        } catch (updateError) {
+          console.error('[Inbound Email Webhook] Exception updating lender:', updateError);
+        }
       }
     }
 
