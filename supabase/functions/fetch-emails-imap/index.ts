@@ -253,6 +253,17 @@ serve(async (req) => {
           // Use PostalMime for proper MIME parsing
           const { textBody, htmlBody } = await parseEmailWithPostalMime(source);
 
+          // Mark email as read on the IMAP server
+          const wasUnread = !message.flags?.has("\\Seen");
+          if (wasUnread) {
+            try {
+              await client.messageFlagsAdd(String(messageUid), ['\\Seen'], { uid: true });
+              console.log(`Marked email UID ${messageUid} as read`);
+            } catch (flagError) {
+              console.error('Error marking email as read:', flagError);
+            }
+          }
+
           return new Response(
             JSON.stringify({
               success: true,
@@ -260,7 +271,8 @@ serve(async (req) => {
                 uid: messageUid,
                 body: textBody,
                 htmlBody: htmlBody,
-              }
+              },
+              markedAsRead: wasUnread,
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
