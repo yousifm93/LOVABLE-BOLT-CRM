@@ -3880,6 +3880,11 @@ export type Database = {
           initial_approval_date: string | null
           insurance_clause: string | null
           jumbo_max_ltv: number | null
+          last_email_opened: boolean | null
+          last_email_opened_at: string | null
+          last_email_replied: boolean | null
+          last_email_replied_at: string | null
+          last_email_reply_content: string | null
           last_email_sent_at: string | null
           last_email_subject: string | null
           lender_name: string
@@ -3968,6 +3973,11 @@ export type Database = {
           initial_approval_date?: string | null
           insurance_clause?: string | null
           jumbo_max_ltv?: number | null
+          last_email_opened?: boolean | null
+          last_email_opened_at?: string | null
+          last_email_replied?: boolean | null
+          last_email_replied_at?: string | null
+          last_email_reply_content?: string | null
           last_email_sent_at?: string | null
           last_email_subject?: string | null
           lender_name: string
@@ -4056,6 +4066,11 @@ export type Database = {
           initial_approval_date?: string | null
           insurance_clause?: string | null
           jumbo_max_ltv?: number | null
+          last_email_opened?: boolean | null
+          last_email_opened_at?: string | null
+          last_email_replied?: boolean | null
+          last_email_replied_at?: string | null
+          last_email_reply_content?: string | null
           last_email_sent_at?: string | null
           last_email_subject?: string | null
           lender_name?: string

@@ -113,6 +113,11 @@ interface Lender {
   // Email tracking
   last_email_sent_at?: string;
   last_email_subject?: string;
+  last_email_opened?: boolean;
+  last_email_opened_at?: string;
+  last_email_replied?: boolean;
+  last_email_replied_at?: string;
+  last_email_reply_content?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   custom_fields?: any;
 }
@@ -129,6 +134,8 @@ const initialColumns = [
   { id: "broker_portal_url", label: "Broker Portal", visible: true },
   { id: "send_email", label: "Send Email", visible: true },
   { id: "last_email_sent", label: "Last Email Sent", visible: true },
+  { id: "email_opened", label: "Email Opened", visible: false },
+  { id: "email_replied", label: "Email Replied", visible: false },
   // Loan Limits & Dates - hidden by default
   { id: "min_loan_amount", label: "Min Loan", visible: false },
   { id: "max_loan_amount", label: "Max Loan", visible: false },
@@ -648,13 +655,57 @@ export default function ApprovedLenders() {
           if (!sentAt) return <span className="text-muted-foreground text-xs">—</span>;
           return (
             <div className="text-xs">
-              <div className="font-medium">{format(new Date(sentAt), 'MMM dd, yyyy')}</div>
+              <div className="font-medium">{format(new Date(sentAt), 'MMM dd, yyyy h:mm a')}</div>
               {subject && <div className="text-muted-foreground truncate max-w-[150px]" title={subject}>{subject}</div>}
             </div>
           );
         },
         sortable: true,
       } as ColumnDef<Lender & { rowNumber?: number }>);
+    }
+
+    // Email Opened
+    if (isColumnVisible("email_opened")) {
+      cols.push({
+        accessorKey: "last_email_opened",
+        header: "Email Opened",
+        cell: ({ row }) => {
+          const opened = row.original.last_email_opened;
+          const openedAt = row.original.last_email_opened_at;
+          if (opened === undefined || opened === null) return <span className="text-muted-foreground text-xs">—</span>;
+          return (
+            <Badge 
+              variant="outline" 
+              className={opened ? "bg-green-500/20 text-green-700 text-xs" : "bg-muted text-muted-foreground text-xs"}
+              title={openedAt ? `Opened: ${format(new Date(openedAt), 'MMM dd, yyyy h:mm a')}` : ''}
+            >
+              {opened ? 'Yes' : 'No'}
+            </Badge>
+          );
+        },
+      });
+    }
+
+    // Email Replied
+    if (isColumnVisible("email_replied")) {
+      cols.push({
+        accessorKey: "last_email_replied",
+        header: "Email Replied",
+        cell: ({ row }) => {
+          const replied = row.original.last_email_replied;
+          const repliedAt = row.original.last_email_replied_at;
+          if (replied === undefined || replied === null) return <span className="text-muted-foreground text-xs">—</span>;
+          return (
+            <Badge 
+              variant="outline" 
+              className={replied ? "bg-blue-500/20 text-blue-700 text-xs" : "bg-muted text-muted-foreground text-xs"}
+              title={repliedAt ? `Replied: ${format(new Date(repliedAt), 'MMM dd, yyyy h:mm a')}` : ''}
+            >
+              {replied ? 'Yes' : 'No'}
+            </Badge>
+          );
+        },
+      });
     }
 
     // Loan limits
