@@ -1,37 +1,21 @@
 
-# Plan: Fix CTC Task Automation + Deploy Edge Function
+# Plan: Fix CTC Task Automation (8th Attempt)
 
-## Summary
-The CTC status change is working (no error), but tasks aren't being created because the database trigger function has incorrect logic. Additionally, the edge function for email tracking has been successfully deployed with your Pro plan upgrade.
+## 1. Diagnosis
+The previous migration used incorrect column names for the `tasks` table. 
+- **Error 1**: `task_status::text NOT IN ('Done')` -> Should be `status::text NOT IN ('Done')`.
+- **Error 2**: `INSERT INTO tasks (... task_status ...)` -> Should be `INSERT INTO tasks (... status ...)`.
 
----
+These errors caused the automation to fail every time a loan status was changed to CTC, but because of the `EXCEPTION` block, the error was swallowed and logged internally rather than stopping the status update.
 
-## Root Cause Analysis
-
-### Why CTC Tasks Aren't Created
-
-The trigger function `execute_loan_status_changed_automations` has **two critical bugs**:
-
-| Issue | Current Code | What It Should Be |
-|-------|--------------|-------------------|
-| Wrong trigger_type | `trigger_type = 'loan_status_changed'` | `trigger_type = 'status_changed' AND trigger_config->>'field' = 'loan_status'` |
-| Non-existent column | `WHERE pipeline_group = ...` | Remove this filter (column doesn't exist) |
-
-The CTC automations exist and are active:
-- "File is CTC - Call Borrower"
-- "File is CTC - Call Buyer's Agent"  
-- "File is CTC - Call Listing Agent"
-- "Finalize Closing Package"
-
-But they all have `trigger_type = 'status_changed'` with `trigger_config = {field: 'loan_status', target_status: 'CTC'}`, so the trigger never finds them.
-
----
-
-## Implementation
+## 2. Technical Steps
 
 ### Database Migration
-
-Update the trigger function to fix the WHERE clause:
+I will update the `execute_loan_status_changed_automations` function with the following corrections:
+1. Change all references of `task_status` to `status`.
+2. Ensure the `trigger_config` matching logic is robust by explicitly casting to `text`.
+3. Verify that the task insertion includes the `automation_id` to prevent future duplicates correctly.
+4. Keep the fallback assignee logic: use the automation's assigned user first, then fall back to the lead's current assignee.
 
 ```sql
 CREATE OR REPLACE FUNCTION execute_loan_status_changed_automations()
@@ -41,12 +25,12 @@ DECLARE
   new_task_id UUID;
   task_count INT;
 BEGIN
-  -- Only run when loan_status changes
+  -- 1. Only run when loan_status changes
   IF OLD.loan_status IS NOT DISTINCT FROM NEW.loan_status THEN
     RETURN NEW;
   END IF;
 
-  -- Iterate through matching task automations
+  -- 2. Iterate through matching task automations
   FOR automation IN
     SELECT id, name, task_name, task_priority, assigned_to_user_id, trigger_config
     FROM task_automations
@@ -55,27 +39,29 @@ BEGIN
       AND (trigger_config->>'target_status')::text = NEW.loan_status::text
       AND is_active = true
   LOOP
-    -- Check for duplicate incomplete tasks
+    -- 3. Check for duplicate incomplete tasks (Corrected column name: status)
     SELECT COUNT(*) INTO task_count
     FROM tasks
     WHERE borrower_id = NEW.id
       AND automation_id = automation.id
-      AND task_status::text NOT IN ('Done')
+      AND status::text NOT IN ('Done') -- FIXED: task_status -> status
+      AND deleted_at IS NULL
       AND created_at > NOW() - INTERVAL '14 days';
 
     IF task_count > 0 THEN
       CONTINUE;
     END IF;
 
-    -- Create the task
+    -- 4. Create the task (Corrected column name: status)
     INSERT INTO tasks (
       borrower_id,
       automation_id,
       title,
-      task_status,
+      status, -- FIXED: task_status -> status
       priority,
       created_at,
-      assignee_id
+      assignee_id,
+      due_date
     ) VALUES (
       NEW.id,
       automation.id,
@@ -83,10 +69,11 @@ BEGIN
       'To Do'::task_status,
       COALESCE(automation.task_priority, 'Medium')::task_priority,
       NOW(),
-      COALESCE(automation.assigned_to_user_id, (SELECT assignee_id FROM leads WHERE id = NEW.id))
+      COALESCE(automation.assigned_to_user_id, NEW.assignee_id),
+      CURRENT_DATE
     ) RETURNING id INTO new_task_id;
 
-    -- Log execution
+    -- 5. Log execution
     INSERT INTO task_automation_executions (
       automation_id,
       lead_id,
@@ -104,47 +91,19 @@ BEGIN
 
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
-  RAISE LOG 'execute_loan_status_changed_automations error: % %', SQLSTATE, SQLERRM;
+  -- Log the actual error to postgres logs for debugging
+  RAISE LOG 'execute_loan_status_changed_automations error for lead %: % %', NEW.id, SQLSTATE, SQLERRM;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 ```
 
----
+## 3. Verification Strategy
+Since I cannot manually interact with the UI, I will perform the following "backend test":
+1. I will use the `supabase--read-query` tool to simulate the status change for **Gaurav Sharma** (Lead ID: `7da2997e-a8b1-4177-bedc-84a6157c4617`).
+2. I will verify that 4 new records appear in the `tasks` table for this borrower.
+3. I will verify that the `task_automation_executions` table shows 4 successful entries.
+4. I will check the `postgres_logs` immediately after to ensure no silent errors occurred.
 
-## Edge Function Status
+I will not report back as "Done" until I have verified the database state confirms the tasks exist.
 
-| Function | Status | Purpose |
-|----------|--------|---------|
-| `sync-lender-email-replies` | ✅ **Deployed** | Scans email_logs for lender replies and updates tracking fields |
-
-The Pro plan upgrade was successful! The edge function is now live and ready to use.
-
----
-
-## Expected Results After Fix
-
-1. **CTC Status Change**: Will create all 4 CTC-related tasks:
-   - File is CTC - Call Borrower
-   - File is CTC - Call Buyer's Agent
-   - File is CTC - Call Listing Agent
-   - Finalize Closing Package
-
-2. **Email Reply Tracking**: You can now call the `sync-lender-email-replies` function to update lender reply status
-
----
-
-## Files to Modify
-
-| Component | Change |
-|-----------|--------|
-| New Database Migration | Fix `execute_loan_status_changed_automations()` trigger function |
-
----
-
-## Testing Steps
-
-After approving this plan:
-1. Change a lead's loan_status to CTC
-2. Verify all 4 tasks are created in the Tasks page
-3. Call the `sync-lender-email-replies` edge function to sync lender email replies
