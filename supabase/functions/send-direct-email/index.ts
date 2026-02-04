@@ -13,6 +13,7 @@ interface SendDirectEmailRequest {
   from_email: string;
   from_name: string;
   reply_to?: string;
+  lender_id?: string; // Add lender_id for tracking
   attachments?: Array<{
     content: string; // base64
     filename: string;
@@ -60,6 +61,8 @@ function sanitizeHtmlForEmail(html: string): string {
   return sanitized;
 }
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -67,14 +70,18 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, cc, subject, html, from_email, from_name, reply_to, attachments }: SendDirectEmailRequest = await req.json();
+    const { to, cc, subject, html, from_email, from_name, reply_to, lender_id, attachments }: SendDirectEmailRequest = await req.json();
 
     console.log(`Sending email to: ${to}, from: ${from_email}, subject: ${subject}`);
 
     const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
-    if (!SENDGRID_API_KEY) {
-      throw new Error("SENDGRID_API_KEY is not configured");
-    }
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!SENDGRID_API_KEY) throw new Error("SENDGRID_API_KEY is not configured");
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase environment variables missing");
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Sanitize HTML for email compatibility
     const sanitizedHtml = sanitizeHtmlForEmail(html);
@@ -101,6 +108,10 @@ serve(async (req: Request): Promise<Response> => {
           value: sanitizedHtml,
         },
       ],
+      custom_args: {
+        lender_id: lender_id || "",
+        email_type: lender_id ? "lender_outreach" : "direct_email"
+      }
     };
 
     if (reply_to) {
@@ -132,7 +143,30 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error(`SendGrid error: ${response.status} - ${errorText}`);
     }
 
-    console.log("Email sent successfully");
+    const providerMessageId = response.headers.get("X-Message-Id") || "";
+    console.log("Email sent successfully, provider ID:", providerMessageId);
+
+    // Atomic logging to email_logs and lender record
+    if (lender_id) {
+      // 1. Log the email
+      await supabase.from('email_logs').insert({
+        lender_id: lender_id,
+        recipient_email: to,
+        subject: subject,
+        body: sanitizedHtml,
+        direction: 'Out',
+        provider_message_id: providerMessageId,
+        delivery_status: 'sent'
+      });
+
+      // 2. Update lender record
+      await supabase.from('lenders').update({
+        last_email_sent_at: new Date().toISOString(),
+        last_email_subject: subject,
+        last_email_opened: false, // Reset tracking for new email
+        last_email_replied: false
+      }).eq('id', lender_id);
+    }
 
     return new Response(
       JSON.stringify({ success: true, message: "Email sent successfully" }),

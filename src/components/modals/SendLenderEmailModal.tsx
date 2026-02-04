@@ -95,7 +95,8 @@ export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmai
           html: emailBody,
           from_email: "scenarios@mortgagebolt.org",
           from_name: senderName,
-          reply_to: replyToEmail
+          reply_to: replyToEmail,
+          lender_id: lender.id // Pass lender_id for automated tracking
         }
       });
 
