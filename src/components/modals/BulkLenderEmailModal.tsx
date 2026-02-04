@@ -177,6 +177,13 @@ export function BulkLenderEmailModal({ isOpen, onClose, lenders }: BulkLenderEma
             errorCount++;
           } else {
             successCount++;
+            // Update lender with last email sent info
+            await supabase.from('lenders')
+              .update({
+                last_email_sent_at: new Date().toISOString(),
+                last_email_subject: personalizedSubject
+              })
+              .eq('id', lender.id);
           }
         } catch (err) {
           console.error(`Error sending to ${lender.lender_name}:`, err);

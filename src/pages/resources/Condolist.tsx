@@ -708,7 +708,7 @@ export default function Condolist() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Condolist</h1>
+        <h1 className="text-3xl font-bold text-foreground">Condo List</h1>
         <p className="text-muted-foreground">Approved condominium directory</p>
       </div>
 
@@ -851,7 +851,7 @@ export default function Condolist() {
             columns={columns}
             data={filteredCondos}
             searchTerm={searchTerm}
-            pageSize={15}
+            pageSize={20}
             showRowNumbers={true}
             selectable={true}
             selectedIds={selectedIds}
