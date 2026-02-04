@@ -1,103 +1,92 @@
 
-# Plan: Fix CRM Task Automation, Email Tracking & UI Issues
+# Plan: Fix CTC Task Automation + Deploy Edge Function
 
-## Problems Identified
-
-### 1. CTC Status Error: `column "trigger_data" does not exist`
-**Root Cause:** The trigger function `execute_loan_status_changed_automations` is trying to insert into a `trigger_data` column in `task_automation_executions`, but this column doesn't exist. The actual columns are:
-- `id`, `automation_id`, `lead_id`, `task_id`, `executed_at`, `success`, `error_message`
-
-**Fix:** Remove the `trigger_data` column from the INSERT statement in the trigger function.
-
-### 2. Email Activity Section Position
-**Current:** The "Email Activity" section exists but is placed AFTER the Files section.
-**Required:** Should be placed BETWEEN "EPO Period" and "Files" section, and renamed to "Scenario Emails".
-
-### 3. Email Open/Reply Tracking Not Working
-**Problem:** When emails are opened or replied to in the actual email inbox (scenarios@mortgagebolt.org), the `lenders` table columns (`last_email_opened`, `last_email_replied`) are not being updated.
-
-**Root Cause:** The current architecture:
-1. Bulk emails are sent from `scenarios@mortgagebolt.org` via the IONOS SMTP server
-2. Replies come into `scenarios@mortgagebolt.org` inbox
-3. The `fetch-emails-imap` function fetches emails from this inbox to display in the Email tab
-4. The `inbound-email-webhook` processes inbound emails via SendGrid
-
-**Missing Link:** Nothing is currently linking inbound emails TO the lenders table to update `last_email_opened` or `last_email_replied`.
-
-**Solution Approach:**
-1. Update the `fetch-emails-imap` function to detect when an email from a lender domain is a reply to a scenario email
-2. When a reply is detected, update the corresponding lender's `last_email_replied` and `last_email_reply_content`
-3. For email open tracking, this would require adding tracking pixels to outbound emails (more complex - Phase 2)
-
-For immediate implementation, we'll:
-- Add a background job that scans the `email_logs` table for emails FROM lender domains TO scenarios@mortgagebolt.org
-- Match these emails to lenders by domain/email
-- Update the lender's `last_email_replied` status
+## Summary
+The CTC status change is working (no error), but tasks aren't being created because the database trigger function has incorrect logic. Additionally, the edge function for email tracking has been successfully deployed with your Pro plan upgrade.
 
 ---
 
-## Implementation Details
+## Root Cause Analysis
+
+### Why CTC Tasks Aren't Created
+
+The trigger function `execute_loan_status_changed_automations` has **two critical bugs**:
+
+| Issue | Current Code | What It Should Be |
+|-------|--------------|-------------------|
+| Wrong trigger_type | `trigger_type = 'loan_status_changed'` | `trigger_type = 'status_changed' AND trigger_config->>'field' = 'loan_status'` |
+| Non-existent column | `WHERE pipeline_group = ...` | Remove this filter (column doesn't exist) |
+
+The CTC automations exist and are active:
+- "File is CTC - Call Borrower"
+- "File is CTC - Call Buyer's Agent"  
+- "File is CTC - Call Listing Agent"
+- "Finalize Closing Package"
+
+But they all have `trigger_type = 'status_changed'` with `trigger_config = {field: 'loan_status', target_status: 'CTC'}`, so the trigger never finds them.
+
+---
+
+## Implementation
 
 ### Database Migration
-Fix the trigger function to remove the non-existent `trigger_data` column:
+
+Update the trigger function to fix the WHERE clause:
 
 ```sql
 CREATE OR REPLACE FUNCTION execute_loan_status_changed_automations()
 RETURNS TRIGGER AS $$
 DECLARE
-  ...
+  automation RECORD;
+  new_task_id UUID;
+  task_count INT;
 BEGIN
-  ...
-  -- Log execution (removed trigger_data column)
-  INSERT INTO task_automation_executions (
-    automation_id,
-    lead_id,
-    task_id,
-    success,
-    executed_at
-  ) VALUES (
-    automation_record.id,
-    NEW.id,
-    new_task_id,
-    true,
-    NOW()
-  );
-  ...
-END;
-$$ LANGUAGE plpgsql;
-```
+  -- Only run when loan_status changes
+  IF OLD.loan_status IS NOT DISTINCT FROM NEW.loan_status THEN
+    RETURN NEW;
+  END IF;
 
-### LenderDetailDialog.tsx Changes
-1. Move the Email Activity section from after Files to between EPO Period and Files
-2. Rename "Email Activity" to "Scenario Emails"
+  -- Iterate through matching task automations
+  FOR automation IN
+    SELECT id, name, task_name, task_priority, assigned_to_user_id, trigger_config
+    FROM task_automations
+    WHERE trigger_type = 'status_changed'
+      AND (trigger_config->>'field')::text = 'loan_status'
+      AND (trigger_config->>'target_status')::text = NEW.loan_status::text
+      AND is_active = true
+  LOOP
+    -- Check for duplicate incomplete tasks
+    SELECT COUNT(*) INTO task_count
+    FROM tasks
+    WHERE borrower_id = NEW.id
+      AND automation_id = automation.id
+      AND task_status::text NOT IN ('Done')
+      AND created_at > NOW() - INTERVAL '14 days';
 
-### Lender Email Reply Detection
-Create background logic to:
-1. Query `email_logs` for emails TO scenarios@mortgagebolt.org
-2. Match sender domains to lenders' `account_executive_email` domains
-3. Update lender records with `last_email_replied = true` and `last_email_reply_content`
+    IF task_count > 0 THEN
+      CONTINUE;
+    END IF;
 
----
+    -- Create the task
+    INSERT INTO tasks (
+      borrower_id,
+      automation_id,
+      title,
+      task_status,
+      priority,
+      created_at,
+      assignee_id
+    ) VALUES (
+      NEW.id,
+      automation.id,
+      automation.task_name,
+      'To Do'::task_status,
+      COALESCE(automation.task_priority, 'Medium')::task_priority,
+      NOW(),
+      COALESCE(automation.assigned_to_user_id, (SELECT assignee_id FROM leads WHERE id = NEW.id))
+    ) RETURNING id INTO new_task_id;
 
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| New migration | Fix trigger function - remove `trigger_data` column from INSERT |
-| `src/components/LenderDetailDialog.tsx` | Move & rename Email Activity section |
-| `src/components/modals/BulkLenderEmailModal.tsx` | Add email logging with lender_id reference |
-| New edge function or scheduled job | Detect lender email replies and update tracking |
-
----
-
-## Technical Implementation
-
-### Migration SQL
-```sql
-CREATE OR REPLACE FUNCTION execute_loan_status_changed_automations()
-RETURNS TRIGGER AS $$
-...
-    -- Log execution - FIXED: removed trigger_data
+    -- Log execution
     INSERT INTO task_automation_executions (
       automation_id,
       lead_id,
@@ -105,37 +94,57 @@ RETURNS TRIGGER AS $$
       success,
       executed_at
     ) VALUES (
-      automation_record.id,
+      automation.id,
       NEW.id,
       new_task_id,
       true,
       NOW()
     );
-...
+  END LOOP;
+
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE LOG 'execute_loan_status_changed_automations error: % %', SQLSTATE, SQLERRM;
+  RETURN NEW;
+END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 ```
 
-### LenderDetailDialog Section Reorder
-Current order: EPO → Files → Email Activity → Associated Clients
-New order: EPO → **Scenario Emails** → Files → Associated Clients
+---
 
-### Email Reply Detection Logic
-When fetching emails for the scenarios inbox, check if:
-1. Email is FROM a domain matching a lender's AE email domain
-2. Subject contains "Re:" or references a previously sent email subject
-3. If match found, update that lender's tracking fields
+## Edge Function Status
+
+| Function | Status | Purpose |
+|----------|--------|---------|
+| `sync-lender-email-replies` | ✅ **Deployed** | Scans email_logs for lender replies and updates tracking fields |
+
+The Pro plan upgrade was successful! The edge function is now live and ready to use.
 
 ---
 
-## Expected Results
+## Expected Results After Fix
 
-1. **CTC Status Change**: Will successfully create all 4 CTC tasks without errors
-2. **Scenario Emails Section**: Moved between EPO and Files, properly named
-3. **Email Reply Tracking**: Lenders who reply will have their `last_email_replied` status updated to "Yes"
+1. **CTC Status Change**: Will create all 4 CTC-related tasks:
+   - File is CTC - Call Borrower
+   - File is CTC - Call Buyer's Agent
+   - File is CTC - Call Listing Agent
+   - Finalize Closing Package
+
+2. **Email Reply Tracking**: You can now call the `sync-lender-email-replies` function to update lender reply status
 
 ---
 
-## Phase 2 (Future Enhancement)
-- Add tracking pixel to outbound emails for automatic open detection
-- Real-time webhook integration for email open/reply events
-- Email threading to show full conversation history in lender detail
+## Files to Modify
+
+| Component | Change |
+|-----------|--------|
+| New Database Migration | Fix `execute_loan_status_changed_automations()` trigger function |
+
+---
+
+## Testing Steps
+
+After approving this plan:
+1. Change a lead's loan_status to CTC
+2. Verify all 4 tasks are created in the Tasks page
+3. Call the `sync-lender-email-replies` edge function to sync lender email replies
