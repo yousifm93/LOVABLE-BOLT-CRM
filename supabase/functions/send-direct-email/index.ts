@@ -172,8 +172,10 @@ serve(async (req: Request): Promise<Response> => {
         const { error: updateError } = await supabase.from('lenders').update({
           last_email_sent_at: new Date().toISOString(),
           last_email_subject: subject,
-          last_email_opened: false, // Reset tracking for new email
-          last_email_replied: false
+          last_email_opened: false,        // Reset tracking for new email
+          last_email_opened_at: null,      // Clear timestamp
+          last_email_replied: false,       // Reset tracking for new email
+          last_email_replied_at: null      // Clear timestamp
         }).eq('id', lender_id);
 
         if (updateError) {
