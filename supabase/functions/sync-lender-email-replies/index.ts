@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
           .from("lenders")
           .update({
             last_email_replied: true,
-            last_email_replied_at: emailInfo.date,
+            last_email_replied_at: new Date().toISOString(),
           })
           .eq("id", lender.id);
 
