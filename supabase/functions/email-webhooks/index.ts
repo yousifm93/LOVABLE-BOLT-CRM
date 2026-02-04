@@ -45,30 +45,80 @@ serve(async (req) => {
       console.log('Processing webhook event:', event.event, 'for email:', event.email);
 
       const { event: eventType, sg_message_id, timestamp, campaign_id, contact_id } = event;
-      const messageId = sg_message_id;
+      const rawMessageId = sg_message_id;
 
-      if (!messageId) {
+      if (!rawMessageId) {
         console.warn('No message ID in webhook event');
         continue;
       }
 
-      // Find the campaign send record by provider_message_id
-      const { data: sendRecord } = await supabase
+      // Normalize the message ID - SendGrid adds suffixes like ".recvd-xxx-1-xxx.0"
+      // We stored the base ID (e.g., "3LrszcohQ_e2BSVcRKSoqw"), but webhooks send full ID
+      const canonicalMessageId = rawMessageId.split('.')[0];
+      console.log(`Message ID - raw: ${rawMessageId}, canonical: ${canonicalMessageId}`);
+
+      // Extract lender_id from custom_args if present (fallback for matching)
+      const lenderId = event.lender_id || null;
+      if (lenderId) {
+        console.log(`Lender ID from custom_args: ${lenderId}`);
+      }
+
+      // Find the campaign send record by provider_message_id (try both raw and canonical)
+      let sendRecord = null;
+      const { data: sendRecordExact } = await supabase
         .from('email_campaign_sends')
         .select('*, email_campaigns(*)')
-        .eq('provider_message_id', messageId)
+        .eq('provider_message_id', rawMessageId)
         .maybeSingle();
+      
+      if (sendRecordExact) {
+        sendRecord = sendRecordExact;
+        console.log('Matched campaign send by exact message ID');
+      } else {
+        const { data: sendRecordCanonical } = await supabase
+          .from('email_campaign_sends')
+          .select('*, email_campaigns(*)')
+          .eq('provider_message_id', canonicalMessageId)
+          .maybeSingle();
+        if (sendRecordCanonical) {
+          sendRecord = sendRecordCanonical;
+          console.log('Matched campaign send by canonical message ID');
+        }
+      }
 
-      // Also check for template emails in email_logs
-      const { data: emailLog } = await supabase
+      // Also check for template emails in email_logs (try both raw and canonical)
+      let emailLog = null;
+      const { data: emailLogExact } = await supabase
         .from('email_logs')
         .select('*')
-        .eq('provider_message_id', messageId)
+        .eq('provider_message_id', rawMessageId)
         .maybeSingle();
 
-      if (!sendRecord && !emailLog) {
-        console.warn(`No send record or email log found for message_id: ${messageId}`);
+      if (emailLogExact) {
+        emailLog = emailLogExact;
+        console.log('Matched email log by exact message ID');
+      } else {
+        const { data: emailLogCanonical } = await supabase
+          .from('email_logs')
+          .select('*')
+          .eq('provider_message_id', canonicalMessageId)
+          .maybeSingle();
+        if (emailLogCanonical) {
+          emailLog = emailLogCanonical;
+          console.log('Matched email log by canonical message ID');
+        }
+      }
+
+      // If no match found but we have a lender_id, we can still update lender tracking
+      const hasLenderFallback = !sendRecord && !emailLog && lenderId;
+      
+      if (!sendRecord && !emailLog && !lenderId) {
+        console.warn(`No send record or email log found for message_id: ${rawMessageId} (canonical: ${canonicalMessageId})`);
         continue;
+      }
+      
+      if (hasLenderFallback) {
+        console.log(`No email record found, but using lender_id fallback: ${lenderId}`);
       }
 
       const campaignSend = sendRecord || null;
@@ -141,6 +191,18 @@ serve(async (req) => {
         }
       }
 
+      // Handle lender fallback case - update lender directly using lender_id from custom_args
+      if (hasLenderFallback && mappedEventType === 'open') {
+        console.log(`Updating lender ${lenderId} via fallback for open event`);
+        await supabase
+          .from('lenders')
+          .update({ 
+            last_email_opened: true, 
+            last_email_opened_at: occurredAt 
+          })
+          .eq('id', lenderId);
+      }
+
       // Record the event for campaign emails
       if (campaignSend) {
         await supabase
@@ -207,7 +269,7 @@ serve(async (req) => {
           break;
       }
 
-      console.log(`Successfully processed ${mappedEventType} event for ${campaignSend ? `campaign ${campaignSend.campaign_id}` : `email ${messageId}`}`);
+      console.log(`Successfully processed ${mappedEventType} event for ${campaignSend ? `campaign ${campaignSend.campaign_id}` : `email ${rawMessageId}`}`);
     }
 
     return new Response(
