@@ -453,6 +453,11 @@ export function AppSidebar() {
     return hasPermission(permKey) === 'locked';
   };
 
+  // Helper to check if any items in a group are visible (not hidden)
+  const hasAnyVisibleItems = <T extends { permKey: keyof UserPermissions }>(items: T[]): boolean => {
+    return items.some(item => hasPermission(item.permKey) !== 'hidden');
+  };
+
   return (
     <>
       <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
@@ -608,7 +613,7 @@ export function AppSidebar() {
           </SidebarGroup>
 
           {/* Pipeline */}
-          {hasPermission('pipeline') !== 'hidden' && (
+          {hasPermission('pipeline') !== 'hidden' && hasAnyVisibleItems(pipelineItems) && (
             <CollapsibleSidebarGroup 
               title="Pipeline" 
               className="mb-4" 
@@ -669,7 +674,7 @@ export function AppSidebar() {
           )}
 
           {/* Contacts */}
-          {hasPermission('contacts') !== 'hidden' && (
+          {hasPermission('contacts') !== 'hidden' && hasAnyVisibleItems(contactItems) && (
             <CollapsibleSidebarGroup 
               title="Contacts" 
               className="mb-4" 
@@ -735,7 +740,7 @@ export function AppSidebar() {
           )}
 
           {/* Resources */}
-          {hasPermission('resources') !== 'hidden' && (
+          {hasPermission('resources') !== 'hidden' && hasAnyVisibleItems(resourceItems) && (
             <CollapsibleSidebarGroup 
               title="Resources" 
               className="mb-4" 
@@ -774,7 +779,7 @@ export function AppSidebar() {
           )}
 
           {/* Calculators */}
-          {hasPermission('calculators') !== 'hidden' && (
+          {hasPermission('calculators') !== 'hidden' && hasAnyVisibleItems(calculatorItems) && (
             <CollapsibleSidebarGroup 
               title="Calculators" 
               className="mb-4" 
@@ -813,7 +818,7 @@ export function AppSidebar() {
           )}
 
           {/* Admin */}
-          {hasPermission('admin') !== 'hidden' && (
+          {hasPermission('admin') !== 'hidden' && hasAnyVisibleItems(adminItems) && (
             <CollapsibleSidebarGroup 
               title="Admin" 
               defaultOpen={false}
