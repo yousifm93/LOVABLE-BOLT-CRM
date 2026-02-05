@@ -1531,6 +1531,14 @@ export default function Active() {
     .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))
     .filter((col): col is ColumnDef<ActiveLoan> => col !== undefined);
 
+  // Filter out USER column for Processors (non-admins)
+  const filteredColumns = useMemo(() => {
+    if (permissions?.admin === 'hidden') {
+      return columns.filter(col => col.accessorKey !== 'team');
+    }
+    return columns;
+  }, [columns, permissions?.admin]);
+
   // Group loans by pipeline section and apply filters
   const { liveLoans, incomingLoans, onHoldLoans } = useMemo(() => {
     const filteredLoans = applyAdvancedFilters(activeLoans, filters, fieldAccessor);
@@ -1594,165 +1602,169 @@ export default function Active() {
           onViewSaved={handleViewSaved}
         />
 
-        <Button
-          variant={activeView === "Main View" ? "default" : "outline"}
-          size="sm"
-          onClick={() => {
-            const orderedMainColumns = mainViewColumns
-              .map(id => columnVisibility.find(col => col.id === id))
-              .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
-              .map(col => ({ ...col, visible: true }));
-            
-            const existingIds = new Set(mainViewColumns);
-            const remainingColumns = columnVisibility
-              .filter(col => !existingIds.has(col.id))
-              .map(col => ({ ...col, visible: false }));
-            
-            const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
-            setColumns(newColumnOrder);
-            setActiveView("Main View");
-            setFilters([]);
-            setIsReviewMode(false);
-            
-            toast({
-              title: "Main View Loaded",
-              description: "Default column configuration restored"
-            });
-          }}
-          className="h-8 text-xs"
-        >
-          Main View
-        </Button>
+        {permissions?.admin !== 'hidden' && (
+          <>
+            <Button
+              variant={activeView === "Main View" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                const orderedMainColumns = mainViewColumns
+                  .map(id => columnVisibility.find(col => col.id === id))
+                  .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+                  .map(col => ({ ...col, visible: true }));
+                
+                const existingIds = new Set(mainViewColumns);
+                const remainingColumns = columnVisibility
+                  .filter(col => !existingIds.has(col.id))
+                  .map(col => ({ ...col, visible: false }));
+                
+                const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
+                setColumns(newColumnOrder);
+                setActiveView("Main View");
+                setFilters([]);
+                setIsReviewMode(false);
+                
+                toast({
+                  title: "Main View Loaded",
+                  description: "Default column configuration restored"
+                });
+              }}
+              className="h-8 text-xs"
+            >
+              Main View
+            </Button>
 
-        <Button
-          variant={activeView === "Review" ? "default" : "outline"}
-          size="sm"
-          onClick={() => {
-            // Show earliest_task_due_date column prominently
-            const reviewColumns = [...mainViewColumns];
-            if (!reviewColumns.includes('earliest_task_due_date')) {
-              reviewColumns.push('earliest_task_due_date');
-            }
-            
-            const orderedReviewColumns = reviewColumns
-              .map(id => columnVisibility.find(col => col.id === id))
-              .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
-              .map(col => ({ ...col, visible: true }));
-            
-            const existingIds = new Set(reviewColumns);
-            const remainingColumns = columnVisibility
-              .filter(col => !existingIds.has(col.id))
-              .map(col => ({ ...col, visible: false }));
-            
-            const newColumnOrder = [...orderedReviewColumns, ...remainingColumns];
-            setColumns(newColumnOrder);
-            setActiveView("Review");
-            setIsReviewMode(true);
-            
-            // Filter to show leads with tasks due today or earlier AND not reviewed today
-            const todayStr = new Date().toISOString().split('T')[0];
-            
-            setFilters([
-              {
-                id: 'review-due-date',
-                column: 'earliest_task_due_date',
-                operator: 'is_on_or_before',
-                value: todayStr
-              },
-              {
-                id: 'review-not-reviewed-today',
-                column: 'last_morning_review_at',
-                operator: 'is_empty_or_before_today',
-                value: todayStr
-              }
-            ]);
-            
-            toast({
-              title: "Review View Loaded",
-              description: "Showing loans with overdue tasks not yet reviewed today"
-            });
-          }}
-          className="h-8 text-xs"
-        >
-          Review
-        </Button>
+            <Button
+              variant={activeView === "Review" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                // Show earliest_task_due_date column prominently
+                const reviewColumns = [...mainViewColumns];
+                if (!reviewColumns.includes('earliest_task_due_date')) {
+                  reviewColumns.push('earliest_task_due_date');
+                }
+                
+                const orderedReviewColumns = reviewColumns
+                  .map(id => columnVisibility.find(col => col.id === id))
+                  .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+                  .map(col => ({ ...col, visible: true }));
+                
+                const existingIds = new Set(reviewColumns);
+                const remainingColumns = columnVisibility
+                  .filter(col => !existingIds.has(col.id))
+                  .map(col => ({ ...col, visible: false }));
+                
+                const newColumnOrder = [...orderedReviewColumns, ...remainingColumns];
+                setColumns(newColumnOrder);
+                setActiveView("Review");
+                setIsReviewMode(true);
+                
+                // Filter to show leads with tasks due today or earlier AND not reviewed today
+                const todayStr = new Date().toISOString().split('T')[0];
+                
+                setFilters([
+                  {
+                    id: 'review-due-date',
+                    column: 'earliest_task_due_date',
+                    operator: 'is_on_or_before',
+                    value: todayStr
+                  },
+                  {
+                    id: 'review-not-reviewed-today',
+                    column: 'last_morning_review_at',
+                    operator: 'is_empty_or_before_today',
+                    value: todayStr
+                  }
+                ]);
+                
+                toast({
+                  title: "Review View Loaded",
+                  description: "Showing loans with overdue tasks not yet reviewed today"
+                });
+              }}
+              className="h-8 text-xs"
+            >
+              Review
+            </Button>
 
-        <Button
-          variant={activeView === "Processor Review" ? "default" : "outline"}
-          size="sm"
-          onClick={() => {
-            const reviewColumns = [...mainViewColumns];
-            if (!reviewColumns.includes('earliest_task_due_date')) {
-              reviewColumns.push('earliest_task_due_date');
-            }
-            
-            const orderedReviewColumns = reviewColumns
-              .map(id => columnVisibility.find(col => col.id === id))
-              .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
-              .map(col => ({ ...col, visible: true }));
-            
-            const existingIds = new Set(reviewColumns);
-            const remainingColumns = columnVisibility
-              .filter(col => !existingIds.has(col.id))
-              .map(col => ({ ...col, visible: false }));
-            
-            const newColumnOrder = [...orderedReviewColumns, ...remainingColumns];
-            setColumns(newColumnOrder);
-            setActiveView("Processor Review");
-            setIsReviewMode(true);
-            
-            const todayStr = new Date().toISOString().split('T')[0];
-            
-            setFilters([
-              {
-                id: 'processor-due-date',
-                column: 'earliest_task_due_date',
-                operator: 'is_on_or_before',
-                value: todayStr
-              },
-              {
-                id: 'processor-not-reviewed-today',
-                column: 'last_morning_review_at',
-                operator: 'is_empty_or_before_today',
-                value: todayStr
-              },
-              {
-                id: 'processor-user',
-                column: 'team',
-                operator: 'is',
-                value: 'Ashley Merizio'
-              }
-            ]);
-            
-            toast({
-              title: "Processor Review Loaded",
-              description: "Showing loans assigned to Ashley with overdue tasks not yet reviewed"
-            });
-          }}
-          className="h-8 text-xs"
-        >
-          Processor Review
-        </Button>
+            <Button
+              variant={activeView === "Processor Review" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                const reviewColumns = [...mainViewColumns];
+                if (!reviewColumns.includes('earliest_task_due_date')) {
+                  reviewColumns.push('earliest_task_due_date');
+                }
+                
+                const orderedReviewColumns = reviewColumns
+                  .map(id => columnVisibility.find(col => col.id === id))
+                  .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+                  .map(col => ({ ...col, visible: true }));
+                
+                const existingIds = new Set(reviewColumns);
+                const remainingColumns = columnVisibility
+                  .filter(col => !existingIds.has(col.id))
+                  .map(col => ({ ...col, visible: false }));
+                
+                const newColumnOrder = [...orderedReviewColumns, ...remainingColumns];
+                setColumns(newColumnOrder);
+                setActiveView("Processor Review");
+                setIsReviewMode(true);
+                
+                const todayStr = new Date().toISOString().split('T')[0];
+                
+                setFilters([
+                  {
+                    id: 'processor-due-date',
+                    column: 'earliest_task_due_date',
+                    operator: 'is_on_or_before',
+                    value: todayStr
+                  },
+                  {
+                    id: 'processor-not-reviewed-today',
+                    column: 'last_morning_review_at',
+                    operator: 'is_empty_or_before_today',
+                    value: todayStr
+                  },
+                  {
+                    id: 'processor-user',
+                    column: 'team',
+                    operator: 'is',
+                    value: 'Ashley Merizio'
+                  }
+                ]);
+                
+                toast({
+                  title: "Processor Review Loaded",
+                  description: "Showing loans assigned to Ashley with overdue tasks not yet reviewed"
+                });
+              }}
+              className="h-8 text-xs"
+            >
+              Processor Review
+            </Button>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsActivityLogOpen(true)}
-          className="h-8 text-xs"
-        >
-          <Activity className="h-4 w-4 mr-1" />
-          Activity Log
-        </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsActivityLogOpen(true)}
+              className="h-8 text-xs"
+            >
+              <Activity className="h-4 w-4 mr-1" />
+              Activity Log
+            </Button>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsEditMainViewOpen(true)}
-          className="h-8 px-2"
-          title="Edit Main View"
-        >
-          <Pencil className="h-3 w-3" />
-        </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsEditMainViewOpen(true)}
+              className="h-8 px-2"
+              title="Edit Main View"
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Inline Filter Section */}
@@ -1791,7 +1803,7 @@ export default function Active() {
         <CollapsiblePipelineSection
           title="Live"
           data={liveLoans}
-          columns={columns}
+          columns={filteredColumns}
           searchTerm={searchTerm}
           defaultOpen={true}
           onRowClick={handleRowClick}
@@ -1811,7 +1823,7 @@ export default function Active() {
         <CollapsiblePipelineSection
           title="Incoming"
           data={incomingLoans}
-          columns={columns}
+          columns={filteredColumns}
           searchTerm={searchTerm}
           defaultOpen={false}
           onRowClick={handleRowClick}
@@ -1831,7 +1843,7 @@ export default function Active() {
         <CollapsiblePipelineSection
           title="On Hold"
           data={onHoldLoans}
-          columns={columns}
+          columns={filteredColumns}
           searchTerm={searchTerm}
           defaultOpen={false}
           onRowClick={handleRowClick}
