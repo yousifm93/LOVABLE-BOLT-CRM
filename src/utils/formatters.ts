@@ -70,6 +70,17 @@ export const formatDate = (dateString: string | null | undefined): string => {
     
     if (isNaN(date.getTime())) return "—";
     
+    const currentYear = new Date().getFullYear();
+    const dateYear = date.getFullYear();
+    
+    // Only show year if it's different from current year
+    if (dateYear === currentYear) {
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric'
+      });
+    }
+    
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
