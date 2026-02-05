@@ -1,81 +1,188 @@
 
-# Fix: Borrower Conditions Not Visible
+# Add Website Feedback Category with Priority Level
 
-## Root Cause Identified
+## Overview
 
-The issue is an **RLS policy mismatch** between the `leads` and `lead_conditions` tables:
-
-| Table | RLS Policy | Effect |
-|-------|------------|--------|
-| `leads` | `team_read_leads` with `USING (true)` | All authenticated users can view all leads |
-| `lead_conditions` | Account-based check | Only users in the same account as the lead can view conditions |
-
-This causes users to see a lead's details but not its conditions, because they can access the lead (permissive policy) but fail the conditions check (account-based policy).
-
-### Affected Users
-Users not in account `47e707c5-62d0-4ee9-99a3-76572c73a8e1` cannot see conditions:
-- Salma@mortgagebolt.org
-- yousif@mortgagebolt.org  
-- yousif@mortgagebolt.com
-
-Users who CAN see conditions:
-- Herman@mortgagebolt.org ✅
-- Processing@mortgagebolt.org ✅
-- yousifminc@gmail.com ✅
+Enhance the feedback system with:
+1. **New "Website" category** at the top of the category dropdown
+2. **Feedback Level selector (1, 2, or 3)** shown only when "Website" is selected
+3. **New "Website Feedback" section** in the admin review page (5th bucket) that displays all website feedback with the level number
 
 ---
 
-## Recommended Fix
+## Changes Required
 
-**Update the RLS SELECT policy on `lead_conditions`** to match the `leads` table behavior - allow all authenticated users to view conditions.
+### 1. Update Feedback Submission Page (`src/pages/Feedback.tsx`)
 
-### SQL Migration
-
-```sql
--- Drop the existing restrictive SELECT policies
-DROP POLICY IF EXISTS "Users can select conditions for their account leads" ON lead_conditions;
-DROP POLICY IF EXISTS "Users can view conditions for their account leads" ON lead_conditions;
-
--- Create new permissive SELECT policy matching leads table
-CREATE POLICY "Authenticated users can view lead conditions"
-  ON lead_conditions
-  FOR SELECT
-  TO authenticated
-  USING (true);
+**A. Add "Website" category at the top of the list:**
+```typescript
+const feedbackCategories = [
+  { key: 'website', label: 'Website' },  // NEW - at the top
+  { key: 'dashboard', label: 'Dashboard' },
+  // ... rest unchanged
+];
 ```
 
-This keeps INSERT, UPDATE, and DELETE restricted to account-based access (existing policies), but allows all authenticated users to VIEW conditions - matching the behavior of the `leads` table.
+**B. Add new state for feedback level:**
+```typescript
+const [feedbackLevel, setFeedbackLevel] = useState<number | null>(null);
+```
+
+**C. Add Level selector in the dialog (shown only when "website" category is selected):**
+- Position: After the feedback textarea, before the screenshot upload
+- Label: "Website Feedback Level"
+- Options: Three buttons (1, 2, 3) where:
+  - 1 = Low priority
+  - 2 = Medium priority  
+  - 3 = High priority / Most extreme
+- Visual: Buttons that highlight when selected
+
+**D. Update the `feedbackItem` structure to include level:**
+```typescript
+const feedbackItem: FeedbackItemContent = {
+  text: newFeedbackText.trim(),
+  image_url: newFeedbackImage,
+  level: newCategory === 'website' ? feedbackLevel : undefined  // Only for website feedback
+};
+```
+
+**E. Reset level when dialog closes or category changes away from "website"**
 
 ---
 
-## Alternative: Fix User Profiles
+### 2. Update Feedback Review Page (`src/pages/admin/FeedbackReview.tsx`)
 
-If the intent is to restrict conditions by account, update the `profiles` table to put all team members in the same account:
+**A. Add new state for Website Feedback bucket:**
+```typescript
+const [websiteBucketOpen, setWebsiteBucketOpen] = useState(false);
+```
 
-```sql
-UPDATE profiles 
-SET account_id = '47e707c5-62d0-4ee9-99a3-76572c73a8e1'
-WHERE user_id IN (
-  SELECT auth_user_id FROM users 
-  WHERE email IN ('Salma@mortgagebolt.org', 'yousif@mortgagebolt.org')
-);
+**B. Update the interface to include level:**
+```typescript
+interface FeedbackItemContent {
+  text: string;
+  image_url?: string;
+  level?: number;  // NEW - 1, 2, or 3
+}
+```
+
+**C. Update `getAggregatedItems` to also collect website items:**
+```typescript
+const websiteItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
+
+// In the forEach loop:
+if (fb.section_key === 'website') {
+  websiteItems.push({ fb, item, index, status });
+}
+```
+
+**D. Add 5th collapsible section for Website Feedback:**
+- Icon: Globe icon (from lucide-react)
+- Border color: Cyan/teal theme
+- Display: Show each item with its level badge prominently (e.g., "Level 3" in red for high priority)
+- Sorting: Items with higher levels shown first
+
+**E. Display level in the feedback item:**
+```typescript
+// In renderFeedbackItem or dedicated renderer:
+{itemLevel && (
+  <Badge className={
+    itemLevel === 3 ? 'bg-red-500 text-white' :
+    itemLevel === 2 ? 'bg-yellow-500 text-white' :
+    'bg-blue-500 text-white'
+  }>
+    Level {itemLevel}
+  </Badge>
+)}
 ```
 
 ---
 
-## Impact
+## UI Preview
 
-After applying the fix:
-- All authenticated users will be able to view conditions for any lead they can see
-- INSERT/UPDATE/DELETE operations remain restricted to account-based access
-- Matches the existing `leads` table access pattern
+### Feedback Submission Dialog (when "Website" selected):
+
+```text
+┌─────────────────────────────────────────────────────┐
+│  Submit New Feedback                                │
+│  Select a category and describe...                  │
+├─────────────────────────────────────────────────────┤
+│  Category                                           │
+│  [Website ▼]                                        │
+│                                                     │
+│  Your Feedback                                      │
+│  ┌─────────────────────────────────────────────┐   │
+│  │ Describe what you'd like to see...          │   │
+│  │                                             │   │
+│  └─────────────────────────────────────────────┘   │
+│                                                     │
+│  Website Feedback Level                             │
+│  [1]  [2]  [3]                                     │
+│  Low  Medium  High                                  │
+│                                                     │
+│  Screenshot (optional)                              │
+│  [Attach Screenshot]                                │
+│                                                     │
+│  [Cancel]                    [Submit]               │
+└─────────────────────────────────────────────────────┘
+```
+
+### Admin Review Page (new 5th section):
+
+```text
+┌─────────────────────────────────────────────────────┐
+│ ▶ Website Feedback                          [3]    │
+├─────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────┐   │
+│  │ [Website] [Level 3]            Feb 5       │   │
+│  │ The homepage loading is slow on mobile...  │   │
+│  │ [Screenshot]                               │   │
+│  │                                            │   │
+│  │ [Complete] [Still Need Help] [Idea] [...]  │   │
+│  │ [Add a response...]                        │   │
+│  └─────────────────────────────────────────────┘   │
+│                                                     │
+│  ┌─────────────────────────────────────────────┐   │
+│  │ [Website] [Level 1]            Feb 4       │   │
+│  │ Consider adding a dark mode toggle...      │   │
+│  └─────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Files Changed
+## Files Modified
 
-| File | Change |
-|------|--------|
-| New SQL migration | Add permissive SELECT policy for `lead_conditions` |
+| File | Changes |
+|------|---------|
+| `src/pages/Feedback.tsx` | Add "Website" category at top, add level selector UI, include level in submitted data |
+| `src/pages/admin/FeedbackReview.tsx` | Add Website Feedback bucket (5th section), display level badges, sort by level |
 
-No frontend code changes needed - the existing `ConditionsTab.tsx` will work correctly once RLS allows access.
+---
+
+## Technical Details
+
+### Updated FeedbackItemContent Interface (both files):
+```typescript
+interface FeedbackItemContent {
+  text: string;
+  image_url?: string;
+  level?: number;  // 1 = Low, 2 = Medium, 3 = High (website feedback only)
+}
+```
+
+### Level Badge Colors:
+- Level 1: Blue background (`bg-blue-500`)
+- Level 2: Yellow/Amber background (`bg-yellow-500`)
+- Level 3: Red background (`bg-red-500`)
+
+### Website Bucket Logic:
+- Website items are shown in their own dedicated section regardless of status
+- They can still have status buttons (Complete, Needs Help, Idea, Pending Review)
+- Sorted by level descending (Level 3 items first)
+
+---
+
+## No Database Changes Required
+
+The `feedback_items` column is already JSONB, so adding a `level` property to the stored objects requires no schema migration.
