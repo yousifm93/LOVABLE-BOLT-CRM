@@ -65,7 +65,7 @@ serve(async (req) => {
 TASK:
 1) Read the AUS Findings document.
 2) Extract ONLY the required "conditions / documentation / verifications" that must be obtained, validated, or documented to close and/or to satisfy AUS findings.
-3) Convert them into a structured list.
+3) Convert them into a structured list with a concise NAME and detailed DESCRIPTION.
 
 For each requirement, categorize it into one of these types:
 - credit: Credit-related conditions (credit reports, disputes, mortgage history)
@@ -77,13 +77,13 @@ For each requirement, categorize it into one of these types:
 - other: Everything else
 
 EXTRACTION RULES:
-- ONE LINE PER ITEM - clear action + document
+- For each condition, provide a concise NAME (5-10 words max) that summarizes the requirement
+- Also provide a full DESCRIPTION with the complete condition text
 - ONLY include items that require action/documentation
 - Do NOT include general commentary like "follow guidelines" unless it clearly implies a concrete document or action
 - Do NOT include internal AUS metadata (casefile ID, score, ratios, loan limits, messages) unless it creates a condition requiring documentation
 - If the document mentions that a condition is NOT required (e.g., "no further action is necessary"), do NOT list it
-- If the AUS indicates documentation is needed only IF a scenario applies, include it as conditional wording:
-  Example: "If using self-employed income: most recent 1-year personal tax returns (all schedules)"
+- If the AUS indicates documentation is needed only IF a scenario applies, include it as conditional wording
 - Remove duplicates. Keep items unique and consolidated.
 
 WHAT TO INCLUDE (EXAMPLES):
@@ -98,7 +98,8 @@ Return ONLY valid JSON in this exact format:
   "conditions": [
     {
       "category": "income|credit|property|borrower|insurance|title|other",
-      "description": "Clear action item text (one line, plain English)",
+      "name": "Short concise name (5-10 words max)",
+      "description": "Full detailed condition text explaining what is needed",
       "phase": "AUS"
     }
   ],

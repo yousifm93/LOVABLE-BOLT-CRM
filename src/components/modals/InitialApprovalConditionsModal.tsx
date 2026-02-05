@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 interface ExtractedCondition {
   category: string;
+  name?: string;
   description: string;
   underwriter?: string;
   phase?: string;
@@ -78,36 +79,26 @@ export function InitialApprovalConditionsModal({
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
     new Set(conditions.map((_, i) => i))
   );
-  const [editedDescriptions, setEditedDescriptions] = useState<Map<number, string>>(new Map());
-  const [editedEtas, setEditedEtas] = useState<Map<number, string>>(new Map());
+  const [editedNames, setEditedNames] = useState<Map<number, string>>(new Map());
   const [editedResponsibles, setEditedResponsibles] = useState<Map<number, string>>(new Map());
 
   // Reset edited values when conditions change
   useEffect(() => {
-    setEditedDescriptions(new Map());
-    setEditedEtas(new Map());
+    setEditedNames(new Map());
     setEditedResponsibles(new Map());
     setSelectedIndices(new Set(conditions.map((_, i) => i)));
   }, [conditions]);
 
-  const handleDescriptionChange = (index: number, value: string) => {
-    setEditedDescriptions(prev => new Map(prev).set(index, value));
-  };
-
-  const handleEtaChange = (index: number, value: string) => {
-    setEditedEtas(prev => new Map(prev).set(index, value));
+  const handleNameChange = (index: number, value: string) => {
+    setEditedNames(prev => new Map(prev).set(index, value));
   };
 
   const handleResponsibleChange = (index: number, value: string) => {
     setEditedResponsibles(prev => new Map(prev).set(index, value));
   };
 
-  const getFinalDescription = (index: number, original: string) => {
-    return editedDescriptions.get(index) ?? original;
-  };
-
-  const getFinalEta = (index: number, original?: string) => {
-    return editedEtas.get(index) ?? original ?? '';
+  const getFinalName = (index: number, condition: ExtractedCondition) => {
+    return editedNames.get(index) ?? condition.name ?? condition.description;
   };
 
   const getFinalResponsible = (index: number, original?: string) => {
@@ -136,8 +127,7 @@ export function InitialApprovalConditionsModal({
     const selected = conditions
       .map((c, i) => ({ 
         ...c, 
-        description: getFinalDescription(i, c.description),
-        eta: getFinalEta(i, c.eta) || undefined,
+        description: getFinalName(i, c),
         responsible: getFinalResponsible(i, c.responsible) || undefined
       }))
       .filter((_, i) => selectedIndices.has(i));
@@ -262,21 +252,24 @@ export function InitialApprovalConditionsModal({
                       )}
                     >
                       {/* Checkbox */}
-                      <div className="col-span-1 flex items-center justify-center">
+                      <div className="col-span-1 flex items-start pt-2">
                         <Checkbox
                           checked={selectedIndices.has(index)}
                           onCheckedChange={() => handleToggle(index)}
                         />
                       </div>
                       
-                      {/* Description */}
-                      <div className="col-span-5">
+                      {/* Name + Description */}
+                      <div className="col-span-7 space-y-1">
                         <Input
-                          value={getFinalDescription(index, condition.description)}
-                          onChange={(e) => handleDescriptionChange(index, e.target.value)}
-                          className="text-sm"
-                          placeholder="Condition description..."
+                          value={getFinalName(index, condition)}
+                          onChange={(e) => handleNameChange(index, e.target.value)}
+                          className="text-sm font-medium"
+                          placeholder="Condition name..."
                         />
+                        <p className="text-xs text-muted-foreground line-clamp-2 px-1">
+                          {condition.description}
+                        </p>
                       </div>
                       
                       {/* Responsible */}
@@ -296,17 +289,6 @@ export function InitialApprovalConditionsModal({
                             <SelectItem value="Appraiser">Appraiser</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                      
-                      {/* ETA */}
-                      <div className="col-span-2">
-                        <Input
-                          type="date"
-                          value={getFinalEta(index, condition.eta)}
-                          onChange={(e) => handleEtaChange(index, e.target.value)}
-                          className="text-sm h-9"
-                          placeholder="ETA"
-                        />
                       </div>
                       
                       {/* Phase/Info */}
