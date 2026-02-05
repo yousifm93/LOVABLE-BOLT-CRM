@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { format, isToday } from "date-fns";
-import { Send, Loader2, MessageSquare, User, Check, HelpCircle, ChevronDown, ChevronRight, Lightbulb, Clock, Mail } from "lucide-react";
+import { Send, Loader2, MessageSquare, User, Check, HelpCircle, ChevronDown, ChevronRight, Lightbulb, Clock, Mail, Globe } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,6 +21,7 @@ interface TeamMember {
 interface FeedbackItemContent {
   text: string;
   image_url?: string;
+  level?: number;
 }
 
 interface FeedbackItem {
@@ -67,6 +68,7 @@ export default function FeedbackReview() {
   const [pendingReviewBucketOpen, setPendingReviewBucketOpen] = useState(false);
   const [ideasBucketOpen, setIdeasBucketOpen] = useState(false);
   const [completeBucketOpen, setCompleteBucketOpen] = useState(false);
+  const [websiteBucketOpen, setWebsiteBucketOpen] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const { toast } = useToast();
   const { crmUser } = useAuth();
@@ -191,6 +193,11 @@ export default function FeedbackReview() {
   const getItemImageUrl = (item: FeedbackItemContent | string): string | undefined => {
     if (typeof item === 'string') return undefined;
     return item.image_url;
+  };
+
+  const getItemLevel = (item: FeedbackItemContent | string): number | undefined => {
+    if (typeof item === 'string') return undefined;
+    return item.level;
   };
 
   const updateItemStatus = async (feedbackId: string, itemIndex: number, status: 'complete' | 'needs_help' | 'idea' | 'pending_user_review') => {
@@ -406,15 +413,16 @@ export default function FeedbackReview() {
     </div>
   );
 
-  const renderFeedbackItem = (fb: FeedbackItem, item: FeedbackItemContent | string, index: number, isCompleted: boolean, isIdea: boolean, isPendingReview: boolean = false) => {
+  const renderFeedbackItem = (fb: FeedbackItem, item: FeedbackItemContent | string, index: number, isCompleted: boolean, isIdea: boolean, isPendingReview: boolean = false, isWebsite: boolean = false) => {
     const itemComments = getItemComments(fb.id, index);
     const commentKey = `${fb.id}-${index}`;
     const currentStatus = getItemStatus(fb.id, index);
     const itemText = getItemText(item);
     const itemImageUrl = getItemImageUrl(item);
+    const itemLevel = getItemLevel(item);
 
     return (
-      <div key={`${fb.id}-${index}`} className={`space-y-3 p-4 rounded-lg border ${isCompleted ? 'bg-muted/30 opacity-75' : isIdea ? 'bg-purple-50 dark:bg-purple-950/20' : isPendingReview ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-muted/50'}`}>
+      <div key={`${fb.id}-${index}`} className={`space-y-3 p-4 rounded-lg border ${isCompleted ? 'bg-muted/30 opacity-75' : isIdea ? 'bg-purple-50 dark:bg-purple-950/20' : isPendingReview ? 'bg-blue-50 dark:bg-blue-950/20' : isWebsite ? 'bg-cyan-50 dark:bg-cyan-950/20' : 'bg-muted/50'}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 flex-1">
             <div className="flex-1">
@@ -423,6 +431,15 @@ export default function FeedbackReview() {
                 {isIdea && <Badge className="bg-purple-100 text-purple-700 text-xs">Idea</Badge>}
                 {isPendingReview && <Badge className="bg-blue-100 text-blue-700 text-xs">Pending Review</Badge>}
                 {currentStatus === 'needs_help' && <Badge className="bg-orange-100 text-orange-700 text-xs">Needs Help</Badge>}
+                {isWebsite && itemLevel && (
+                  <Badge className={
+                    itemLevel === 3 ? 'bg-red-500 text-white' :
+                    itemLevel === 2 ? 'bg-yellow-500 text-white' :
+                    'bg-blue-500 text-white'
+                  }>
+                    Level {itemLevel}
+                  </Badge>
+                )}
               </div>
               <p className={`text-sm ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>{itemText || '(No text)'}</p>
               {itemImageUrl && (
@@ -465,17 +482,25 @@ export default function FeedbackReview() {
     );
   };
 
-  // Aggregate all items across all feedback entries into four buckets
+  // Aggregate all items across all feedback entries into five buckets
   const getAggregatedItems = (userId: string) => {
     const userFeedback = getUserFeedback(userId);
     const openItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
     const pendingReviewItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
     const ideaItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
     const completeItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
+    const websiteItems: Array<{ fb: FeedbackItem; item: FeedbackItemContent | string; index: number; status: string }> = [];
 
     userFeedback.forEach(fb => {
       fb.feedback_items.forEach((item, index) => {
         const status = getItemStatus(fb.id, index);
+        
+        // Website items go to their own bucket regardless of status
+        if (fb.section_key === 'website') {
+          websiteItems.push({ fb, item, index, status });
+          return;
+        }
+        
         if (status === 'complete') {
           completeItems.push({ fb, item, index, status });
         } else if (status === 'pending_user_review') {
@@ -489,7 +514,14 @@ export default function FeedbackReview() {
       });
     });
 
-    return { openItems, pendingReviewItems, ideaItems, completeItems };
+    // Sort website items by level descending (Level 3 first)
+    websiteItems.sort((a, b) => {
+      const levelA = getItemLevel(a.item) || 0;
+      const levelB = getItemLevel(b.item) || 0;
+      return levelB - levelA;
+    });
+
+    return { openItems, pendingReviewItems, ideaItems, completeItems, websiteItems };
   };
 
   return (
@@ -528,7 +560,7 @@ export default function FeedbackReview() {
           })}
         </TabsList>
         {teamMembers.map((member) => {
-          const { openItems, pendingReviewItems, ideaItems, completeItems } = getAggregatedItems(member.id);
+          const { openItems, pendingReviewItems, ideaItems, completeItems, websiteItems } = getAggregatedItems(member.id);
           
           return (
             <TabsContent key={member.id} value={member.id} className="space-y-6">
@@ -557,7 +589,7 @@ export default function FeedbackReview() {
                         <CollapsibleContent>
                           <CardContent className="space-y-3">
                             {openItems.map(({ fb, item, index, status }) => {
-                              return renderFeedbackItem(fb, item, index, false, false, false);
+                              return renderFeedbackItem(fb, item, index, false, false, false, false);
                             })}
                           </CardContent>
                         </CollapsibleContent>
@@ -586,7 +618,7 @@ export default function FeedbackReview() {
                         <CollapsibleContent>
                           <CardContent className="space-y-3">
                             {pendingReviewItems.map(({ fb, item, index }) => 
-                              renderFeedbackItem(fb, item, index, false, false, true)
+                              renderFeedbackItem(fb, item, index, false, false, true, false)
                             )}
                           </CardContent>
                         </CollapsibleContent>
@@ -615,7 +647,7 @@ export default function FeedbackReview() {
                         <CollapsibleContent>
                           <CardContent className="space-y-3">
                             {ideaItems.map(({ fb, item, index }) => 
-                              renderFeedbackItem(fb, item, index, false, true, false)
+                              renderFeedbackItem(fb, item, index, false, true, false, false)
                             )}
                           </CardContent>
                         </CollapsibleContent>
@@ -644,7 +676,36 @@ export default function FeedbackReview() {
                         <CollapsibleContent>
                           <CardContent className="space-y-3">
                             {completeItems.map(({ fb, item, index }) => 
-                              renderFeedbackItem(fb, item, index, true, false, false)
+                              renderFeedbackItem(fb, item, index, true, false, false, false)
+                            )}
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
+                  )}
+
+                  {/* Website Feedback Bucket - 5th section */}
+                  {websiteItems.length > 0 && (
+                    <Collapsible open={websiteBucketOpen} onOpenChange={setWebsiteBucketOpen}>
+                      <Card className="border-cyan-200 dark:border-cyan-800">
+                        <CollapsibleTrigger asChild>
+                          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {websiteBucketOpen ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                                <Globe className="h-5 w-5 text-cyan-500" />
+                                <CardTitle className="text-xl">Website Feedback</CardTitle>
+                                <Badge variant="outline" className="ml-2 border-cyan-500 text-cyan-600">
+                                  {websiteItems.length}
+                                </Badge>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <CardContent className="space-y-3">
+                            {websiteItems.map(({ fb, item, index }) => 
+                              renderFeedbackItem(fb, item, index, false, false, false, true)
                             )}
                           </CardContent>
                         </CollapsibleContent>

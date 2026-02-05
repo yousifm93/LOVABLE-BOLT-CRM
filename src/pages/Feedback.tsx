@@ -9,9 +9,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
-// Master list of feedback categories
+// Master list of feedback categories - Website is first
 const feedbackCategories = [
+  { key: 'website', label: 'Website' },
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'tasks', label: 'Tasks' },
   { key: 'email', label: 'Email' },
@@ -32,6 +34,7 @@ const feedbackCategories = [
 interface FeedbackItemContent {
   text: string;
   image_url?: string;
+  level?: number;
 }
 
 export default function Feedback() {
@@ -43,7 +46,27 @@ export default function Feedback() {
   const [newCategory, setNewCategory] = useState("");
   const [newFeedbackText, setNewFeedbackText] = useState("");
   const [newFeedbackImage, setNewFeedbackImage] = useState<string | undefined>();
+  const [feedbackLevel, setFeedbackLevel] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Reset level when category changes away from website
+  const handleCategoryChange = (value: string) => {
+    setNewCategory(value);
+    if (value !== 'website') {
+      setFeedbackLevel(null);
+    }
+  };
+
+  // Reset all fields when dialog closes
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      setNewCategory("");
+      setNewFeedbackText("");
+      setNewFeedbackImage(undefined);
+      setFeedbackLevel(null);
+    }
+  };
 
   const handleImageUpload = async (file: File): Promise<string | undefined> => {
     if (!crmUser?.id) return undefined;
@@ -70,13 +93,20 @@ export default function Feedback() {
       return;
     }
 
+    // For website category, level is required
+    if (newCategory === 'website' && !feedbackLevel) {
+      toast({ title: "Error", description: "Please select a feedback level.", variant: "destructive" });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const categoryLabel = feedbackCategories.find(c => c.key === newCategory)?.label || newCategory;
       
       const feedbackItem: FeedbackItemContent = {
         text: newFeedbackText.trim(),
-        image_url: newFeedbackImage
+        image_url: newFeedbackImage,
+        level: newCategory === 'website' ? feedbackLevel ?? undefined : undefined
       };
 
       const { error } = await supabase
@@ -93,10 +123,7 @@ export default function Feedback() {
       if (error) throw error;
 
       toast({ title: "Feedback Submitted", description: "Your feedback has been submitted successfully." });
-      setDialogOpen(false);
-      setNewCategory("");
-      setNewFeedbackText("");
-      setNewFeedbackImage(undefined);
+      handleDialogOpenChange(false);
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast({ title: "Error", description: "Failed to submit feedback.", variant: "destructive" });
@@ -120,7 +147,7 @@ export default function Feedback() {
           <h3 className="text-lg font-medium mb-2">Submit New Feedback</h3>
           <p className="text-muted-foreground mb-6">Have an idea or suggestion? Let us know what could be improved.</p>
           
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
             <DialogTrigger asChild>
               <Button size="lg" className="gap-2">
                 <Plus className="h-5 w-5" />
@@ -138,7 +165,7 @@ export default function Feedback() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
-                  <Select value={newCategory} onValueChange={setNewCategory}>
+                  <Select value={newCategory} onValueChange={handleCategoryChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
@@ -160,6 +187,37 @@ export default function Feedback() {
                     className="min-h-[120px]"
                   />
                 </div>
+
+                {/* Website Feedback Level - Only show when website category is selected */}
+                {newCategory === 'website' && (
+                  <div className="space-y-2">
+                    <Label>Website Feedback Level</Label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3].map((level) => (
+                        <Button
+                          key={level}
+                          type="button"
+                          variant={feedbackLevel === level ? "default" : "outline"}
+                          className={cn(
+                            "flex-1 flex flex-col h-auto py-3",
+                            feedbackLevel === level && level === 1 && "bg-blue-600 hover:bg-blue-700",
+                            feedbackLevel === level && level === 2 && "bg-yellow-500 hover:bg-yellow-600",
+                            feedbackLevel === level && level === 3 && "bg-red-600 hover:bg-red-700"
+                          )}
+                          onClick={() => setFeedbackLevel(level)}
+                        >
+                          <span className="text-lg font-bold">{level}</span>
+                          <span className="text-xs">
+                            {level === 1 ? "Low" : level === 2 ? "Medium" : "High"}
+                          </span>
+                        </Button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      1 = Low priority, 2 = Medium, 3 = High/Urgent
+                    </p>
+                  </div>
+                )}
                 
                 <div className="space-y-2">
                   <Label>Screenshot (optional)</Label>
@@ -197,8 +255,11 @@ export default function Feedback() {
               </div>
               
               <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button onClick={submitNewFeedback} disabled={submitting || !newCategory || !newFeedbackText.trim()}>
+                <Button variant="outline" onClick={() => handleDialogOpenChange(false)}>Cancel</Button>
+                <Button 
+                  onClick={submitNewFeedback} 
+                  disabled={submitting || !newCategory || !newFeedbackText.trim() || (newCategory === 'website' && !feedbackLevel)}
+                >
                   {submitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Submitting...</> : <><Send className="h-4 w-4 mr-2" />Submit</>}
                 </Button>
               </DialogFooter>
