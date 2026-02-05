@@ -51,8 +51,9 @@ export default function UserManagement() {
     }
   };
 
-  const adminUsers = users.filter(user => user.role === 'Admin');
-  const teamMembers = users.filter(user => user.role !== 'Admin');
+  const adminUsers = users.filter(user => user.role === 'Admin' && user.is_active);
+  const teamMembers = users.filter(user => user.role !== 'Admin' && user.is_active);
+  const inactiveUsers = users.filter(user => !user.is_active);
 
   const handleToggleActive = async (userId: string, currentStatus: boolean) => {
     const { error } = await supabase
@@ -382,6 +383,67 @@ export default function UserManagement() {
               </Table>
             </CardContent>
           </Card>
+
+          {inactiveUsers.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Inactive</CardTitle>
+                <CardDescription>
+                  Deactivated users who no longer have access
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {inactiveUsers.map((user) => (
+                      <TableRow key={user.id} className="opacity-60">
+                        <TableCell className="font-medium">
+                          {user.first_name} {user.last_name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {user.email || "No email"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {user.phone || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{user.role}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                            title="Edit user"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleActive(user.id, user.is_active)}
+                            title="Reactivate user"
+                          >
+                            <Power className="h-4 w-4 mr-1" />
+                            Reactivate
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
         
         <TabsContent value="permissions">
