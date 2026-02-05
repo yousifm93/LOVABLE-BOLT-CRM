@@ -1,140 +1,208 @@
 
+# Add AUS Approval Document Parsing Feature
 
-# Fix Email Open and Reply Tracking Issues
+## Overview
 
-## Problems Identified
-
-### Problem 1: Email Opens Not Registering
-**Symptom**: You opened all 3 emails but none show "Opened: Yes"
-
-**Root Cause**: The logs show `Skipping lender ... open update - email is older than last sent`. The comparison between `emailLog.created_at` and `lender.last_email_sent_at` is failing due to slight timing differences - both are set at nearly the same time when sending, but millisecond differences cause the check to fail.
-
-**Fix**: Compare with a small tolerance (e.g., 5 seconds) OR store the `email_log_id` in `custom_args` and match by that instead of timestamp.
+When a user uploads a document to the "AUS Approval" slot in Active File Documents, the system will automatically parse the DU/LPA findings document using AI and extract all required conditions/documentation items. A confirmation modal will appear allowing the user to review, edit, and select which conditions to import into the condition list.
 
 ---
 
-### Problem 2: All 3 Lenders Marked as Replied (but only 1 replied)
-**Symptom**: You replied to 1 email, but all 3 lenders show "Replied: Yes"
+## Architecture (Follows Existing Pattern)
 
-**Root Cause**: The logs reveal:
+The implementation mirrors the existing Initial Approval parsing flow:
+
 ```text
-Updated ACRA - reply detected from mbborrower@gmail.com
-Updated ADVANCIAL - reply detected from mbborrower@gmail.com  
-Updated BAC - reply detected from mbborrower@gmail.com
+User uploads AUS file → File stored in Supabase Storage
+    ↓
+parseAusApproval() triggered → Calls parse-aus-approval edge function
+    ↓
+Edge function downloads file → Sends to Gemini AI with your prompt
+    ↓
+AI returns checklist items → Converted to conditions format
+    ↓
+Modal appears → User reviews/edits/selects conditions
+    ↓
+Confirmed → Conditions saved to lead_conditions table
 ```
 
-All 3 lenders have Account Executive emails at the same domain (`gmail.com`). Since domain matching is used, a single reply from `mbborrower@gmail.com` matches all lenders with `@gmail.com` AE emails.
-
-**Fix**: For common public email domains (gmail.com, yahoo.com, outlook.com, hotmail.com, etc.), use **exact email match** instead of domain match. Only use domain matching for corporate domains.
-
 ---
 
-### Problem 3: Reply Status Not Resetting When New Email Sent
-**Symptom**: 11 lenders still showed "Replied: Yes" after sending new emails
+## Files to Create/Modify
 
-**Root Cause**: The `send-direct-email` function only resets `last_email_opened` and `last_email_replied` to `false`, but doesn't reset the `_at` timestamp columns to `null`. Also, lenders who weren't in the new batch (the other 8) weren't updated at all.
+### 1. NEW: Edge Function - `supabase/functions/parse-aus-approval/index.ts`
 
-**Fix**: Reset both boolean AND timestamp columns. Also ensure the logic correctly identifies that only lenders who received the NEW email should be evaluated.
+Creates a new edge function that:
+- Downloads the uploaded PDF via signed URL
+- Converts to base64 for AI processing
+- Sends to Gemini AI with your custom prompt (adapted for structured output)
+- Returns conditions in the same format as initial approval
 
----
+**AI Prompt** (adapted from your ChatGPT prompt):
+```text
+You are a mortgage processing assistant. Extract ONLY the required conditions/documentation from this AUS Findings document (DU or LPA).
 
-## Technical Changes
+For each requirement, categorize it:
+- credit: Credit-related
+- title: Title-related  
+- income: Income/Employment
+- property: Property/Appraisal
+- insurance: Insurance
+- borrower: Assets/Funds/Borrower docs
+- other: Everything else
 
-### File 1: `supabase/functions/email-webhooks/index.ts`
+EXTRACTION RULES:
+- ONE LINE PER ITEM - clear action + document
+- ONLY include items that require action/documentation
+- Do NOT include general commentary or AUS metadata
+- Do NOT include items marked as "not required"
+- For conditional items, use wording like: "If using self-employed income: ..."
+- Remove duplicates
 
-**Fix Open Detection Timing Issue**
-
-Change the timestamp comparison to allow a 5-second tolerance window:
-
-```typescript
-// Current problematic code:
-if (emailSentAt >= lastSentAt) { ... }
-
-// Fixed code - allow 5-second tolerance:
-const toleranceMs = 5000; // 5 seconds
-if (emailSentAt >= lastSentAt - toleranceMs) { ... }
-```
-
-This accounts for the small time difference between when `email_logs.created_at` and `lenders.last_email_sent_at` are set.
-
----
-
-### File 2: `supabase/functions/sync-lender-email-replies/index.ts`
-
-**Fix Domain Matching for Public Domains**
-
-Add a list of public email domains that require exact email matching:
-
-```typescript
-const PUBLIC_DOMAINS = new Set([
-  'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 
-  'aol.com', 'icloud.com', 'protonmail.com', 'live.com',
-  'msn.com', 'me.com', 'mail.com', 'ymail.com'
-]);
-
-// For each lender:
-const aeDomain = lender.account_executive_email.split("@")[1]?.toLowerCase();
-const aeEmail = lender.account_executive_email.toLowerCase();
-
-let matched = false;
-
-if (PUBLIC_DOMAINS.has(aeDomain)) {
-  // Exact email match required for public domains
-  matched = emailsFromDomain.some(email => 
-    email.fromEmail.toLowerCase() === aeEmail && 
-    new Date(email.rawDate).getTime() > lastSentAt
-  );
-} else {
-  // Domain match for corporate domains
-  matched = emailsFromDomain.some(email => 
-    new Date(email.rawDate).getTime() > lastSentAt
-  );
+Return JSON:
+{
+  "conditions": [
+    {
+      "category": "income|credit|property|borrower|insurance|title|other",
+      "description": "Clear action item text",
+      "phase": "AUS"
+    }
+  ],
+  "aus_info": {
+    "decision": "Approve/Eligible",
+    "case_id": "...",
+    "risk_class": "..."
+  }
 }
 ```
 
-Also build an email-level map in addition to domain-level map for exact matching.
+### 2. MODIFY: `src/components/lead-details/ActiveFileDocuments.tsx`
+
+Add new function `parseAusApproval()` following the same pattern as `parseInitialApproval()`:
+- Get signed URL for uploaded file
+- Call new edge function
+- On success, populate `pendingConditions` state
+- Show the existing `InitialApprovalConditionsModal` (reuse it)
+
+Modify `handleFileUpload()` to trigger parsing when `aus_approval_file` is uploaded (around line 484).
+
+### 3. MODIFY: `src/components/modals/InitialApprovalConditionsModal.tsx`
+
+Small update to make the modal title/description dynamic based on document type:
+- Accept optional `documentType` prop: `'initial_approval' | 'aus_approval'`
+- Display "Import Conditions from AUS Findings" when type is `aus_approval`
+- Otherwise show current "Import Conditions from Initial Approval"
 
 ---
 
-### File 3: `supabase/functions/send-direct-email/index.ts`
+## Technical Implementation Details
 
-**Reset All Tracking Fields When Sending New Email**
-
-Update the lender update to also clear the timestamp columns:
+### Edge Function (`parse-aus-approval/index.ts`)
 
 ```typescript
-const { error: updateError } = await supabase.from('lenders').update({
-  last_email_sent_at: new Date().toISOString(),
-  last_email_subject: subject,
-  last_email_opened: false,
-  last_email_opened_at: null,     // ADD THIS
-  last_email_replied: false,
-  last_email_replied_at: null,    // ADD THIS
-}).eq('id', lender_id);
+// Structure mirrors parse-initial-approval
+serve(async (req) => {
+  const { file_url } = await req.json();
+  
+  // Download and convert to base64
+  const fileResponse = await fetch(file_url);
+  const base64 = arrayBufferToBase64(await fileResponse.blob().arrayBuffer());
+  
+  // Call Gemini with your prompt
+  const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      messages: [
+        { role: 'system', content: AUS_EXTRACTION_PROMPT },
+        { role: 'user', content: [
+          { type: 'text', text: 'Extract AUS conditions...' },
+          { type: 'image_url', image_url: { url: `data:application/pdf;base64,${base64}` }}
+        ]}
+      ]
+    })
+  });
+  
+  // Parse and return conditions
+  return Response.json({ success: true, conditions: [...], aus_info: {...} });
+});
+```
+
+### ActiveFileDocuments.tsx Changes
+
+Add around line 280 (after `parseInitialApproval`):
+
+```typescript
+const parseAusApproval = async (filePath: string) => {
+  try {
+    setParsing('aus_approval_file');
+    
+    const { data: signedUrlData } = await supabase.storage
+      .from('lead-documents')
+      .createSignedUrl(filePath, 3600);
+
+    toast({
+      title: "Parsing AUS Findings",
+      description: "Extracting conditions from AUS document..."
+    });
+
+    const { data, error } = await supabase.functions.invoke('parse-aus-approval', {
+      body: { file_url: signedUrlData.signedUrl }
+    });
+
+    if (data?.success && data?.conditions?.length > 0) {
+      setPendingConditions({
+        conditions: data.conditions,
+        loanInfo: data.aus_info // Optional AUS metadata
+      });
+      setShowConditionsModal(true);
+    }
+  } catch (error) { ... }
+  finally { setParsing(null); }
+};
+```
+
+Modify `handleFileUpload` around line 484 to add:
+
+```typescript
+} else if (fieldKey === 'aus_approval_file') {
+  await parseAusApproval(uploadData.path);
+  // onLeadUpdate called after modal closes
 ```
 
 ---
 
-## Summary of Changes
+## User Experience Flow
 
-| File | Change | Fixes |
-|------|--------|-------|
-| `email-webhooks/index.ts` | Add 5-second tolerance to timestamp comparison | Opens not registering |
-| `sync-lender-email-replies/index.ts` | Use exact email match for public domains (gmail, etc.) | All 3 marked as replied when only 1 replied |
-| `send-direct-email/index.ts` | Reset `_at` timestamp columns to null | Reply status not resetting |
+1. User drags/uploads PDF to **AUS Approval** slot
+2. Toast: "Parsing AUS Findings - Extracting conditions..."
+3. AI processes document (5-15 seconds)
+4. Modal appears with extracted checklist items:
+   - Grouped by category (Income, Credit, Property, etc.)
+   - Each item has checkbox, editable description, responsible party, ETA
+   - Phase defaults to "AUS"
+5. User reviews, unchecks irrelevant items, edits if needed
+6. Click "Import X Conditions"
+7. Conditions saved to `lead_conditions` table
+8. Toast: "Successfully imported X conditions"
 
 ---
 
-## Expected Behavior After Fix
+## Edge Cases Handled (Per Your Prompt)
 
-1. **Send emails to 3 lenders** → All 3 have:
-   - `last_email_opened = false`, `last_email_opened_at = null`
-   - `last_email_replied = false`, `last_email_replied_at = null`
+- **No conditions found**: Show toast "No explicit AUS conditions found"
+- **Approve/Ineligible**: Still extract conditions (loan limit issues don't stop parsing)
+- **Conditional items**: Preserved with "If..." wording
+- **Duplicates**: AI prompt instructs to remove duplicates
+- **Non-actionable items**: Filtered out per prompt rules
 
-2. **Open 2 of the 3 emails** → Only those 2 show:
-   - `last_email_opened = true` (within 5-second tolerance window)
+---
 
-3. **Reply to 1 email from gmail lender** → Only that 1 lender shows:
-   - `last_email_replied = true`
-   - Other gmail lenders remain `false` (exact email match used)
+## Summary
 
+| Component | Action |
+|-----------|--------|
+| `supabase/functions/parse-aus-approval/index.ts` | CREATE - New edge function with your AUS prompt |
+| `src/components/lead-details/ActiveFileDocuments.tsx` | MODIFY - Add `parseAusApproval()` + trigger on upload |
+| `src/components/modals/InitialApprovalConditionsModal.tsx` | MODIFY - Make title dynamic for AUS vs Initial Approval |
+| `supabase/config.toml` | UPDATE - Register new edge function |
+
+The existing modal, category mapping, and condition creation logic are fully reused.
