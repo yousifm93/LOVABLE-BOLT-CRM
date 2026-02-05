@@ -35,9 +35,13 @@ interface InitialApprovalConditionsModalProps {
     loan_amount?: number;
     term?: number;
     approved_date?: string;
+    decision?: string;
+    case_id?: string;
+    risk_class?: string;
   };
   onConfirm: (selectedConditions: ExtractedCondition[]) => void;
   onCancel: () => void;
+  documentType?: 'initial_approval' | 'aus_approval';
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -69,6 +73,7 @@ export function InitialApprovalConditionsModal({
   loanInfo,
   onConfirm,
   onCancel,
+  documentType = 'initial_approval',
 }: InitialApprovalConditionsModalProps) {
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
     new Set(conditions.map((_, i) => i))
@@ -155,7 +160,9 @@ export function InitialApprovalConditionsModal({
         <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Import Conditions from Initial Approval
+            {documentType === 'aus_approval' 
+              ? 'Import Conditions from AUS Findings' 
+              : 'Import Conditions from Initial Approval'}
           </DialogTitle>
           <DialogDescription>
             Found {conditions.length} conditions to import. Select which conditions to add.
@@ -163,12 +170,24 @@ export function InitialApprovalConditionsModal({
         </DialogHeader>
 
         {/* Loan Info Summary */}
-        {loanInfo && (loanInfo.lender || loanInfo.note_rate || loanInfo.loan_amount) && (
+        {loanInfo && (loanInfo.lender || loanInfo.note_rate || loanInfo.loan_amount || loanInfo.decision) && (
           <div className="shrink-0 bg-muted/50 rounded-lg p-3 flex flex-wrap gap-4 text-sm">
             {loanInfo.lender && (
               <div>
                 <span className="text-muted-foreground">Lender:</span>{" "}
                 <span className="font-medium">{loanInfo.lender}</span>
+              </div>
+            )}
+            {loanInfo.decision && (
+              <div>
+                <span className="text-muted-foreground">Decision:</span>{" "}
+                <span className="font-medium">{loanInfo.decision}</span>
+              </div>
+            )}
+            {loanInfo.case_id && (
+              <div>
+                <span className="text-muted-foreground">Case ID:</span>{" "}
+                <span className="font-medium">{loanInfo.case_id}</span>
               </div>
             )}
             {loanInfo.note_rate && (
@@ -189,6 +208,12 @@ export function InitialApprovalConditionsModal({
               <div>
                 <span className="text-muted-foreground">Term:</span>{" "}
                 <span className="font-medium">{loanInfo.term} months</span>
+              </div>
+            )}
+            {loanInfo.risk_class && (
+              <div>
+                <span className="text-muted-foreground">Risk Class:</span>{" "}
+                <span className="font-medium">{loanInfo.risk_class}</span>
               </div>
             )}
           </div>
