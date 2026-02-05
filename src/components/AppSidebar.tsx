@@ -613,65 +613,87 @@ export function AppSidebar() {
           </SidebarGroup>
 
           {/* Pipeline */}
-          {hasPermission('pipeline') !== 'hidden' && hasAnyVisibleItems(pipelineItems) && (
-            <CollapsibleSidebarGroup 
-              title="Pipeline" 
-              className="mb-4" 
-              defaultOpen={permissions?.sidebar_pipeline_expanded_default ?? false}
-              locked={hasPermission('pipeline') === 'locked'}
-            >
-              <SidebarMenu>
-                {filterItemsByPermission(pipelineItems).map((item) => {
-                  const isLocked = isItemLocked(item.permKey);
-                  
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild={!isLocked} disabled={isLocked}>
-                        {isLocked ? (
-                          <div className={cn("flex items-center", getLockedNavClassName())}>
-                            <item.icon className="mr-2 h-4 w-4" />
-                            {!collapsed && (
-                              <span className="flex items-center gap-2">
-                                {item.title}
-                                <Lock className="h-3 w-3" />
-                              </span>
-                            )}
-                          </div>
-                        ) : item.title === "Active" ? (
-                          <NavLink to={item.url} className={getNavClassName}>
-                            <item.icon className="mr-2 h-4 w-4" />
-                            {!collapsed && (
-                              <span className="flex items-center gap-2">
-                                {item.title}
-                                {pendingSuggestionCount > 0 && (
-                                  <Badge 
-                                    variant="destructive" 
-                                    className="h-5 min-w-5 px-1.5 text-xs cursor-pointer"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      setSuggestionsModalOpen(true);
-                                    }}
-                                  >
-                                    {pendingSuggestionCount}
-                                  </Badge>
-                                )}
-                              </span>
-                            )}
-                          </NavLink>
-                        ) : (
-                          <NavLink to={item.url} className={getNavClassName}>
-                            <item.icon className="mr-2 h-4 w-4" />
-                            {!collapsed && <span>{item.title}</span>}
-                          </NavLink>
+          {hasPermission('pipeline') !== 'hidden' && hasAnyVisibleItems(pipelineItems) && (() => {
+            const visiblePipelineItems = filterItemsByPermission(pipelineItems);
+            const isSingleItem = visiblePipelineItems.length === 1;
+            const isAdmin = hasPermission('admin') !== 'hidden';
+            
+            const renderPipelineItem = (item: typeof pipelineItems[0]) => {
+              const isLocked = isItemLocked(item.permKey);
+              
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild={!isLocked} disabled={isLocked}>
+                    {isLocked ? (
+                      <div className={cn("flex items-center", getLockedNavClassName())}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && (
+                          <span className="flex items-center gap-2">
+                            {item.title}
+                            <Lock className="h-3 w-3" />
+                          </span>
                         )}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </CollapsibleSidebarGroup>
-          )}
+                      </div>
+                    ) : item.title === "Active" ? (
+                      <NavLink to={item.url} className={getNavClassName}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && (
+                          <span className="flex items-center gap-2">
+                            {item.title}
+                            {/* Only show pending suggestion badge for admins */}
+                            {pendingSuggestionCount > 0 && isAdmin && (
+                              <Badge 
+                                variant="destructive" 
+                                className="h-5 min-w-5 px-1.5 text-xs cursor-pointer"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setSuggestionsModalOpen(true);
+                                }}
+                              >
+                                {pendingSuggestionCount}
+                              </Badge>
+                            )}
+                          </span>
+                        )}
+                      </NavLink>
+                    ) : (
+                      <NavLink to={item.url} className={getNavClassName}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            };
+            
+            // For single pipeline item, render without collapsible wrapper
+            if (isSingleItem) {
+              return (
+                <SidebarGroup className="mb-4">
+                  <span className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/70">Pipeline</span>
+                  <SidebarMenu>
+                    {visiblePipelineItems.map(renderPipelineItem)}
+                  </SidebarMenu>
+                </SidebarGroup>
+              );
+            }
+            
+            // For multiple items, use collapsible group
+            return (
+              <CollapsibleSidebarGroup 
+                title="Pipeline" 
+                className="mb-4" 
+                defaultOpen={permissions?.sidebar_pipeline_expanded_default ?? false}
+                locked={hasPermission('pipeline') === 'locked'}
+              >
+                <SidebarMenu>
+                  {visiblePipelineItems.map(renderPipelineItem)}
+                </SidebarMenu>
+              </CollapsibleSidebarGroup>
+            );
+          })()}
 
           {/* Contacts */}
           {hasPermission('contacts') !== 'hidden' && hasAnyVisibleItems(contactItems) && (
@@ -866,7 +888,8 @@ export function AppSidebar() {
                   <NavLink to="/feedback" className={getNavClassName}>
                     <MessageSquare className="mr-2 h-4 w-4" />
                     {!collapsed && <span>Submit Feedback</span>}
-                    {!collapsed && unreadResponseCount > 0 && (
+                    {/* Only show badge for admins who can respond to feedback */}
+                    {!collapsed && unreadResponseCount > 0 && hasPermission('admin') !== 'hidden' && (
                       <Badge className="ml-auto bg-red-500 text-white h-5 min-w-[20px] text-xs flex items-center justify-center">
                         {unreadResponseCount}
                       </Badge>
@@ -874,19 +897,20 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {hasPermission('admin') !== 'hidden' && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink to="/admin/feedback-review" className={getNavClassName}>
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>Review Feedback</span>}
-                      {!collapsed && newFeedbackCount > 0 && (
-                        <span className="ml-auto h-2 w-2 bg-red-500 rounded-full" />
-                      )}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
+              {/* Review Feedback visible to admins OR anyone who has feedback review access (Processors) */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/admin/feedback-review" className={getNavClassName}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Review Feedback</span>}
+                    {!collapsed && newFeedbackCount > 0 && (
+                      <Badge className="ml-auto bg-red-500 text-white h-5 min-w-[20px] text-xs flex items-center justify-center">
+                        {newFeedbackCount}
+                      </Badge>
+                    )}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </CollapsibleSidebarGroup>
         </SidebarContent>
