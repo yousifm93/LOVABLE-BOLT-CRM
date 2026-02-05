@@ -176,4 +176,3 @@ After you run the SQL, I'll make these code changes:
 - All 18 task automations will continue working (already assigned to .org)
 - The 9 automations on gmail account will be migrated
 - Historical data preserved - old accounts just deactivated, not deleted
-
