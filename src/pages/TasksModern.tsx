@@ -154,11 +154,12 @@ const columns = (
   canDeleteOrChangeDueDate: boolean,
   canReassign: boolean,
   isAdmin: boolean,
+  isProcessor: boolean,
   taskChangeLogs: Record<string, TaskChangeLog[]>,
   fetchTaskChangeLogs: (taskId: string) => void,
   allTasks: ModernTask[]
 ): ColumnDef<ModernTask>[] => {
-  const baseColumns: ColumnDef<ModernTask>[] = [
+  let baseColumns: ColumnDef<ModernTask>[] = [
   {
     accessorKey: "title",
     header: "Task",
@@ -458,6 +459,11 @@ const columns = (
       ),
       sortable: true,
     });
+  }
+  
+  // Filter out Borrower Stage column for Processors
+  if (isProcessor) {
+    baseColumns = baseColumns.filter(col => (col as any).accessorKey !== 'borrower.pipeline_stage.name');
   }
   
   return baseColumns;
@@ -928,8 +934,9 @@ export default function TasksModern() {
     }
   };
 
-  // Check if current user is admin
+  // Check if current user is admin or processor
   const isAdmin = crmUser?.role === 'Admin';
+  const isProcessor = crmUser?.role === 'Processor';
 
   // Backfill unassigned tasks with assignee from most recent task for same borrower
   const backfillAssignmentsRef = useRef(false);
@@ -1637,7 +1644,7 @@ export default function TasksModern() {
                 <CollapsibleContent>
                   <DataTable
                     key={`open-${tableInstanceKey}`}
-                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, taskChangeLogs, fetchTaskChangeLogs, tasks)}
+                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, isProcessor, taskChangeLogs, fetchTaskChangeLogs, tasks)}
                     data={sortedOpenTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
@@ -1670,7 +1677,7 @@ export default function TasksModern() {
                 <CollapsibleContent>
                   <DataTable
                     key={`done-${tableInstanceKey}`}
-                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, taskChangeLogs, fetchTaskChangeLogs, tasks)}
+                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, isProcessor, taskChangeLogs, fetchTaskChangeLogs, tasks)}
                     data={sortedDoneTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}

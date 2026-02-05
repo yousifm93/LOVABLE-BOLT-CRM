@@ -47,9 +47,19 @@ export function InlineEditDate({
     return isNaN(value.getTime()) ? undefined : value;
   }, [value]);
 
-  const displayValue = dateValue && !isNaN(dateValue.getTime()) 
-    ? dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
-    : placeholder;
+  const displayValue = React.useMemo(() => {
+    if (!dateValue || isNaN(dateValue.getTime())) return placeholder;
+    
+    const currentYear = new Date().getFullYear();
+    const dateYear = dateValue.getFullYear();
+    
+    // Only show year if it's different from current year
+    if (dateYear === currentYear) {
+      return dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    
+    return dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }, [dateValue, placeholder]);
 
   const handleSelect = (date: Date | undefined) => {
     onValueChange(date);
