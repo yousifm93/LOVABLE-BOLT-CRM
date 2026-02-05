@@ -146,7 +146,7 @@ export function InitialApprovalConditionsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] !flex !flex-col overflow-hidden">
+      <DialogContent className="max-w-7xl h-[90vh] !flex !flex-col overflow-hidden">
         <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -267,7 +267,7 @@ export function InitialApprovalConditionsModal({
                           className="text-sm font-medium"
                           placeholder="Condition name..."
                         />
-                        <p className="text-xs text-muted-foreground line-clamp-2 px-1">
+                        <p className="text-xs text-muted-foreground line-clamp-3 px-1">
                           {condition.description}
                         </p>
                       </div>
