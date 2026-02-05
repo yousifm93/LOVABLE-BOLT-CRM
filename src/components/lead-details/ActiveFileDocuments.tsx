@@ -276,6 +276,8 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
     }
   };
 
+  const [ausDocumentType, setAusDocumentType] = useState<'initial_approval' | 'aus_approval'>('initial_approval');
+
   const parseInitialApproval = async (filePath: string) => {
     try {
       setParsing('initial_approval_file');
@@ -305,6 +307,7 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
 
       if (data?.success && data?.conditions?.length > 0) {
         // Show conditions confirmation modal
+        setAusDocumentType('initial_approval');
         setPendingConditions({
           conditions: data.conditions,
           loanInfo: data.loan_info
@@ -324,6 +327,63 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
       toast({
         title: "Parsing Failed",
         description: error.message || "Could not extract conditions",
+        variant: "destructive"
+      });
+      onLeadUpdate();
+    } finally {
+      setParsing(null);
+    }
+  };
+
+  const parseAusApproval = async (filePath: string) => {
+    try {
+      setParsing('aus_approval_file');
+      
+      // Get signed URL for the file
+      const { data: signedUrlData } = await supabase.storage
+        .from('lead-documents')
+        .createSignedUrl(filePath, 3600);
+
+      if (!signedUrlData?.signedUrl) {
+        throw new Error('Could not get file URL');
+      }
+
+      toast({
+        title: "Parsing AUS Findings",
+        description: "Extracting conditions from AUS document..."
+      });
+
+      // Call the parse-aus-approval edge function
+      const { data, error } = await supabase.functions.invoke('parse-aus-approval', {
+        body: { 
+          file_url: signedUrlData.signedUrl
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.conditions?.length > 0) {
+        // Show conditions confirmation modal
+        setAusDocumentType('aus_approval');
+        setPendingConditions({
+          conditions: data.conditions,
+          loanInfo: data.aus_info
+        });
+        setShowConditionsModal(true);
+      } else if (data?.conditions?.length === 0) {
+        toast({
+          title: "No Conditions Found",
+          description: "No explicit AUS conditions found in the provided document"
+        });
+        onLeadUpdate();
+      } else {
+        throw new Error(data?.error || 'Failed to parse AUS findings');
+      }
+    } catch (error: any) {
+      console.error('AUS approval parsing error:', error);
+      toast({
+        title: "Parsing Failed",
+        description: error.message || "Could not extract AUS conditions",
         variant: "destructive"
       });
       onLeadUpdate();
@@ -483,6 +543,9 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
         // onLeadUpdate will be called after confirmation modal closes
       } else if (fieldKey === 'initial_approval_file') {
         await parseInitialApproval(uploadData.path);
+        // onLeadUpdate will be called after confirmation modal closes
+      } else if (fieldKey === 'aus_approval_file') {
+        await parseAusApproval(uploadData.path);
         // onLeadUpdate will be called after confirmation modal closes
       } else if (fieldKey === 'appraisal_file') {
         // Auto-flip appraisal status to Received when appraisal file is uploaded
@@ -701,6 +764,7 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
           loanInfo={pendingConditions.loanInfo}
           onConfirm={handleConfirmConditions}
           onCancel={handleCancelConditions}
+          documentType={ausDocumentType}
         />
       )}
     </>

@@ -180,6 +180,9 @@ verify_jwt = false
 [functions.parse-initial-approval]
 verify_jwt = false
 
+[functions.parse-aus-approval]
+verify_jwt = false
+
 [functions.fetch-daily-rates]
 verify_jwt = true
 
