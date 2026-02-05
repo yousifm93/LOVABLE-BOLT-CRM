@@ -1,97 +1,104 @@
 
-# Smart Date Formatting - Hide Year for Current Year
+# Fix Date Formatting & Hide Borrower Stage for Processors
 
-## Overview
-Update the date formatters to omit the year when dates are in the current year (2026), while still showing the year for dates in other years (e.g., 2025).
-
----
-
-## Current Behavior
-- `formatDate()` always shows: "Feb 3, 2026"
-- `formatDateShort()` never shows year: "Feb 3"
-
-## New Behavior
-- `formatDate()` will show:
-  - **"Feb 3"** for dates in the current year (2026)
-  - **"Feb 3, 2025"** for dates in other years
-- `formatDateShort()` unchanged (already doesn't show year)
+## Problem Summary
+1. **Close Date and Lock Expiration columns** on the Active Pipeline are still showing years (e.g., "Feb 3, 2026") because `InlineEditDate` has its own date formatting that always includes the year.
+2. **Task Due column** shows "Feb 3" (no year) because it uses `formatDateModern` from `dateUtils.ts`.
+3. **Borrower Stage column** needs to be hidden for Processor role on the Tasks page.
 
 ---
 
-## File Modified
-**src/utils/formatters.ts**
+## Fix 1: Update InlineEditDate Display Logic
 
----
-
-## Implementation
-
-Update the `formatDate` function (lines 56-81) to check if the date's year matches the current year:
-
+### Current Behavior (Line 50-52 of `src/components/ui/inline-edit-date.tsx`)
 ```typescript
-export const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return "—";
-  try {
-    let date: Date;
-    
-    // If it's a date-only string (YYYY-MM-DD), parse it as local date
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      const [year, month, day] = dateString.split('-').map(Number);
-      date = new Date(year, month - 1, day);
-    } else {
-      const normalized = normalizeTimestamp(dateString);
-      date = new Date(normalized);
-    }
-    
-    if (isNaN(date.getTime())) return "—";
-    
-    const currentYear = new Date().getFullYear();
-    const dateYear = date.getFullYear();
-    
-    // Only show year if it's different from current year
-    if (dateYear === currentYear) {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric'
-      });
-    }
-    
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
-  } catch {
-    return "—";
-  }
-};
+const displayValue = dateValue && !isNaN(dateValue.getTime()) 
+  ? dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+  : placeholder;
 ```
 
----
+### New Behavior
+Conditionally hide year when date is in current year:
 
-## Affected Areas
+```typescript
+const displayValue = useMemo(() => {
+  if (!dateValue || isNaN(dateValue.getTime())) return placeholder;
+  
+  const currentYear = new Date().getFullYear();
+  const dateYear = dateValue.getFullYear();
+  
+  if (dateYear === currentYear) {
+    return dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  
+  return dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}, [dateValue, placeholder]);
+```
 
-This single change will automatically update dates throughout the CRM wherever `formatDate` is used:
+### Impact
+This will fix date display everywhere `InlineEditDate` is used:
 - Active Pipeline (Close Date, Lock Expiration)
-- Lead details
-- Task due dates
-- Conditions tabs
-- Any other date columns
+- Past Clients, Pre-Approved, Screening, Pre-Qualified, Pending App pages
+- Condos list, Tasks, etc.
 
 ---
 
-## Examples
+## Fix 2: Hide Borrower Stage Column for Processors
 
-| Date Value | Current Display | New Display |
-|------------|-----------------|-------------|
-| 2026-02-03 | Feb 3, 2026 | Feb 3 |
-| 2026-02-19 | Feb 19, 2026 | Feb 19 |
-| 2025-12-15 | Dec 15, 2025 | Dec 15, 2025 |
-| 2027-01-10 | Jan 10, 2027 | Jan 10, 2027 |
+### File: `src/pages/TasksModern.tsx`
+
+### Current State
+- The "Borrower Stage" column (`accessorKey: "borrower.pipeline_stage.name"`) is shown to everyone
+- The page checks `crmUser?.role === 'Admin'` for other permissions but not column visibility
+
+### Changes Required
+
+**A. Add permission check for Processor role**
+At line ~932 (where `isAdmin` is defined):
+```typescript
+const isAdmin = crmUser?.role === 'Admin';
+const isProcessor = crmUser?.role === 'Processor';
+```
+
+**B. Filter out Borrower Stage column for Processors**
+After generating columns, filter them:
+```typescript
+// Filter columns for Processor role
+const roleFilteredColumns = useMemo(() => {
+  if (isProcessor) {
+    return generatedColumns.filter(col => col.accessorKey !== 'borrower.pipeline_stage.name');
+  }
+  return generatedColumns;
+}, [generatedColumns, isProcessor]);
+```
+
+**C. Also hide from TASK_COLUMNS visibility for Processors**
+The `TASK_COLUMNS` array controls the Hide/Show modal. Either:
+- Filter `borrower_stage` from the visibility options, OR
+- Let it remain in the modal but filter it from rendering
+
+Simplest approach: Filter the columns after generation (option B above).
 
 ---
 
-## Technical Notes
-- Uses `new Date().getFullYear()` to dynamically get current year
-- Automatically adapts as years change (when 2027 arrives, 2027 dates will hide year)
-- No database changes required
-- Backward compatible with existing code
+## Files Modified
+
+| File | Change |
+|------|--------|
+| `src/components/ui/inline-edit-date.tsx` | Update `displayValue` to conditionally hide year for current year dates |
+| `src/pages/TasksModern.tsx` | Add `isProcessor` check; filter out "Borrower Stage" column for Processors |
+
+---
+
+## Result
+
+### Date Display
+| Date | Before | After |
+|------|--------|-------|
+| Feb 3, 2026 | Feb 3, 2026 | Feb 3 |
+| Feb 19, 2026 | Feb 19, 2026 | Feb 19 |
+| Dec 15, 2025 | Dec 15, 2025 | Dec 15, 2025 |
+
+### Tasks Page (Processor View)
+- No "Borrower Stage" column visible
+- All other columns unchanged
