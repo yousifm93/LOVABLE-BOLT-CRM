@@ -2719,7 +2719,7 @@ export function ClientDetailDrawer({
           </div>
 
           {/* Right Column - Notes, Documents, Stage History */}
-          <div className="space-y-4 overflow-y-auto flex flex-col items-start">
+          <div className="space-y-4 overflow-y-auto">
 
             {/* Quick Actions - For Pre-Qualified/Pre-Approved ONLY, positioned after Send Email Templates */}
             {(() => {
