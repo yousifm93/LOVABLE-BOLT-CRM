@@ -2095,7 +2095,7 @@ export function ClientDetailDrawer({
                           <Textarea key="notes-textarea-left" value={localNotes} onChange={e => {
                         setLocalNotes(e.target.value);
                         setHasUnsavedNotes(true);
-                      }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
+                      }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" />
                           {hasUnsavedNotes && <div className="flex items-center gap-2">
                               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
                               <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
@@ -2109,19 +2109,24 @@ export function ClientDetailDrawer({
                                 Cancel
                               </Button>
                             </div>}
-                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[80px] overflow-hidden relative" onClick={() => setIsEditingNotes(true)}>
+                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingNotes(true)}>
                           {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
-                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>}
-                      {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
-                          {notesUpdatedByUser && <>
-                              <span>•</span>
-                              <User className="h-3 w-3" />
-                              {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
-                            </>}
-                        </div>}
+                      <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        {(client as any).notes_updated_at ? (
+                          <>
+                            Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                            {notesUpdatedByUser && <>
+                                <span>•</span>
+                                <User className="h-3 w-3" />
+                                {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                              </>}
+                          </>
+                        ) : (
+                          <span className="italic">No updates yet</span>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -2151,7 +2156,7 @@ export function ClientDetailDrawer({
                             }}
                             onBlur={() => { if (hasUnsavedFileUpdates) saveFileUpdates(); }}
                             placeholder="Enter the latest update on this file..." 
-                            className="min-h-[100px] resize-none bg-white mb-2" 
+                            className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" 
                           />
                           {hasUnsavedFileUpdates && (
                             <div className="flex items-center gap-2">
@@ -2170,24 +2175,27 @@ export function ClientDetailDrawer({
                           )}
                         </>
                       ) : (
-                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-hidden relative" onClick={() => setIsEditingFileUpdates(true)}>
+                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingFileUpdates(true)}>
                           {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0 leading-relaxed">{line || <br />}</p>)}
-                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>
                       )}
-                      {(client as any).latest_file_updates_updated_at && (
-                        <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
-                          {fileUpdatesUpdatedByUser && (
-                            <>
-                              <span>•</span>
-                              <User className="h-3 w-3" />
-                              {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
-                            </>
-                          )}
-                        </div>
-                      )}
+                      <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        {(client as any).latest_file_updates_updated_at ? (
+                          <>
+                            Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                            {fileUpdatesUpdatedByUser && (
+                              <>
+                                <span>•</span>
+                                <User className="h-3 w-3" />
+                                {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <span className="italic">No updates yet</span>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -2253,7 +2261,7 @@ export function ClientDetailDrawer({
                           <Textarea key="notes-textarea-screening-left" value={localNotes} onChange={e => {
                         setLocalNotes(e.target.value);
                         setHasUnsavedNotes(true);
-                      }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
+                      }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" />
                           {hasUnsavedNotes && <div className="flex items-center gap-2">
                               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
                               <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
@@ -2267,19 +2275,24 @@ export function ClientDetailDrawer({
                                 Cancel
                               </Button>
                             </div>}
-                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[80px] overflow-hidden relative" onClick={() => setIsEditingNotes(true)}>
+                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingNotes(true)}>
                           {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
-                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>}
-                      {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
-                          {notesUpdatedByUser && <>
-                              <span>•</span>
-                              <User className="h-3 w-3" />
-                              {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
-                            </>}
-                        </div>}
+                      <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        {(client as any).notes_updated_at ? (
+                          <>
+                            Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                            {notesUpdatedByUser && <>
+                                <span>•</span>
+                                <User className="h-3 w-3" />
+                                {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                              </>}
+                          </>
+                        ) : (
+                          <span className="italic">No updates yet</span>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -2309,7 +2322,7 @@ export function ClientDetailDrawer({
                             }}
                             onBlur={() => { if (hasUnsavedFileUpdates) saveFileUpdates(); }}
                             placeholder="Enter the latest update on this file..." 
-                            className="min-h-[100px] resize-none bg-white mb-2" 
+                            className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" 
                           />
                           {hasUnsavedFileUpdates && (
                             <div className="flex items-center gap-2">
@@ -2328,24 +2341,27 @@ export function ClientDetailDrawer({
                           )}
                         </>
                       ) : (
-                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-hidden relative" onClick={() => setIsEditingFileUpdates(true)}>
+                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingFileUpdates(true)}>
                           {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0 leading-relaxed">{line || <br />}</p>)}
-                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>
                       )}
-                      {(client as any).latest_file_updates_updated_at && (
-                        <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
-                          {fileUpdatesUpdatedByUser && (
-                            <>
-                              <span>•</span>
-                              <User className="h-3 w-3" />
-                              {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
-                            </>
-                          )}
-                        </div>
-                      )}
+                      <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        {(client as any).latest_file_updates_updated_at ? (
+                          <>
+                            Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                            {fileUpdatesUpdatedByUser && (
+                              <>
+                                <span>•</span>
+                                <User className="h-3 w-3" />
+                                {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <span className="italic">No updates yet</span>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -2366,7 +2382,7 @@ export function ClientDetailDrawer({
                           <Textarea key={`notes-textarea-${opsStage}-top`} value={localNotes} onChange={e => {
                         setLocalNotes(e.target.value);
                         setHasUnsavedNotes(true);
-                      }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
+                      }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" />
                           {hasUnsavedNotes && <div className="flex items-center gap-2">
                               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
                               <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
@@ -2380,19 +2396,24 @@ export function ClientDetailDrawer({
                                 Cancel
                               </Button>
                             </div>}
-                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[80px] overflow-hidden relative" onClick={() => setIsEditingNotes(true)}>
+                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingNotes(true)}>
                           {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
-                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>}
-                      {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
-                          {notesUpdatedByUser && <>
-                              <span>•</span>
-                              <User className="h-3 w-3" />
-                              {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
-                            </>}
-                        </div>}
+                      <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        {(client as any).notes_updated_at ? (
+                          <>
+                            Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                            {notesUpdatedByUser && <>
+                                <span>•</span>
+                                <User className="h-3 w-3" />
+                                {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                              </>}
+                          </>
+                        ) : (
+                          <span className="italic">No updates yet</span>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -2431,7 +2452,7 @@ export function ClientDetailDrawer({
                             }}
                             onBlur={() => { if (hasUnsavedFileUpdates) saveFileUpdates(); }}
                             placeholder="Enter the latest update on this file..." 
-                            className="min-h-[100px] resize-none bg-white mb-2" 
+                            className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" 
                           />
                           {hasUnsavedFileUpdates && (
                             <div className="flex items-center gap-2">
@@ -2450,24 +2471,27 @@ export function ClientDetailDrawer({
                           )}
                         </>
                       ) : (
-                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-hidden relative" onClick={() => setIsEditingFileUpdates(true)}>
+                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingFileUpdates(true)}>
                           {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0 leading-relaxed">{line || <br />}</p>)}
-                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>
                       )}
-                      {(client as any).latest_file_updates_updated_at && (
-                        <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
-                          {fileUpdatesUpdatedByUser && (
-                            <>
-                              <span>•</span>
-                              <User className="h-3 w-3" />
-                              {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
-                            </>
-                          )}
-                        </div>
-                      )}
+                      <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        {(client as any).latest_file_updates_updated_at ? (
+                          <>
+                            Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                            {fileUpdatesUpdatedByUser && (
+                              <>
+                                <span>•</span>
+                                <User className="h-3 w-3" />
+                                {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <span className="italic">No updates yet</span>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -2706,27 +2730,31 @@ export function ClientDetailDrawer({
                     <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
                   </CardHeader>
                   <CardContent className="bg-gray-50">
-                    <div className="min-h-[140px]">
+                    <div className="h-[110px] overflow-y-auto">
                       <MentionableInlineEditNotes
                         value={(client as any).latest_file_updates || ''}
                         onValueChange={(value) => handleLeadUpdate('latest_file_updates', value)}
                         placeholder="Add status updates, notes, or important information..."
-                        className="min-h-[120px]"
+                        className="h-full"
                       />
                     </div>
-                    {(client as any).latest_file_updates_updated_at && (
-                      <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
-                        {fileUpdatesUpdatedByUser && (
-                          <>
-                            <span>•</span>
-                            <User className="h-3 w-3" />
-                            {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
-                          </>
-                        )}
-                      </div>
-                    )}
+                    <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                      <Clock className="h-3 w-3" />
+                      {(client as any).latest_file_updates_updated_at ? (
+                        <>
+                          Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
+                          {fileUpdatesUpdatedByUser && (
+                            <>
+                              <span>•</span>
+                              <User className="h-3 w-3" />
+                              {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <span className="italic">No updates yet</span>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -2831,7 +2859,7 @@ export function ClientDetailDrawer({
                     <Textarea key="notes-textarea" value={localNotes} onChange={e => {
                   setLocalNotes(e.target.value);
                   setHasUnsavedNotes(true);
-                }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[210px] resize-none bg-white mb-2" />
+                }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" />
                     {hasUnsavedNotes && <div className="flex items-center gap-2">
                         <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
                         <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
@@ -2845,19 +2873,24 @@ export function ClientDetailDrawer({
                           Cancel
                         </Button>
                       </div>}
-                  </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[80px] overflow-hidden relative" onClick={() => setIsEditingNotes(true)}>
+                  </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingNotes(true)}>
                     {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
-                    <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                   </div>}
-                {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                    <Clock className="h-3 w-3" />
-                    Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
-                    {notesUpdatedByUser && <>
-                        <span>•</span>
-                        <User className="h-3 w-3" />
-                        {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
-                      </>}
-                  </div>}
+                <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                  <Clock className="h-3 w-3" />
+                  {(client as any).notes_updated_at ? (
+                    <>
+                      Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                      {notesUpdatedByUser && <>
+                          <span>•</span>
+                          <User className="h-3 w-3" />
+                          {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                        </>}
+                    </>
+                  ) : (
+                    <span className="italic">No updates yet</span>
+                  )}
+                </div>
               </CardContent>
             </Card>
               );
