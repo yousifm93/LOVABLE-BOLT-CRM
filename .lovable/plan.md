@@ -1,52 +1,43 @@
 
 
-# Fix: Static Tasks Box (5 Rows) and Align Three Column Heights in Leads Stage
+# Leads Gray Bar: Replace "Likely to Apply" with "Referral Source" and Equalize Box Heights
 
-## 1. Tasks Box: Fixed Height for Exactly 5 Tasks
+## Changes
 
-The Tasks card currently uses `max-h-[280px]` with variable content. Change it to a fixed height that always fits exactly 5 task rows (regardless of how many tasks exist), with scrolling for overflow.
+### 1. Replace "Likely to Apply" with "Referral Source" in the 2x2 grid
 
-Each task row is approximately 44px tall (title line + due date line + spacing). Five rows = ~220px of content. Adding card header (~40px) and padding, the CardContent area should be fixed at `h-[220px]` (not max-h, but fixed h) so it always reserves space for 5 tasks even when there are fewer.
+In the Leads stage gray bar (lines 1054-1087):
+- Remove the "Likely to Apply" field (lines 1055-1070)
+- Move "Referral Source" into that slot (remove its current `col-span-2` placement at lines 1072-1087)
+- "Referral Source" becomes the 4th field in the 2x2 grid (alongside Lead Status, Lead Strength, Referral Method)
 
-**Change in `ClientDetailDrawer.tsx` at line 2794:**
-- From: `max-h-[280px] overflow-y-auto`
-- To: `h-[220px] overflow-y-auto`
+The resulting 2x2 layout will be:
+```
+Lead Status       | Lead Strength
+Referral Method   | Referral Source
+```
 
-This ensures:
-- Fewer than 5 tasks: empty space preserved, box stays same size
-- Exactly 5 tasks: fills the box perfectly
-- More than 5 tasks: scroll to see the rest
+### 2. Equalize heights of all 3 boxes
 
-## 2. Align the Three Top Sections in Leads Stage
-
-Currently in the Leads stage, the three columns have different bottom edges:
-- **Left**: ContactInfoCard (variable height based on fields)
-- **Middle**: Status Tracker card fixed at `h-[360px]`
-- **Right**: SendEmailTemplatesCard (variable height)
-
-The middle column card is the anchor at `h-[360px]`. To align all three columns' first sections:
-
-- **Middle column card**: Already `h-[360px]` -- this is the reference height
-- **Left column (ContactInfoCard)**: Needs a matching fixed height. Currently it's auto-sized. Will not change ContactInfoCard itself but instead wrap the "top section" area to match.
-- **Right column (SendEmailTemplatesCard)**: Same treatment.
-
-The approach: Since the three-column grid is `grid-cols-[1fr_2fr_1fr]`, the simplest way to align is to give the middle card's `h-[360px]` as the target, and make the ContactInfoCard and SendEmailTemplatesCard stretch to match using CSS. Specifically, the left and right columns' first cards will use `min-h-[360px]` to ensure they extend to at least the same height as the middle section.
-
-**Changes:**
-1. ContactInfoCard wrapper (left column, first card for Leads/Pending App): Add `min-h-[360px]` to the ContactInfoCard's outer element
-2. SendEmailTemplatesCard wrapper (right column): Wrap in a div with `min-h-[360px]` or pass a className prop
-
-Since ContactInfoCard and SendEmailTemplatesCard are separate components, the simplest approach is to wrap them in the drawer:
-- Wrap ContactInfoCard in `<div className="min-h-[360px]">` for Leads stage
-- Wrap SendEmailTemplatesCard in `<div className="min-h-[360px]">` for Leads stage
+Currently the left box (with 3 rows + Referral Source spanning below) is taller than the middle (Last Call/Text/Email) and right (Monthly Payment Goal) boxes. After removing the extra row, the left box shrinks to a clean 2x2. To make all 3 boxes the same height, each column in the grid will use `self-stretch` so they all match the tallest box's height. The middle and right boxes will also stretch to fill the available space.
 
 ## Technical Details
 
-| Location | Line | Change |
-|----------|------|--------|
-| Tasks CardContent | ~2794 | `max-h-[280px]` to `h-[220px]` (fixed height for 5 tasks) |
-| ContactInfoCard wrapper | ~2063 | Wrap in `min-h-[360px]` div for leads/pending-app alignment |
-| SendEmailTemplatesCard wrapper | ~2659 | Wrap in `min-h-[360px]` div for leads/pending-app stage |
+**File**: `src/components/ClientDetailDrawer.tsx`
 
-**File modified**: `src/components/ClientDetailDrawer.tsx` (3 locations)
+**Before (left column, lines 1006-1087):**
+```
+Lead Status    | Lead Strength
+Referral Method | Likely to Apply    <-- remove
+Referral Source (col-span-2)         <-- move up
+```
 
+**After (left column):**
+```
+Lead Status     | Lead Strength
+Referral Method | Referral Source
+```
+
+- Remove lines 1055-1070 (Likely to Apply field)
+- Replace lines 1072-1087 (Referral Source with col-span-2) with Referral Source without col-span-2, placed in the 4th grid slot
+- Add height-matching classes to the 3 column containers so they all stretch equally
