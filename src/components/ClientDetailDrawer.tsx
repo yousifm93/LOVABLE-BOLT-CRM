@@ -3,7 +3,7 @@ import * as React from "react";
 import { format } from "date-fns";
 import { calculatePrincipalAndInterest } from "@/hooks/usePITICalculation";
 import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle, Mic, Loader2, AlertCircle, ChevronDown } from "lucide-react";
-import { FileUpdatesDisplay } from "@/components/lead-details/FileUpdatesDisplay";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -2109,8 +2109,9 @@ export function ClientDetailDrawer({
                                 Cancel
                               </Button>
                             </div>}
-                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
+                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[80px] overflow-hidden relative" onClick={() => setIsEditingNotes(true)}>
                           {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>}
                       {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
                           <Clock className="h-3 w-3" />
@@ -2169,8 +2170,9 @@ export function ClientDetailDrawer({
                           )}
                         </>
                       ) : (
-                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingFileUpdates(true)}>
-                          <FileUpdatesDisplay content={localFileUpdates} />
+                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-hidden relative" onClick={() => setIsEditingFileUpdates(true)}>
+                          {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0 leading-relaxed">{line || <br />}</p>)}
+                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>
                       )}
                       {(client as any).latest_file_updates_updated_at && (
@@ -2265,8 +2267,9 @@ export function ClientDetailDrawer({
                                 Cancel
                               </Button>
                             </div>}
-                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
+                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[80px] overflow-hidden relative" onClick={() => setIsEditingNotes(true)}>
                           {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>}
                       {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
                           <Clock className="h-3 w-3" />
@@ -2325,8 +2328,9 @@ export function ClientDetailDrawer({
                           )}
                         </>
                       ) : (
-                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingFileUpdates(true)}>
-                          <FileUpdatesDisplay content={localFileUpdates} />
+                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-hidden relative" onClick={() => setIsEditingFileUpdates(true)}>
+                          {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0 leading-relaxed">{line || <br />}</p>)}
+                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>
                       )}
                       {(client as any).latest_file_updates_updated_at && (
@@ -2376,8 +2380,9 @@ export function ClientDetailDrawer({
                                 Cancel
                               </Button>
                             </div>}
-                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
+                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[80px] overflow-hidden relative" onClick={() => setIsEditingNotes(true)}>
                           {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>}
                       {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
                           <Clock className="h-3 w-3" />
@@ -2445,8 +2450,9 @@ export function ClientDetailDrawer({
                           )}
                         </>
                       ) : (
-                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingFileUpdates(true)}>
-                          <FileUpdatesDisplay content={localFileUpdates} />
+                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-hidden relative" onClick={() => setIsEditingFileUpdates(true)}>
+                          {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0 leading-relaxed">{line || <br />}</p>)}
+                          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                         </div>
                       )}
                       {(client as any).latest_file_updates_updated_at && (
@@ -2839,8 +2845,9 @@ export function ClientDetailDrawer({
                           Cancel
                         </Button>
                       </div>}
-                  </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
+                  </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[80px] overflow-hidden relative" onClick={() => setIsEditingNotes(true)}>
                     {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                    <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                   </div>}
                 {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
                     <Clock className="h-3 w-3" />
