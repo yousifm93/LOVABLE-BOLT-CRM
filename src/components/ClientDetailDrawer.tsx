@@ -2473,340 +2473,75 @@ export function ClientDetailDrawer({
                   <LeadThirdPartyItemsCard leadId={leadId || ""} />
                 )}
 
-                {/* DTI / Address / PITI - Moved to right column for Active/Past Clients */}
-
-                {/* Chat with Borrower - For Active/Past Clients only in left column */}
-                {isActiveOrPastClient && (
-                  <Collapsible defaultOpen={false}>
-                    <Card>
-                        <CardHeader className="pb-3">
-                          <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity w-full">
-                            <ChevronRight className="h-4 w-4 transition-transform data-[state=open]:rotate-90" />
-                            <CardTitle className="text-sm font-semibold">Chat with Borrower</CardTitle>
-                          </CollapsibleTrigger>
-                        </CardHeader>
-                      <CollapsibleContent>
-                        <CardContent className="space-y-3">
-                          <div className="space-y-2 min-h-[300px] max-h-[300px] overflow-y-auto border rounded p-2 bg-muted/30">
-                            <div className="flex justify-end">
-                              <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
-                                <p className="text-sm">Hi John! Just wanted to check in on your loan application. How are things going?</p>
-                                <p className="text-xs opacity-75 mt-1">Today 2:30 PM</p>
-                              </div>
-                            </div>
-                            <div className="flex justify-start">
-                              <div className="bg-white rounded-lg px-3 py-2 max-w-[80%] shadow-sm">
-                                <p className="text-sm">Hi! Everything is going well. I just submitted the additional documents you requested.</p>
-                                <p className="text-xs text-muted-foreground mt-1">Today 2:45 PM</p>
-                              </div>
-                            </div>
-                            <div className="flex justify-end">
-                              <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
-                                <p className="text-sm">Great! I'll review them and get back to you by tomorrow.</p>
-                                <p className="text-xs opacity-75 mt-1">Today 3:00 PM</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a message..." className="flex-1" onKeyDown={e => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              handleSendMessage();
-                            }
-                          }} />
-                            <Button size="sm" onClick={handleSendMessage}>
-                              <Send className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Card>
-                  </Collapsible>
-                )}
-
-                {/* About the Borrower - For Active/Past Clients in left column */}
-                {isActiveOrPastClient && (() => {
-                  const isActive = (client.ops?.stage?.toLowerCase() || '') === 'active';
-                  return (
-                    <Collapsible defaultOpen={!isActive}>
-                      <Card>
-                        <CardHeader className="pb-3 bg-white">
-                          <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                            <ChevronRight className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-90" />
-                            <CardTitle className="text-sm font-semibold">About the Borrower</CardTitle>
-                            <div className="flex-1" />
-                            {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setIsEditingNotes(true); }} className="h-7 text-xs">
-                                Edit
-                              </Button>}
-                          </CollapsibleTrigger>
-                        </CardHeader>
-                        <CollapsibleContent>
-                          <CardContent className="bg-gray-50">
-                            {isEditingNotes || !localNotes ? <>
-                                <Textarea key="notes-textarea" value={localNotes} onChange={e => {
-                              setLocalNotes(e.target.value);
-                              setHasUnsavedNotes(true);
-                            }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" />
-                                {hasUnsavedNotes && <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
-                                    <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
-                                      {isSavingNotes ? 'Saving...' : 'Save'}
-                                    </Button>
-                                    <Button size="sm" variant="outline" onClick={() => {
-                                setLocalNotes((client as any).notes || '');
-                                setHasUnsavedNotes(false);
-                                setIsEditingNotes(false);
-                              }}>
-                                      Cancel
-                                    </Button>
-                                  </div>}
-                              </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingNotes(true)}>
-                                {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
-                              </div>}
-                            <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                              <Clock className="h-3 w-3" />
-                              {(client as any).notes_updated_at ? (
-                                <>
-                                  Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
-                                  {notesUpdatedByUser && <>
-                                      <span>•</span>
-                                      <User className="h-3 w-3" />
-                                      {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
-                                    </>}
-                                </>
-                              ) : (
-                                <span className="italic">No updates yet</span>
-                              )}
-                            </div>
-                          </CardContent>
-                        </CollapsibleContent>
-                      </Card>
-                    </Collapsible>
-                  );
-                })()}
-
-                {/* Stage History - For Active/Past Clients in left column */}
+                {/* Latest File Update - For Active stage in left column (under Third Party Items) */}
                 {(() => {
-                  const opsStageLocal = client.ops?.stage?.toLowerCase() || '';
-                  const isCollapsibleStage = ['screening', 'pre-qualified', 'pre-approved', 'active'].includes(opsStageLocal);
-                  if (!isActiveOrPastClient && !isCollapsibleStage) return null;
+                  const opsStage = client.ops?.stage?.toLowerCase() || '';
+                  if (opsStage !== 'active') return null;
                   return (
                     <Card>
-                      <CardHeader 
-                        className={cn("pb-3 bg-white", isCollapsibleStage && "cursor-pointer")}
-                        onClick={() => isCollapsibleStage && setStageHistoryOpen(!stageHistoryOpen)}
-                      >
-                        <div className="flex items-center gap-2">
-                          {isCollapsibleStage && (
-                            <ChevronRight className={cn(
-                              "h-4 w-4 transition-transform",
-                              stageHistoryOpen && "rotate-90"
-                            )} />
+                      <CardHeader className="pb-3 bg-white">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
+                          {!isEditingFileUpdates && localFileUpdates && (
+                            <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
+                              Edit
+                            </Button>
                           )}
-                          <CardTitle className="text-sm font-semibold">Stage History</CardTitle>
                         </div>
                       </CardHeader>
-                      {(isCollapsibleStage ? stageHistoryOpen : true) && (
-                        <CardContent className="space-y-2 bg-gray-50 min-h-[360px] max-h-[360px] overflow-y-auto">
-                          {(() => {
-                            const calculateDaysAgo = (dateString: string | null): number | null => {
-                              if (!dateString) return null;
-                              let date: Date;
-                              if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-                                const [y, m, d] = dateString.split('-').map(Number);
-                                date = new Date(y, m - 1, d);
-                              } else {
-                                date = new Date(dateString);
-                              }
-                              if (isNaN(date.getTime())) return null;
-                              const now = new Date();
-                              const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                              const targetStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-                              const diffMs = startOfToday.getTime() - targetStart.getTime();
-                              return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                            };
-                            const getStageHistory = () => {
-                              if (pipelineType === 'active') {
-                                return [{
-                                  key: 'incoming',
-                                  label: 'NEW',
-                                  date: '2024-01-08',
-                                  daysAgo: 10
-                                }, {
-                                  key: 'rfp',
-                                  label: 'RFP',
-                                  date: '2024-01-10',
-                                  daysAgo: 8
-                                }, {
-                                  key: 'submitted',
-                                  label: 'SUB',
-                                  date: '2024-01-12',
-                                  daysAgo: 6
-                                }, {
-                                  key: 'awc',
-                                  label: 'AWC',
-                                  date: '2024-01-15',
-                                  daysAgo: 3
-                                }, {
-                                  key: 'ctc',
-                                  label: 'CTC',
-                                  date: '',
-                                  daysAgo: null
-                                }];
-                              } else if (pipelineType === 'past-clients') {
-                                const leadOnDate = (client as any).lead_on_date || null;
-                                const createdAt = leadOnDate || (client as any).created_at;
-                                const pendingAppAt = (client as any).pending_app_at;
-                                const appCompleteAt = (client as any).app_complete_at;
-                                const preQualifiedAt = (client as any).pre_qualified_at;
-                                const preApprovedAt = (client as any).pre_approved_at;
-                                const activeAt = (client as any).active_at;
-                                return [{
-                                  key: 'leads',
-                                  label: 'New',
-                                  date: createdAt,
-                                  daysAgo: calculateDaysAgo(createdAt)
-                                }, {
-                                  key: 'pending-app',
-                                  label: 'Pending App',
-                                  date: pendingAppAt,
-                                  daysAgo: calculateDaysAgo(pendingAppAt)
-                                }, {
-                                  key: 'screening',
-                                  label: 'Screening',
-                                  date: appCompleteAt,
-                                  daysAgo: calculateDaysAgo(appCompleteAt)
-                                }, {
-                                  key: 'pre-qualified',
-                                  label: 'Pre-Qualified',
-                                  date: preQualifiedAt,
-                                  daysAgo: calculateDaysAgo(preQualifiedAt)
-                                }, {
-                                  key: 'pre-approved',
-                                  label: 'Pre-Approved',
-                                  date: preApprovedAt,
-                                  daysAgo: calculateDaysAgo(preApprovedAt)
-                                }, {
-                                  key: 'active',
-                                  label: 'Active',
-                                  date: activeAt,
-                                  daysAgo: calculateDaysAgo(activeAt)
-                                }];
-                              } else {
-                                const leadOnDate = (client as any).lead_on_date || null;
-                                const createdAt = leadOnDate || (client as any).created_at;
-                                const pendingAppAt = (client as any).pending_app_at;
-                                const appCompleteAt = (client as any).app_complete_at;
-                                const preQualifiedAt = (client as any).pre_qualified_at;
-                                const preApprovedAt = (client as any).pre_approved_at;
-                                const activeAt = (client as any).active_at;
-                                return [{
-                                  key: 'leads',
-                                  label: 'New',
-                                  date: createdAt,
-                                  daysAgo: calculateDaysAgo(createdAt)
-                                }, {
-                                  key: 'pending-app',
-                                  label: 'Pending App',
-                                  date: pendingAppAt,
-                                  daysAgo: calculateDaysAgo(pendingAppAt)
-                                }, {
-                                  key: 'screening',
-                                  label: 'Screening',
-                                  date: appCompleteAt,
-                                  daysAgo: calculateDaysAgo(appCompleteAt)
-                                }, {
-                                  key: 'pre-qualified',
-                                  label: 'Pre-Qualified',
-                                  date: preQualifiedAt,
-                                  daysAgo: calculateDaysAgo(preQualifiedAt)
-                                }, {
-                                  key: 'pre-approved',
-                                  label: 'Pre-Approved',
-                                  date: preApprovedAt,
-                                  daysAgo: calculateDaysAgo(preApprovedAt)
-                                }, {
-                                  key: 'active',
-                                  label: 'Active',
-                                  date: activeAt,
-                                  daysAgo: calculateDaysAgo(activeAt)
-                                }];
-                              }
-                            };
-                            const stages = getStageHistory();
-                            const currentStageIndex = stages.findIndex(stage => stage.key === client.ops.stage);
-                            return stages.map((stage, index) => {
-                              const isCompleted = index <= currentStageIndex;
-                              const isCurrent = index === currentStageIndex;
-                              
-                              const formatTimestamp = (dateStr: string | null) => {
-                                if (!dateStr) return '';
-                                const date = new Date(dateStr);
-                                return format(date, 'MMM dd, yyyy \'at\' h:mm a');
-                              };
-                              
-                              return <div key={stage.key} className="flex items-center gap-3 text-xs">
-                                <div className={cn("flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold", isCompleted ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-400")}>
-                                  {isCompleted ? "✓" : "•"}
-                                </div>
-                                <div className="flex-1">
-                                  <p className="font-medium">{stage.label}</p>
-                                  <div onClick={e => e.stopPropagation()}>
-                                    <InlineEditDate 
-                                      value={stage.date} 
-                                      onValueChange={newDate => {
-                                        const fieldMap: Record<string, string> = {
-                                          'leads': 'lead_on_date',
-                                          'pending-app': 'pending_app_at',
-                                          'screening': 'app_complete_at',
-                                          'pre-qualified': 'pre_qualified_at',
-                                          'pre-approved': 'pre_approved_at',
-                                          'active': 'active_at'
-                                        };
-                                        const dbField = fieldMap[stage.key];
-                                        if (dbField && leadId) {
-                                          let dateValue: string | null = null;
-                                          if (dbField === 'lead_on_date') {
-                                            dateValue = newDate ? formatDateForInput(newDate) : null;
-                                          } else {
-                                            dateValue = newDate ? newDate.toISOString() : null;
-                                          }
-                                          databaseService.updateLead(leadId, {
-                                            [dbField]: dateValue
-                                          }).then(() => {
-                                            if (onLeadUpdated) onLeadUpdated();
-                                            toast({
-                                              title: "Success",
-                                              description: "Stage date updated"
-                                            });
-                                          }).catch(error => {
-                                            console.error('Error updating stage date:', error);
-                                            toast({
-                                              title: "Error",
-                                              description: "Failed to update stage date",
-                                              variant: "destructive"
-                                            });
-                                          });
-                                        }
-                                      }} 
-                                      className="text-xs" 
-                                      placeholder="Set date" 
-                                    />
-                                    {stage.date && stage.daysAgo !== null && (
-                                      <p 
-                                        className="text-[10px] text-muted-foreground mt-1 cursor-help" 
-                                        title={formatTimestamp(stage.date)}
-                                      >
-                                        {stage.daysAgo} days ago
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>;
-                            });
-                          })()}
-                        </CardContent>
-                      )}
+                      <CardContent className="bg-gray-50">
+                        {isEditingFileUpdates || !localFileUpdates ? (
+                          <>
+                            <Textarea 
+                              key="file-updates-textarea-active-left" 
+                              value={localFileUpdates} 
+                              onChange={e => {
+                                setLocalFileUpdates(e.target.value);
+                                setHasUnsavedFileUpdates(true);
+                              }}
+                              onBlur={() => { if (hasUnsavedFileUpdates) saveFileUpdates(); }}
+                              placeholder="Enter the latest update on this file..." 
+                              className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" 
+                            />
+                            {hasUnsavedFileUpdates && (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
+                                <Button size="sm" onClick={() => saveFileUpdates()} disabled={isSavingFileUpdates}>
+                                  {isSavingFileUpdates ? 'Saving...' : 'Save'}
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => {
+                                  setLocalFileUpdates((client as any).latest_file_updates || '');
+                                  setHasUnsavedFileUpdates(false);
+                                  setIsEditingFileUpdates(false);
+                                }}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingFileUpdates(true)}>
+                            {localFileUpdates.split('\n').map((line: string, i: number) => <p key={i} className="mb-2 last:mb-0 leading-relaxed">{line || <br />}</p>)}
+                          </div>
+                        )}
+                        <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                          <Clock className="h-3 w-3" />
+                          {(client as any).latest_file_updates_updated_at ? (
+                            <>
+                              Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                              {fileUpdatesUpdatedByUser && (
+                                <>
+                                  <span>•</span>
+                                  <User className="h-3 w-3" />
+                                  {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            <span className="italic">No updates yet</span>
+                          )}
+                        </div>
+                      </CardContent>
                     </Card>
                   );
                 })()}
@@ -3000,17 +2735,15 @@ export function ClientDetailDrawer({
                 <LeadTeamContactsDatesCard 
                   leadId={leadId || ""} 
                   onLeadUpdated={onLeadUpdated} 
-                  defaultCollapsed={true}
+                  defaultCollapsed={false}
                 />
               );
             })()}
 
-            {/* About the Borrower moved to left column */}
-
-            {/* Latest File Update - Screening stage, right column (between Tasks and Stage History) */}
+            {/* Latest File Update - Screening/Pre-Qualified/Pre-Approved only in right column */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
-              if (!['screening', 'pre-qualified', 'pre-approved', 'active'].includes(opsStage)) return null;
+              if (!['screening', 'pre-qualified', 'pre-approved'].includes(opsStage)) return null;
               return (
                 <Card>
                   <CardHeader className="pb-3 bg-white">
@@ -3115,7 +2848,342 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* Stage History moved to left column */}
+            {/* Chat with Borrower - For Active/Past Clients in right column */}
+            {(['active', 'past-clients'].includes(client.ops?.stage?.toLowerCase() || '')) && (
+              <Collapsible defaultOpen={false}>
+                <Card>
+                    <CardHeader className="pb-3">
+                      <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity w-full">
+                        <ChevronRight className="h-4 w-4 transition-transform data-[state=open]:rotate-90" />
+                        <CardTitle className="text-sm font-semibold">Chat with Borrower</CardTitle>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                  <CollapsibleContent>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-2 min-h-[300px] max-h-[300px] overflow-y-auto border rounded p-2 bg-muted/30">
+                        <div className="flex justify-end">
+                          <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
+                            <p className="text-sm">Hi John! Just wanted to check in on your loan application. How are things going?</p>
+                            <p className="text-xs opacity-75 mt-1">Today 2:30 PM</p>
+                          </div>
+                        </div>
+                        <div className="flex justify-start">
+                          <div className="bg-white rounded-lg px-3 py-2 max-w-[80%] shadow-sm">
+                            <p className="text-sm">Hi! Everything is going well. I just submitted the additional documents you requested.</p>
+                            <p className="text-xs text-muted-foreground mt-1">Today 2:45 PM</p>
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
+                            <p className="text-sm">Great! I'll review them and get back to you by tomorrow.</p>
+                            <p className="text-xs opacity-75 mt-1">Today 3:00 PM</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a message..." className="flex-1" onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }} />
+                        <Button size="sm" onClick={handleSendMessage}>
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            )}
+
+            {/* About the Borrower - For Active/Past Clients in right column */}
+            {(['active', 'past-clients'].includes(client.ops?.stage?.toLowerCase() || '')) && (() => {
+              const isActive = (client.ops?.stage?.toLowerCase() || '') === 'active';
+              return (
+                <Collapsible defaultOpen={!isActive}>
+                  <Card>
+                    <CardHeader className="pb-3 bg-white">
+                      <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                        <ChevronRight className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-90" />
+                        <CardTitle className="text-sm font-semibold">About the Borrower</CardTitle>
+                        <div className="flex-1" />
+                        {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setIsEditingNotes(true); }} className="h-7 text-xs">
+                            Edit
+                          </Button>}
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="bg-gray-50">
+                        {isEditingNotes || !localNotes ? <>
+                            <Textarea key="notes-textarea" value={localNotes} onChange={e => {
+                          setLocalNotes(e.target.value);
+                          setHasUnsavedNotes(true);
+                        }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" />
+                            {hasUnsavedNotes && <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
+                                <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
+                                  {isSavingNotes ? 'Saving...' : 'Save'}
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => {
+                            setLocalNotes((client as any).notes || '');
+                            setHasUnsavedNotes(false);
+                            setIsEditingNotes(false);
+                          }}>
+                                  Cancel
+                                </Button>
+                              </div>}
+                          </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingNotes(true)}>
+                            {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                          </div>}
+                        <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                          <Clock className="h-3 w-3" />
+                          {(client as any).notes_updated_at ? (
+                            <>
+                              Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                              {notesUpdatedByUser && <>
+                                  <span>•</span>
+                                  <User className="h-3 w-3" />
+                                  {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                                </>}
+                            </>
+                          ) : (
+                            <span className="italic">No updates yet</span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              );
+            })()}
+
+            {/* Stage History - For Active/Past Clients in right column */}
+            {(() => {
+              const opsStageLocal = client.ops?.stage?.toLowerCase() || '';
+              const isCollapsibleStage = ['screening', 'pre-qualified', 'pre-approved', 'active'].includes(opsStageLocal);
+              const isActiveOrPastClientLocal = ['active', 'past-clients'].includes(opsStageLocal);
+              if (!isActiveOrPastClientLocal && !isCollapsibleStage) return null;
+              return (
+                <Card>
+                  <CardHeader 
+                    className={cn("pb-3 bg-white", isCollapsibleStage && "cursor-pointer")}
+                    onClick={() => isCollapsibleStage && setStageHistoryOpen(!stageHistoryOpen)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {isCollapsibleStage && (
+                        <ChevronRight className={cn(
+                          "h-4 w-4 transition-transform",
+                          stageHistoryOpen && "rotate-90"
+                        )} />
+                      )}
+                      <CardTitle className="text-sm font-semibold">Stage History</CardTitle>
+                    </div>
+                  </CardHeader>
+                  {(isCollapsibleStage ? stageHistoryOpen : true) && (
+                    <CardContent className="space-y-2 bg-gray-50 min-h-[360px] max-h-[360px] overflow-y-auto">
+                      {(() => {
+                        const calculateDaysAgo = (dateString: string | null): number | null => {
+                          if (!dateString) return null;
+                          let date: Date;
+                          if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+                            const [y, m, d] = dateString.split('-').map(Number);
+                            date = new Date(y, m - 1, d);
+                          } else {
+                            date = new Date(dateString);
+                          }
+                          if (isNaN(date.getTime())) return null;
+                          const now = new Date();
+                          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                          const targetStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                          const diffMs = startOfToday.getTime() - targetStart.getTime();
+                          return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                        };
+                        const getStageHistory = () => {
+                          if (pipelineType === 'active') {
+                            return [{
+                              key: 'incoming',
+                              label: 'NEW',
+                              date: '2024-01-08',
+                              daysAgo: 10
+                            }, {
+                              key: 'rfp',
+                              label: 'RFP',
+                              date: '2024-01-10',
+                              daysAgo: 8
+                            }, {
+                              key: 'submitted',
+                              label: 'SUB',
+                              date: '2024-01-12',
+                              daysAgo: 6
+                            }, {
+                              key: 'awc',
+                              label: 'AWC',
+                              date: '2024-01-15',
+                              daysAgo: 3
+                            }, {
+                              key: 'ctc',
+                              label: 'CTC',
+                              date: '',
+                              daysAgo: null
+                            }];
+                          } else if (pipelineType === 'past-clients') {
+                            const leadOnDate = (client as any).lead_on_date || null;
+                            const createdAt = leadOnDate || (client as any).created_at;
+                            const pendingAppAt = (client as any).pending_app_at;
+                            const appCompleteAt = (client as any).app_complete_at;
+                            const preQualifiedAt = (client as any).pre_qualified_at;
+                            const preApprovedAt = (client as any).pre_approved_at;
+                            const activeAt = (client as any).active_at;
+                            return [{
+                              key: 'leads',
+                              label: 'New',
+                              date: createdAt,
+                              daysAgo: calculateDaysAgo(createdAt)
+                            }, {
+                              key: 'pending-app',
+                              label: 'Pending App',
+                              date: pendingAppAt,
+                              daysAgo: calculateDaysAgo(pendingAppAt)
+                            }, {
+                              key: 'screening',
+                              label: 'Screening',
+                              date: appCompleteAt,
+                              daysAgo: calculateDaysAgo(appCompleteAt)
+                            }, {
+                              key: 'pre-qualified',
+                              label: 'Pre-Qualified',
+                              date: preQualifiedAt,
+                              daysAgo: calculateDaysAgo(preQualifiedAt)
+                            }, {
+                              key: 'pre-approved',
+                              label: 'Pre-Approved',
+                              date: preApprovedAt,
+                              daysAgo: calculateDaysAgo(preApprovedAt)
+                            }, {
+                              key: 'active',
+                              label: 'Active',
+                              date: activeAt,
+                              daysAgo: calculateDaysAgo(activeAt)
+                            }];
+                          } else {
+                            const leadOnDate = (client as any).lead_on_date || null;
+                            const createdAt = leadOnDate || (client as any).created_at;
+                            const pendingAppAt = (client as any).pending_app_at;
+                            const appCompleteAt = (client as any).app_complete_at;
+                            const preQualifiedAt = (client as any).pre_qualified_at;
+                            const preApprovedAt = (client as any).pre_approved_at;
+                            const activeAt = (client as any).active_at;
+                            return [{
+                              key: 'leads',
+                              label: 'New',
+                              date: createdAt,
+                              daysAgo: calculateDaysAgo(createdAt)
+                            }, {
+                              key: 'pending-app',
+                              label: 'Pending App',
+                              date: pendingAppAt,
+                              daysAgo: calculateDaysAgo(pendingAppAt)
+                            }, {
+                              key: 'screening',
+                              label: 'Screening',
+                              date: appCompleteAt,
+                              daysAgo: calculateDaysAgo(appCompleteAt)
+                            }, {
+                              key: 'pre-qualified',
+                              label: 'Pre-Qualified',
+                              date: preQualifiedAt,
+                              daysAgo: calculateDaysAgo(preQualifiedAt)
+                            }, {
+                              key: 'pre-approved',
+                              label: 'Pre-Approved',
+                              date: preApprovedAt,
+                              daysAgo: calculateDaysAgo(preApprovedAt)
+                            }, {
+                              key: 'active',
+                              label: 'Active',
+                              date: activeAt,
+                              daysAgo: calculateDaysAgo(activeAt)
+                            }];
+                          }
+                        };
+                        const stages = getStageHistory();
+                        const currentStageIndex = stages.findIndex(stage => stage.key === client.ops.stage);
+                        return stages.map((stage, index) => {
+                          const isCompleted = index <= currentStageIndex;
+                          const isCurrent = index === currentStageIndex;
+                          
+                          const formatTimestamp = (dateStr: string | null) => {
+                            if (!dateStr) return '';
+                            const date = new Date(dateStr);
+                            return format(date, 'MMM dd, yyyy \'at\' h:mm a');
+                          };
+                          
+                          return <div key={stage.key} className="flex items-center gap-3 text-xs">
+                            <div className={cn("flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold", isCompleted ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-400")}>
+                              {isCompleted ? "✓" : "•"}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">{stage.label}</p>
+                              <div onClick={e => e.stopPropagation()}>
+                                <InlineEditDate 
+                                  value={stage.date} 
+                                  onValueChange={newDate => {
+                                    const fieldMap: Record<string, string> = {
+                                      'leads': 'lead_on_date',
+                                      'pending-app': 'pending_app_at',
+                                      'screening': 'app_complete_at',
+                                      'pre-qualified': 'pre_qualified_at',
+                                      'pre-approved': 'pre_approved_at',
+                                      'active': 'active_at'
+                                    };
+                                    const dbField = fieldMap[stage.key];
+                                    if (dbField && leadId) {
+                                      let dateValue: string | null = null;
+                                      if (dbField === 'lead_on_date') {
+                                        dateValue = newDate ? formatDateForInput(newDate) : null;
+                                      } else {
+                                        dateValue = newDate ? newDate.toISOString() : null;
+                                      }
+                                      databaseService.updateLead(leadId, {
+                                        [dbField]: dateValue
+                                      }).then(() => {
+                                        if (onLeadUpdated) onLeadUpdated();
+                                        toast({
+                                          title: "Success",
+                                          description: "Stage date updated"
+                                        });
+                                      }).catch(error => {
+                                        console.error('Error updating stage date:', error);
+                                        toast({
+                                          title: "Error",
+                                          description: "Failed to update stage date",
+                                          variant: "destructive"
+                                        });
+                                      });
+                                    }
+                                  }} 
+                                  className="text-xs" 
+                                  placeholder="Set date" 
+                                />
+                                {stage.date && stage.daysAgo !== null && (
+                                  <p 
+                                    className="text-[10px] text-muted-foreground mt-1 cursor-help" 
+                                    title={formatTimestamp(stage.date)}
+                                  >
+                                    {stage.daysAgo} days ago
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>;
+                        });
+                      })()}
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })()}
           </div>
           </div>
         </div>
