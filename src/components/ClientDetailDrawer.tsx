@@ -2401,74 +2401,7 @@ export function ClientDetailDrawer({
                   </Card>
                 )}
 
-                {/* Latest File Update - For Screening stage in left column (after About the Borrower) */}
-                {opsStage === 'screening' && (
-                  <Card>
-                    <CardHeader className="pb-3 bg-white">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
-                        {!isEditingFileUpdates && localFileUpdates && (
-                          <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
-                            Edit
-                          </Button>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="bg-gray-50">
-                      {isEditingFileUpdates || !localFileUpdates ? (
-                        <>
-                          <Textarea 
-                            key="file-updates-textarea-screening" 
-                            value={localFileUpdates} 
-                            onChange={e => {
-                              setLocalFileUpdates(e.target.value);
-                              setHasUnsavedFileUpdates(true);
-                            }}
-                            onBlur={() => { if (hasUnsavedFileUpdates) saveFileUpdates(); }}
-                            placeholder="Enter the latest update on this file..." 
-                            className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" 
-                          />
-                          {hasUnsavedFileUpdates && (
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
-                              <Button size="sm" onClick={() => saveFileUpdates()} disabled={isSavingFileUpdates}>
-                                {isSavingFileUpdates ? 'Saving...' : 'Save'}
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => {
-                                setLocalFileUpdates((client as any).latest_file_updates || '');
-                                setHasUnsavedFileUpdates(false);
-                                setIsEditingFileUpdates(false);
-                              }}>
-                                Cancel
-                              </Button>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingFileUpdates(true)}>
-                          {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0 leading-relaxed">{line || <br />}</p>)}
-                        </div>
-                      )}
-                      <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        {(client as any).latest_file_updates_updated_at ? (
-                          <>
-                            Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
-                            {fileUpdatesUpdatedByUser && (
-                              <>
-                                <span>•</span>
-                                <User className="h-3 w-3" />
-                                {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
-                              </>
-                            )}
-                          </>
-                        ) : (
-                          <span className="italic">No updates yet</span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                {/* Latest File Update for Screening moved to right column (between Tasks and Stage History) */}
 
                 {/* About the Borrower - For Pre-Qualified/Pre-Approved in left column (ABOVE DTI) */}
                 {(opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
@@ -2942,7 +2875,78 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* DTI / Address / PITI removed from right column for Screening - now in left column */}
+            {/* Latest File Update - Screening stage, right column (between Tasks and Stage History) */}
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              if (opsStage !== 'screening') return null;
+              return (
+                <Card>
+                  <CardHeader className="pb-3 bg-white">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
+                      {!isEditingFileUpdates && localFileUpdates && (
+                        <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="bg-gray-50">
+                    {isEditingFileUpdates || !localFileUpdates ? (
+                      <>
+                        <Textarea 
+                          key="file-updates-textarea-screening-right" 
+                          value={localFileUpdates} 
+                          onChange={e => {
+                            setLocalFileUpdates(e.target.value);
+                            setHasUnsavedFileUpdates(true);
+                          }}
+                          onBlur={() => { if (hasUnsavedFileUpdates) saveFileUpdates(); }}
+                          placeholder="Enter the latest update on this file..." 
+                          className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" 
+                        />
+                        {hasUnsavedFileUpdates && (
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
+                            <Button size="sm" onClick={() => saveFileUpdates()} disabled={isSavingFileUpdates}>
+                              {isSavingFileUpdates ? 'Saving...' : 'Save'}
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => {
+                              setLocalFileUpdates((client as any).latest_file_updates || '');
+                              setHasUnsavedFileUpdates(false);
+                              setIsEditingFileUpdates(false);
+                            }}>
+                              Cancel
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingFileUpdates(true)}>
+                        {localFileUpdates.split('\n').map((line: string, i: number) => <p key={i} className="mb-2 last:mb-0 leading-relaxed">{line || <br />}</p>)}
+                      </div>
+                    )}
+                    <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                      <Clock className="h-3 w-3" />
+                      {(client as any).latest_file_updates_updated_at ? (
+                        <>
+                          Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                          {fileUpdatesUpdatedByUser && (
+                            <>
+                              <span>•</span>
+                              <User className="h-3 w-3" />
+                              {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <span className="italic">No updates yet</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* Stage History */}
             <Card>
