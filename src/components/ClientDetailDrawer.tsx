@@ -167,6 +167,7 @@ export function ClientDetailDrawer({
   const [hasUnsavedFileUpdates, setHasUnsavedFileUpdates] = useState(false);
   const [isSavingFileUpdates, setIsSavingFileUpdates] = useState(false);
   const [stageHistoryOpen, setStageHistoryOpen] = useState(false);
+  const [showPipelineReviewHistory, setShowPipelineReviewHistory] = useState(false);
 
   const [isRecordingFileUpdates, setIsRecordingFileUpdates] = useState(false);
   const [isSummarizingTranscript, setIsSummarizingTranscript] = useState(false);
@@ -2592,27 +2593,51 @@ export function ClientDetailDrawer({
 
             {/* Latest File Update removed from center column for active - now uses right-column version */}
 
-            {/* Pipeline Review Section - Only show for Active/Past Clients in right column */}
+            {/* Pipeline Review Section - Minimal with Mic button */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
               const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
               if (!isActiveOrPastClient) return null;
               return (
+            <>
             <Card>
-              <CardHeader className="pb-3 bg-white">
-                <CardTitle className="text-sm font-bold">Pipeline Review</CardTitle>
+              <CardHeader className="py-3 px-4 bg-white">
+                <div className="flex items-center justify-between">
+                  <CardTitle 
+                    className="text-sm font-bold cursor-pointer hover:underline"
+                    onClick={() => setShowPipelineReviewHistory(true)}
+                  >
+                    Pipeline Review
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn("h-7 w-7 p-0", isRecordingFileUpdates && "text-red-500 animate-pulse")}
+                    onClick={isRecordingFileUpdates ? handleVoiceRecordingStop : handleVoiceRecordingStart}
+                    disabled={isSummarizingTranscript}
+                  >
+                    {isSummarizingTranscript ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Mic className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="bg-gray-50 max-h-[280px] overflow-y-auto">
-                <div className="min-h-[100px]">
-                  <MentionableInlineEditNotes
-                    value={(client as any).latest_file_updates || ''}
-                    onValueChange={(value) => handleLeadUpdate('latest_file_updates', value)}
-                    placeholder="Add pipeline review notes..."
-                    className="min-h-[80px]"
-                  />
+            </Card>
+
+            {/* Pipeline Review History Dialog */}
+            <Dialog open={showPipelineReviewHistory} onOpenChange={setShowPipelineReviewHistory}>
+              <DialogContent className="max-w-lg max-h-[70vh]">
+                <DialogHeader>
+                  <DialogTitle>Pipeline Review History</DialogTitle>
+                  <DialogDescription>Historical pipeline review notes for this file.</DialogDescription>
+                </DialogHeader>
+                <div className="overflow-y-auto max-h-[50vh] text-sm whitespace-pre-wrap">
+                  {(client as any).latest_file_updates || <span className="text-muted-foreground italic">No pipeline review notes yet.</span>}
                 </div>
                 {(client as any).latest_file_updates_updated_at && (
-                  <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                  <div className="pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
                     <Clock className="h-3 w-3" />
                     Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
                     {fileUpdatesUpdatedByUser && (
@@ -2624,8 +2649,9 @@ export function ClientDetailDrawer({
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </DialogContent>
+            </Dialog>
+            </>
               );
             })()}
 
