@@ -1,53 +1,24 @@
 
 
-# Pipeline Review: Mic Button + Minimal View with History Popup
+# Pipeline Review Date Highlighting + Move DTI Section
 
-## Overview
-Redesign the Pipeline Review section to be a minimal header with a microphone button. No text/notes visible inline. Clicking "Pipeline Review" opens a dialog showing historical review data.
+## Changes (all in `src/components/ClientDetailDrawer.tsx`)
 
-## Changes
+### 1. Highlight dates in Pipeline Review History dialog
 
-### File: `src/components/ClientDetailDrawer.tsx`
+Replace the plain text rendering in the history dialog (line ~2636-2637) with a function that parses the content and renders timestamp patterns like `[01/09/26 9:25 AM]` with bold, underlined, and highlighted styling. This will use a regex split to identify timestamps and wrap them in styled `<span>` elements with `font-bold underline bg-yellow-100` classes.
 
-**1. Replace the Pipeline Review Card content (lines ~2595-2630)**
+### 2. Move DTI, Address and PITI from left column to right column (above About the Borrower)
 
-Replace the current Pipeline Review section (which shows `MentionableInlineEditNotes` with text, metadata footer, and gray background) with a minimal card containing:
-- "Pipeline Review" title on the left
-- Mic button on the right that toggles recording (red pulsing when active, spinner when transcribing)
-- Clicking the title text opens a dialog with the historical `latest_file_updates` content
-- No text content visible inline
+- Remove the active-stage DTI block from the left column (lines ~2476-2483)
+- Add the same `LeadTeamContactsDatesCard` component in the right column, positioned between Tasks and About the Borrower (before line ~2700), wrapped in a collapsible with `defaultOpen={false}` to match the active stage pattern
 
-**2. Add Pipeline Review History Dialog**
+### Right column order after changes (active stage):
+1. Pipeline Review (mic button)
+2. Tasks
+3. DTI, Address and PITI (moved here, collapsed by default)
+4. About the Borrower (collapsed by default)
+5. Latest File Update
+6. Quick Actions (collapsed)
+7. Stage History (collapsed)
 
-Add a new state `showPipelineReviewHistory` and render a `Dialog` that:
-- Shows the full `latest_file_updates` content in a scrollable read-only view
-- Displays the timestamp and user metadata footer
-- Opened when clicking "Pipeline Review" title
-
-**3. Wire the Mic button to existing recording logic**
-
-The recording functions already exist (`handleVoiceRecordingStart`, `handleVoiceRecordingStop`, `processVoiceRecording`). The mic button will:
-- Call `handleVoiceRecordingStart()` on first click
-- Call `handleVoiceRecordingStop()` on second click (turns red while recording)
-- Show a `Loader2` spinner while `isSummarizingTranscript` is true
-- After processing, the `VoiceUpdateConfirmationModal` opens automatically (existing behavior)
-
-### Visual Layout
-
-The Pipeline Review section will look like:
-```
-+------------------------------------------+
-| Pipeline Review              [Mic Button] |
-+------------------------------------------+
-```
-
-- Mic button: default gray, red pulsing when recording, spinner when processing
-- "Pipeline Review" text is clickable to open the history dialog
-
-## Technical Details
-
-- New state: `const [showPipelineReviewHistory, setShowPipelineReviewHistory] = useState(false)`
-- Mic button uses `isRecordingFileUpdates` state for red styling
-- Uses `isSummarizingTranscript` state for spinner
-- History dialog uses existing `Dialog` component
-- All voice processing logic (transcribe, summarize, parse-field-updates) remains unchanged
