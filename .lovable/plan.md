@@ -1,43 +1,73 @@
 
 
-# Leads Gray Bar: Replace "Likely to Apply" with "Referral Source" and Equalize Box Heights
+# Equalize Top Row Card Heights: 2-Row Structural Layout
+
+## Overview
+
+Split the current single 3-column grid into a `flex flex-col gap-4` parent with two child grids: a top row for the three cards (equal height via `items-stretch`) and a bottom area for scrollable content.
 
 ## Changes
 
-### 1. Replace "Likely to Apply" with "Referral Source" in the 2x2 grid
-
-In the Leads stage gray bar (lines 1054-1087):
-- Remove the "Likely to Apply" field (lines 1055-1070)
-- Move "Referral Source" into that slot (remove its current `col-span-2` placement at lines 1072-1087)
-- "Referral Source" becomes the 4th field in the 2x2 grid (alongside Lead Status, Lead Strength, Referral Method)
-
-The resulting 2x2 layout will be:
-```
-Lead Status       | Lead Strength
-Referral Method   | Referral Source
-```
-
-### 2. Equalize heights of all 3 boxes
-
-Currently the left box (with 3 rows + Referral Source spanning below) is taller than the middle (Last Call/Text/Email) and right (Monthly Payment Goal) boxes. After removing the extra row, the left box shrinks to a clean 2x2. To make all 3 boxes the same height, each column in the grid will use `self-stretch` so they all match the tallest box's height. The middle and right boxes will also stretch to fill the available space.
-
-## Technical Details
-
 **File**: `src/components/ClientDetailDrawer.tsx`
 
-**Before (left column, lines 1006-1087):**
-```
-Lead Status    | Lead Strength
-Referral Method | Likely to Apply    <-- remove
-Referral Source (col-span-2)         <-- move up
+### 1. Replace outer container (line 2052)
+
+**Before:**
+```tsx
+<div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-80px)] p-4 pt-0">
 ```
 
-**After (left column):**
-```
-Lead Status     | Lead Strength
-Referral Method | Referral Source
+**After:**
+```tsx
+<div className="flex flex-col h-[calc(100vh-80px)] min-h-0 p-4 pt-0 gap-4">
+  {/* Top Row - equal height cards */}
+  <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] items-stretch gap-4">
 ```
 
-- Remove lines 1055-1070 (Likely to Apply field)
-- Replace lines 1072-1087 (Referral Source with col-span-2) with Referral Source without col-span-2, placed in the 4th grid slot
-- Add height-matching classes to the 3 column containers so they all stretch equally
+Uses `gap-4` on the flex parent for consistent spacing between rows (no `mb-4`).
+
+### 2. Extract the three top cards into the top row
+
+Move these three components out of their respective scrollable columns and place them as direct children of the top-row grid:
+
+- **Left**: `ContactInfoCard` (currently line 2063) -- wrap with `h-full flex flex-col` on the Card root
+- **Center**: Pipeline/Status `Card` (currently line 2553) -- change `h-[360px]` to `h-full`, keep `flex flex-col`
+- **Right**: `SendEmailTemplatesCard` (currently line 2659) -- ensure Card root has `h-full flex flex-col`
+
+No `overflow-y-auto` on any top-row CardContent. Cards grow naturally to match the tallest sibling.
+
+### 3. Close top row, open bottom area
+
+```tsx
+  </div>
+  {/* Bottom Area - scrollable columns */}
+  <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 flex-1 min-h-0">
+```
+
+### 4. Bottom columns retain existing behavior
+
+- **Left column**: `overflow-y-auto`, contains About the Borrower, Latest File Update, etc. (ContactInfoCard removed)
+- **Center column**: `overflow-y-auto flex flex-col`, contains LeadCenterTabs + activity buttons (Pipeline Card removed)
+- **Right column**: `overflow-y-auto`, contains Quick Actions, Stage History, etc. (SendEmailTemplatesCard removed)
+
+### 5. Center Card sizing fix (line 2553)
+
+**Before:** `<Card className="h-[360px] flex flex-col">`
+**After:** `<Card className="h-full flex flex-col">`
+
+### 6. Mobile behavior
+
+`grid-cols-1 lg:grid-cols-[1fr_2fr_1fr]` on both rows ensures equal-height behavior applies only on `lg+`. On mobile, cards stack naturally.
+
+## Summary
+
+| Detail | Value |
+|--------|-------|
+| Outer wrapper | `flex flex-col gap-4` (no `mb-4`) |
+| Top row grid | `items-stretch gap-4`, 3 card siblings |
+| Each top Card root | `h-full flex flex-col` |
+| Top CardContent | No `overflow-y-auto` |
+| Bottom grid | `flex-1 min-h-0`, columns keep `overflow-y-auto` |
+| Responsive | Equal height on `lg+` only |
+| File modified | `src/components/ClientDetailDrawer.tsx` |
+
