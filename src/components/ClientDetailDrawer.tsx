@@ -2523,6 +2523,293 @@ export function ClientDetailDrawer({
                     </Card>
                   </Collapsible>
                 )}
+
+                {/* About the Borrower - For Active/Past Clients in left column */}
+                {isActiveOrPastClient && (() => {
+                  const isActive = (client.ops?.stage?.toLowerCase() || '') === 'active';
+                  return (
+                    <Collapsible defaultOpen={!isActive}>
+                      <Card>
+                        <CardHeader className="pb-3 bg-white">
+                          <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                            <ChevronRight className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-90" />
+                            <CardTitle className="text-sm font-semibold">About the Borrower</CardTitle>
+                            <div className="flex-1" />
+                            {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setIsEditingNotes(true); }} className="h-7 text-xs">
+                                Edit
+                              </Button>}
+                          </CollapsibleTrigger>
+                        </CardHeader>
+                        <CollapsibleContent>
+                          <CardContent className="bg-gray-50">
+                            {isEditingNotes || !localNotes ? <>
+                                <Textarea key="notes-textarea" value={localNotes} onChange={e => {
+                              setLocalNotes(e.target.value);
+                              setHasUnsavedNotes(true);
+                            }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" />
+                                {hasUnsavedNotes && <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
+                                    <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
+                                      {isSavingNotes ? 'Saving...' : 'Save'}
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => {
+                                setLocalNotes((client as any).notes || '');
+                                setHasUnsavedNotes(false);
+                                setIsEditingNotes(false);
+                              }}>
+                                      Cancel
+                                    </Button>
+                                  </div>}
+                              </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingNotes(true)}>
+                                {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                              </div>}
+                            <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                              <Clock className="h-3 w-3" />
+                              {(client as any).notes_updated_at ? (
+                                <>
+                                  Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                                  {notesUpdatedByUser && <>
+                                      <span>•</span>
+                                      <User className="h-3 w-3" />
+                                      {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                                    </>}
+                                </>
+                              ) : (
+                                <span className="italic">No updates yet</span>
+                              )}
+                            </div>
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
+                  );
+                })()}
+
+                {/* Stage History - For Active/Past Clients in left column */}
+                {(() => {
+                  const opsStageLocal = client.ops?.stage?.toLowerCase() || '';
+                  const isCollapsibleStage = ['screening', 'pre-qualified', 'pre-approved', 'active'].includes(opsStageLocal);
+                  if (!isActiveOrPastClient && !isCollapsibleStage) return null;
+                  return (
+                    <Card>
+                      <CardHeader 
+                        className={cn("pb-3 bg-white", isCollapsibleStage && "cursor-pointer")}
+                        onClick={() => isCollapsibleStage && setStageHistoryOpen(!stageHistoryOpen)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {isCollapsibleStage && (
+                            <ChevronRight className={cn(
+                              "h-4 w-4 transition-transform",
+                              stageHistoryOpen && "rotate-90"
+                            )} />
+                          )}
+                          <CardTitle className="text-sm font-semibold">Stage History</CardTitle>
+                        </div>
+                      </CardHeader>
+                      {(isCollapsibleStage ? stageHistoryOpen : true) && (
+                        <CardContent className="space-y-2 bg-gray-50 min-h-[360px] max-h-[360px] overflow-y-auto">
+                          {(() => {
+                            const calculateDaysAgo = (dateString: string | null): number | null => {
+                              if (!dateString) return null;
+                              let date: Date;
+                              if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+                                const [y, m, d] = dateString.split('-').map(Number);
+                                date = new Date(y, m - 1, d);
+                              } else {
+                                date = new Date(dateString);
+                              }
+                              if (isNaN(date.getTime())) return null;
+                              const now = new Date();
+                              const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                              const targetStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                              const diffMs = startOfToday.getTime() - targetStart.getTime();
+                              return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                            };
+                            const getStageHistory = () => {
+                              if (pipelineType === 'active') {
+                                return [{
+                                  key: 'incoming',
+                                  label: 'NEW',
+                                  date: '2024-01-08',
+                                  daysAgo: 10
+                                }, {
+                                  key: 'rfp',
+                                  label: 'RFP',
+                                  date: '2024-01-10',
+                                  daysAgo: 8
+                                }, {
+                                  key: 'submitted',
+                                  label: 'SUB',
+                                  date: '2024-01-12',
+                                  daysAgo: 6
+                                }, {
+                                  key: 'awc',
+                                  label: 'AWC',
+                                  date: '2024-01-15',
+                                  daysAgo: 3
+                                }, {
+                                  key: 'ctc',
+                                  label: 'CTC',
+                                  date: '',
+                                  daysAgo: null
+                                }];
+                              } else if (pipelineType === 'past-clients') {
+                                const leadOnDate = (client as any).lead_on_date || null;
+                                const createdAt = leadOnDate || (client as any).created_at;
+                                const pendingAppAt = (client as any).pending_app_at;
+                                const appCompleteAt = (client as any).app_complete_at;
+                                const preQualifiedAt = (client as any).pre_qualified_at;
+                                const preApprovedAt = (client as any).pre_approved_at;
+                                const activeAt = (client as any).active_at;
+                                return [{
+                                  key: 'leads',
+                                  label: 'New',
+                                  date: createdAt,
+                                  daysAgo: calculateDaysAgo(createdAt)
+                                }, {
+                                  key: 'pending-app',
+                                  label: 'Pending App',
+                                  date: pendingAppAt,
+                                  daysAgo: calculateDaysAgo(pendingAppAt)
+                                }, {
+                                  key: 'screening',
+                                  label: 'Screening',
+                                  date: appCompleteAt,
+                                  daysAgo: calculateDaysAgo(appCompleteAt)
+                                }, {
+                                  key: 'pre-qualified',
+                                  label: 'Pre-Qualified',
+                                  date: preQualifiedAt,
+                                  daysAgo: calculateDaysAgo(preQualifiedAt)
+                                }, {
+                                  key: 'pre-approved',
+                                  label: 'Pre-Approved',
+                                  date: preApprovedAt,
+                                  daysAgo: calculateDaysAgo(preApprovedAt)
+                                }, {
+                                  key: 'active',
+                                  label: 'Active',
+                                  date: activeAt,
+                                  daysAgo: calculateDaysAgo(activeAt)
+                                }];
+                              } else {
+                                const leadOnDate = (client as any).lead_on_date || null;
+                                const createdAt = leadOnDate || (client as any).created_at;
+                                const pendingAppAt = (client as any).pending_app_at;
+                                const appCompleteAt = (client as any).app_complete_at;
+                                const preQualifiedAt = (client as any).pre_qualified_at;
+                                const preApprovedAt = (client as any).pre_approved_at;
+                                const activeAt = (client as any).active_at;
+                                return [{
+                                  key: 'leads',
+                                  label: 'New',
+                                  date: createdAt,
+                                  daysAgo: calculateDaysAgo(createdAt)
+                                }, {
+                                  key: 'pending-app',
+                                  label: 'Pending App',
+                                  date: pendingAppAt,
+                                  daysAgo: calculateDaysAgo(pendingAppAt)
+                                }, {
+                                  key: 'screening',
+                                  label: 'Screening',
+                                  date: appCompleteAt,
+                                  daysAgo: calculateDaysAgo(appCompleteAt)
+                                }, {
+                                  key: 'pre-qualified',
+                                  label: 'Pre-Qualified',
+                                  date: preQualifiedAt,
+                                  daysAgo: calculateDaysAgo(preQualifiedAt)
+                                }, {
+                                  key: 'pre-approved',
+                                  label: 'Pre-Approved',
+                                  date: preApprovedAt,
+                                  daysAgo: calculateDaysAgo(preApprovedAt)
+                                }, {
+                                  key: 'active',
+                                  label: 'Active',
+                                  date: activeAt,
+                                  daysAgo: calculateDaysAgo(activeAt)
+                                }];
+                              }
+                            };
+                            const stages = getStageHistory();
+                            const currentStageIndex = stages.findIndex(stage => stage.key === client.ops.stage);
+                            return stages.map((stage, index) => {
+                              const isCompleted = index <= currentStageIndex;
+                              const isCurrent = index === currentStageIndex;
+                              
+                              const formatTimestamp = (dateStr: string | null) => {
+                                if (!dateStr) return '';
+                                const date = new Date(dateStr);
+                                return format(date, 'MMM dd, yyyy \'at\' h:mm a');
+                              };
+                              
+                              return <div key={stage.key} className="flex items-center gap-3 text-xs">
+                                <div className={cn("flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold", isCompleted ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-400")}>
+                                  {isCompleted ? "✓" : "•"}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium">{stage.label}</p>
+                                  <div onClick={e => e.stopPropagation()}>
+                                    <InlineEditDate 
+                                      value={stage.date} 
+                                      onValueChange={newDate => {
+                                        const fieldMap: Record<string, string> = {
+                                          'leads': 'lead_on_date',
+                                          'pending-app': 'pending_app_at',
+                                          'screening': 'app_complete_at',
+                                          'pre-qualified': 'pre_qualified_at',
+                                          'pre-approved': 'pre_approved_at',
+                                          'active': 'active_at'
+                                        };
+                                        const dbField = fieldMap[stage.key];
+                                        if (dbField && leadId) {
+                                          let dateValue: string | null = null;
+                                          if (dbField === 'lead_on_date') {
+                                            dateValue = newDate ? formatDateForInput(newDate) : null;
+                                          } else {
+                                            dateValue = newDate ? newDate.toISOString() : null;
+                                          }
+                                          databaseService.updateLead(leadId, {
+                                            [dbField]: dateValue
+                                          }).then(() => {
+                                            if (onLeadUpdated) onLeadUpdated();
+                                            toast({
+                                              title: "Success",
+                                              description: "Stage date updated"
+                                            });
+                                          }).catch(error => {
+                                            console.error('Error updating stage date:', error);
+                                            toast({
+                                              title: "Error",
+                                              description: "Failed to update stage date",
+                                              variant: "destructive"
+                                            });
+                                          });
+                                        }
+                                      }} 
+                                      className="text-xs" 
+                                      placeholder="Set date" 
+                                    />
+                                    {stage.date && stage.daysAgo !== null && (
+                                      <p 
+                                        className="text-[10px] text-muted-foreground mt-1 cursor-help" 
+                                        title={formatTimestamp(stage.date)}
+                                      >
+                                        {stage.daysAgo} days ago
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>;
+                            });
+                          })()}
+                        </CardContent>
+                      )}
+                    </Card>
+                  );
+                })()}
               </div>
             );
           })()}
@@ -2627,13 +2914,21 @@ export function ClientDetailDrawer({
                   <DialogDescription>Historical pipeline review notes for this file.</DialogDescription>
                 </DialogHeader>
                 <div className="overflow-y-auto max-h-[50vh] text-sm whitespace-pre-wrap">
-                  {(client as any).latest_file_updates ? (
-                    (client as any).latest_file_updates.split(/(\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\])/gi).map((part: string, i: number) => 
-                      /^\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\]$/i.test(part) 
-                        ? <span key={i} className="font-bold underline bg-yellow-100">{part}</span>
-                        : <span key={i}>{part}</span>
-                    )
-                  ) : <span className="text-muted-foreground italic">No pipeline review notes yet.</span>}
+                  {(client as any).latest_file_updates ? (() => {
+                    const text = (client as any).latest_file_updates as string;
+                    // Split into entries by timestamp boundaries, then reverse for most recent first
+                    const entries = text.split(/(?=\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\])/gi).filter((e: string) => e.trim());
+                    const reversed = entries.reverse();
+                    return reversed.map((entry: string, ei: number) => (
+                      <div key={ei} className={ei > 0 ? "mt-3 pt-3 border-t border-gray-200" : ""}>
+                        {entry.split(/(\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\])/gi).map((part: string, i: number) => 
+                          /^\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\]$/i.test(part) 
+                            ? <span key={i} className="font-bold underline bg-yellow-100">{part}</span>
+                            : <span key={i}>{part}</span>
+                        )}
+                      </div>
+                    ));
+                  })() : <span className="text-muted-foreground italic">No pipeline review notes yet.</span>}
                 </div>
                 {(client as any).latest_file_updates_updated_at && (
                   <div className="pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
@@ -2710,69 +3005,7 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* About the Borrower Section - Only show for Active/Past Clients in right column */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-              if (!isActiveOrPastClient) return null;
-              const isActive = opsStage === 'active';
-              return (
-            <Collapsible defaultOpen={!isActive}>
-            <Card>
-              <CardHeader className="pb-3 bg-white">
-                <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                  <ChevronRight className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-90" />
-                  <CardTitle className="text-sm font-semibold">About the Borrower</CardTitle>
-                  <div className="flex-1" />
-                  {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setIsEditingNotes(true); }} className="h-7 text-xs">
-                      Edit
-                    </Button>}
-                </CollapsibleTrigger>
-              </CardHeader>
-              <CollapsibleContent>
-              <CardContent className="bg-gray-50">
-                {isEditingNotes || !localNotes ? <>
-                    <Textarea key="notes-textarea" value={localNotes} onChange={e => {
-                  setLocalNotes(e.target.value);
-                  setHasUnsavedNotes(true);
-                }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" />
-                    {hasUnsavedNotes && <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
-                        <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
-                          {isSavingNotes ? 'Saving...' : 'Save'}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => {
-                    setLocalNotes((client as any).notes || '');
-                    setHasUnsavedNotes(false);
-                    setIsEditingNotes(false);
-                  }}>
-                          Cancel
-                        </Button>
-                      </div>}
-                  </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingNotes(true)}>
-                    {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
-                  </div>}
-                <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                  <Clock className="h-3 w-3" />
-                  {(client as any).notes_updated_at ? (
-                    <>
-                      Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
-                      {notesUpdatedByUser && <>
-                          <span>•</span>
-                          <User className="h-3 w-3" />
-                          {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
-                        </>}
-                    </>
-                  ) : (
-                    <span className="italic">No updates yet</span>
-                  )}
-                </div>
-              </CardContent>
-              </CollapsibleContent>
-            </Card>
-            </Collapsible>
-              );
-            })()}
+            {/* About the Borrower moved to left column */}
 
             {/* Latest File Update - Screening stage, right column (between Tasks and Stage History) */}
             {(() => {
@@ -2882,230 +3115,7 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* Stage History */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isCollapsibleStage = ['screening', 'pre-qualified', 'pre-approved', 'active'].includes(opsStage);
-              return (
-              <Card>
-              <CardHeader 
-                className={cn("pb-3 bg-white", isCollapsibleStage && "cursor-pointer")}
-                onClick={() => isCollapsibleStage && setStageHistoryOpen(!stageHistoryOpen)}
-              >
-                <div className="flex items-center gap-2">
-                  {isCollapsibleStage && (
-                    <ChevronRight className={cn(
-                      "h-4 w-4 transition-transform",
-                      stageHistoryOpen && "rotate-90"
-                    )} />
-                  )}
-                  <CardTitle className="text-sm font-semibold">Stage History</CardTitle>
-                </div>
-              </CardHeader>
-              {(isCollapsibleStage ? stageHistoryOpen : true) && (
-              <CardContent className="space-y-2 bg-gray-50 min-h-[360px] max-h-[360px] overflow-y-auto">
-                {(() => {
-                const calculateDaysAgo = (dateString: string | null): number | null => {
-                  if (!dateString) return null;
-                  let date: Date;
-                  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-                    const [y, m, d] = dateString.split('-').map(Number);
-                    date = new Date(y, m - 1, d);
-                  } else {
-                    date = new Date(dateString);
-                  }
-                  if (isNaN(date.getTime())) return null;
-                  const now = new Date();
-                  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                  const targetStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-                  const diffMs = startOfToday.getTime() - targetStart.getTime();
-                  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                };
-                const getStageHistory = () => {
-                  if (pipelineType === 'active') {
-                    return [{
-                      key: 'incoming',
-                      label: 'NEW',
-                      date: '2024-01-08',
-                      daysAgo: 10
-                    }, {
-                      key: 'rfp',
-                      label: 'RFP',
-                      date: '2024-01-10',
-                      daysAgo: 8
-                    }, {
-                      key: 'submitted',
-                      label: 'SUB',
-                      date: '2024-01-12',
-                      daysAgo: 6
-                    }, {
-                      key: 'awc',
-                      label: 'AWC',
-                      date: '2024-01-15',
-                      daysAgo: 3
-                    }, {
-                      key: 'ctc',
-                      label: 'CTC',
-                      date: '',
-                      daysAgo: null
-                    }];
-                  } else if (pipelineType === 'past-clients') {
-                    const leadOnDate = (client as any).lead_on_date || null;
-                    const createdAt = leadOnDate || (client as any).created_at;
-                    const pendingAppAt = (client as any).pending_app_at;
-                    const appCompleteAt = (client as any).app_complete_at;
-                    const preQualifiedAt = (client as any).pre_qualified_at;
-                    const preApprovedAt = (client as any).pre_approved_at;
-                    const activeAt = (client as any).active_at;
-                    return [{
-                      key: 'leads',
-                      label: 'New',
-                      date: createdAt,
-                      daysAgo: calculateDaysAgo(createdAt)
-                    }, {
-                      key: 'pending-app',
-                      label: 'Pending App',
-                      date: pendingAppAt,
-                      daysAgo: calculateDaysAgo(pendingAppAt)
-                    }, {
-                      key: 'screening',
-                      label: 'Screening',
-                      date: appCompleteAt,
-                      daysAgo: calculateDaysAgo(appCompleteAt)
-                    }, {
-                      key: 'pre-qualified',
-                      label: 'Pre-Qualified',
-                      date: preQualifiedAt,
-                      daysAgo: calculateDaysAgo(preQualifiedAt)
-                    }, {
-                      key: 'pre-approved',
-                      label: 'Pre-Approved',
-                      date: preApprovedAt,
-                      daysAgo: calculateDaysAgo(preApprovedAt)
-                    }, {
-                      key: 'active',
-                      label: 'Active',
-                      date: activeAt,
-                      daysAgo: calculateDaysAgo(activeAt)
-                    }];
-                  } else {
-                    const leadOnDate = (client as any).lead_on_date || null;
-                    const createdAt = leadOnDate || (client as any).created_at;
-                    const pendingAppAt = (client as any).pending_app_at;
-                    const appCompleteAt = (client as any).app_complete_at;
-                    const preQualifiedAt = (client as any).pre_qualified_at;
-                    const preApprovedAt = (client as any).pre_approved_at;
-                    const activeAt = (client as any).active_at;
-                    return [{
-                      key: 'leads',
-                      label: 'New',
-                      date: createdAt,
-                      daysAgo: calculateDaysAgo(createdAt)
-                    }, {
-                      key: 'pending-app',
-                      label: 'Pending App',
-                      date: pendingAppAt,
-                      daysAgo: calculateDaysAgo(pendingAppAt)
-                    }, {
-                      key: 'screening',
-                      label: 'Screening',
-                      date: appCompleteAt,
-                      daysAgo: calculateDaysAgo(appCompleteAt)
-                    }, {
-                      key: 'pre-qualified',
-                      label: 'Pre-Qualified',
-                      date: preQualifiedAt,
-                      daysAgo: calculateDaysAgo(preQualifiedAt)
-                    }, {
-                      key: 'pre-approved',
-                      label: 'Pre-Approved',
-                      date: preApprovedAt,
-                      daysAgo: calculateDaysAgo(preApprovedAt)
-                    }, {
-                      key: 'active',
-                      label: 'Active',
-                      date: activeAt,
-                      daysAgo: calculateDaysAgo(activeAt)
-                    }];
-                  }
-                };
-                const stages = getStageHistory();
-                const currentStageIndex = stages.findIndex(stage => stage.key === client.ops.stage);
-                return stages.map((stage, index) => {
-                  const isCompleted = index <= currentStageIndex;
-                  const isCurrent = index === currentStageIndex;
-                  
-                  const formatTimestamp = (dateStr: string | null) => {
-                    if (!dateStr) return '';
-                    const date = new Date(dateStr);
-                    return format(date, 'MMM dd, yyyy \'at\' h:mm a');
-                  };
-                  
-return <div key={stage.key} className="flex items-center gap-3 text-xs">
-                        <div className={cn("flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold", isCompleted ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-400")}>
-                          {isCompleted ? "✓" : "•"}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium">{stage.label}</p>
-                          <div onClick={e => e.stopPropagation()}>
-                            <InlineEditDate 
-                              value={stage.date} 
-                              onValueChange={newDate => {
-                                const fieldMap: Record<string, string> = {
-                                  'leads': 'lead_on_date',
-                                  'pending-app': 'pending_app_at',
-                                  'screening': 'app_complete_at',
-                                  'pre-qualified': 'pre_qualified_at',
-                                  'pre-approved': 'pre_approved_at',
-                                  'active': 'active_at'
-                                };
-                                const dbField = fieldMap[stage.key];
-                                if (dbField && leadId) {
-                                  let dateValue: string | null = null;
-                                  if (dbField === 'lead_on_date') {
-                                    dateValue = newDate ? formatDateForInput(newDate) : null;
-                                  } else {
-                                    dateValue = newDate ? newDate.toISOString() : null;
-                                  }
-                                  databaseService.updateLead(leadId, {
-                                    [dbField]: dateValue
-                                  }).then(() => {
-                                    if (onLeadUpdated) onLeadUpdated();
-                                    toast({
-                                      title: "Success",
-                                      description: "Stage date updated"
-                                    });
-                                  }).catch(error => {
-                                    console.error('Error updating stage date:', error);
-                                    toast({
-                                      title: "Error",
-                                      description: "Failed to update stage date",
-                                      variant: "destructive"
-                                    });
-                                  });
-                                }
-                              }} 
-                              className="text-xs" 
-                              placeholder="Set date" 
-                            />
-                            {stage.date && stage.daysAgo !== null && (
-                              <p 
-                                className="text-[10px] text-muted-foreground mt-1 cursor-help" 
-                                title={formatTimestamp(stage.date)}
-                              >
-                                {stage.daysAgo} days ago
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>;
-                });
-              })()}
-              </CardContent>
-              )}
-            </Card>
-              );
-            })()}
+            {/* Stage History moved to left column */}
           </div>
           </div>
         </div>
