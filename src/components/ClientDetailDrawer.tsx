@@ -2854,7 +2854,7 @@ export function ClientDetailDrawer({
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 bg-gray-50 min-h-[112px] max-h-[112px] overflow-y-auto">
+              <CardContent className="space-y-2 bg-gray-50 max-h-[112px] overflow-y-auto">
                 {loadingTasks ? <p className="text-xs text-muted-foreground">Loading tasks...</p> : leadTasks.length > 0 ? [...leadTasks].sort((a, b) => {
                   // Open tasks (not Done) first
                   if (a.status === 'Done' && b.status !== 'Done') return 1;
