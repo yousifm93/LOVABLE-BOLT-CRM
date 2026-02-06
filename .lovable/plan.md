@@ -1,24 +1,33 @@
 
-
-# Pipeline Review Date Highlighting + Move DTI Section
+# Pipeline Review History Order + Move Sections to Left Column
 
 ## Changes (all in `src/components/ClientDetailDrawer.tsx`)
 
-### 1. Highlight dates in Pipeline Review History dialog
+### 1. Reverse Pipeline Review History content (most recent first)
 
-Replace the plain text rendering in the history dialog (line ~2636-2637) with a function that parses the content and renders timestamp patterns like `[01/09/26 9:25 AM]` with bold, underlined, and highlighted styling. This will use a regex split to identify timestamps and wrap them in styled `<span>` elements with `font-bold underline bg-yellow-100` classes.
+In the Pipeline Review History dialog (lines ~2629-2637), after splitting `latest_file_updates` by timestamp regex, reverse the order of the parsed entries so the most recent date appears at the top. This involves:
+- Splitting the text into entries by timestamp boundaries
+- Reversing the array of entries
+- Then applying the existing highlight logic to each entry
 
-### 2. Move DTI, Address and PITI from left column to right column (above About the Borrower)
+### 2. Move "About the Borrower" from right column to left column
 
-- Remove the active-stage DTI block from the left column (lines ~2476-2483)
-- Add the same `LeadTeamContactsDatesCard` component in the right column, positioned between Tasks and About the Borrower (before line ~2700), wrapped in a collapsible with `defaultOpen={false}` to match the active stage pattern
+Remove the "About the Borrower" section from the right column (lines ~2713-2775) and place it in the left column after "Chat with Borrower" (after line ~2525), keeping it collapsed by default for the active stage with the same collapsible pattern.
+
+### 3. Move "Stage History" from right column to left column
+
+Remove the "Stage History" section from the right column (lines ~2885-2960+) and place it in the left column after the newly moved "About the Borrower" section, keeping the same collapsible behavior for screening/pre-qualified/pre-approved/active stages.
+
+### Left column order after changes (active stage):
+1. Live Deal
+2. Third Party Items
+3. Chat with Borrower (collapsed)
+4. About the Borrower (collapsed) -- moved here
+5. Stage History (collapsed) -- moved here
 
 ### Right column order after changes (active stage):
 1. Pipeline Review (mic button)
 2. Tasks
-3. DTI, Address and PITI (moved here, collapsed by default)
-4. About the Borrower (collapsed by default)
-5. Latest File Update
-6. Quick Actions (collapsed)
-7. Stage History (collapsed)
-
+3. DTI, Address and PITI (collapsed)
+4. Latest File Update
+5. Quick Actions (collapsed)
