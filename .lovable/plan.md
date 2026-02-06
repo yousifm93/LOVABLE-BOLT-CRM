@@ -1,27 +1,26 @@
 
 
-# Fix Tasks Box Height -- Use 88px Instead of 112px
+# Fix Stage History Box to Fixed Height
 
 ## Problem
-The current fixed height of `112px` is too tall, creating excess whitespace and pushing the Stage History section too far down. The desired height (matching your Leads screenshot) is shorter -- just enough to snugly fit 2 task rows.
+The Stage History box grows taller when dates are added to stages (because the "X days ago" text adds extra height per row). This causes misalignment with the Lead Information section. The box should always be the same fixed height regardless of how many dates are set.
+
+## Solution
+Set a fixed height on the Stage History `CardContent` with overflow scrolling, matching the height shown in the screenshot (all 6 stages visible with "Set date" placeholders).
 
 ## Change
 
 ### File: `src/components/ClientDetailDrawer.tsx`
 
-**Line 2857** -- Change both `min-h` and `max-h` from `112px` to `88px`:
+**Line 2950** -- Add fixed height to the Stage History CardContent:
 
 ```
 Before:
-<CardContent className="space-y-2 bg-gray-50 min-h-[112px] max-h-[112px] overflow-y-auto">
+<CardContent className="space-y-2 bg-gray-50">
 
 After:
-<CardContent className="space-y-2 bg-gray-50 min-h-[88px] max-h-[88px] overflow-y-auto">
+<CardContent className="space-y-2 bg-gray-50 min-h-[280px] max-h-[280px] overflow-y-auto">
 ```
 
-This reduces the fixed height to ~88px which matches the compact look in your Leads screenshot:
-- 0 tasks: 88px (small empty space)
-- 1 task: 88px
-- 2 tasks: 88px (fills naturally, matching screenshot)
-- 3+ tasks: 88px with vertical scrolling
+This locks the Stage History box at 280px (matching the screenshot height where all 6 stages with "Set date" are visible). When dates are added and rows grow taller, the content will scroll vertically instead of expanding the box.
 
