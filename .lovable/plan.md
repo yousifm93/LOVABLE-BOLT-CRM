@@ -1,33 +1,71 @@
 
 
-# Decrease Font Sizes in Stage History Box
+# Move Quick Actions to Right Column and Remove Third Party Items (Screening Page)
 
-## Problem
-The text inside the Stage History box is slightly too large. The stage labels, dates, and "X days ago" text should all be about 2 points smaller.
+## Overview
+On the Screening page, Quick Actions currently appears in the left column and Third Party Items also appears in the left column. We will move Quick Actions to the right column (underneath Stage History) and completely remove Third Party Items from the Screening stage.
 
 ## Changes
 
 ### File: `src/components/ClientDetailDrawer.tsx`
 
-Three text size reductions:
+**1. Exclude Screening from left-column Quick Actions (Line ~2284-2287)**
 
-1. **Line 3091** -- Stage row container: change `text-sm` to `text-xs`
-   ```
-   Before: className="flex items-center gap-3 text-sm"
-   After:  className="flex items-center gap-3 text-xs"
-   ```
+Update the condition so that the left-column Quick Actions also returns null for the screening stage, preventing it from rendering there.
 
-2. **Line 3092** -- Checkmark circle: change `text-xs` to `text-[10px]` and shrink circle from `w-6 h-6` to `w-5 h-5`
-   ```
-   Before: className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
-   After:  className="flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold"
-   ```
+```
+Before:
+const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
+if (isPreQualOrPreApproved) return null;
 
-3. **Line 3140** -- "X days ago" text: change `text-xs` to `text-[10px]`
-   ```
-   Before: className="text-xs text-muted-foreground mt-1 cursor-help"
-   After:  className="text-[10px] text-muted-foreground mt-1 cursor-help"
-   ```
+After:
+const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
+if (isPreQualOrPreApproved || opsStage === 'screening') return null;
+```
 
-This reduces the stage label font from ~14px (text-sm) to ~12px (text-xs), and the date/days-ago font from ~12px (text-xs) to ~10px (text-[10px]), achieving roughly a 2-point reduction across the board.
+**2. Exclude Screening from Third Party Items (Line ~2346)**
+
+Add screening to the exclusion list so Third Party Items no longer renders on the Screening page.
+
+```
+Before:
+if (isActiveOrPastClient || opsStage === 'leads' || opsStage === 'pending-app') return null;
+
+After:
+if (isActiveOrPastClient || opsStage === 'leads' || opsStage === 'pending-app' || opsStage === 'screening') return null;
+```
+
+**3. Add Quick Actions to right column after Stage History (after Line ~3152)**
+
+Insert the Quick Actions card (Pre-Approval and Loan Estimate buttons) in the right column, right after the Stage History card and before the closing div. This will only render when the stage is "screening."
+
+```tsx
+{/* Quick Actions - Screening stage, right column */}
+{opsStage === 'screening' && (
+  <Card>
+    <CardHeader className="pb-3 bg-white">
+      <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
+    </CardHeader>
+    <CardContent className="bg-gray-50">
+      <div className="flex gap-3">
+        <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+          onClick={() => setShowPreApprovalModal(true)}>
+          <FileText className="h-4 w-4" />
+          <span className="font-semibold text-sm">Pre-Approval</span>
+        </Button>
+        <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+          onClick={() => setShowLoanEstimateModal(true)}>
+          <FileCheck className="h-4 w-4" />
+          <span className="font-semibold text-sm">Loan Estimate</span>
+        </Button>
+      </div>
+    </CardContent>
+  </Card>
+)}
+```
+
+## Result
+- Stage History remains at the top of the right column
+- Quick Actions appears directly below Stage History (screening only)
+- Third Party Items is completely removed from the Screening page
 
