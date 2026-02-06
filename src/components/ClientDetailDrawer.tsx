@@ -2332,7 +2332,7 @@ export function ClientDetailDrawer({
                 {(() => {
                   const opsStage = client.ops?.stage?.toLowerCase() || '';
                   const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-                  const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
+                  const isLeadsOrPendingApp = opsStage === 'pending-app';
                   if (isActiveOrPastClient || !isLeadsOrPendingApp) return null;
                   return (
                     <LeadTeamContactsDatesCard 
@@ -2347,7 +2347,7 @@ export function ClientDetailDrawer({
                 {(() => {
                   const opsStage = client.ops?.stage?.toLowerCase() || '';
                   const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-                  if (isActiveOrPastClient) return null;
+                  if (isActiveOrPastClient || opsStage === 'leads') return null;
                   return (
                     <LeadThirdPartyItemsCard leadId={leadId || ""} defaultCollapsed={true} />
                   );
