@@ -1,41 +1,57 @@
 
 
-# Fix Chat with Borrower Arrow Direction + Reduce Lead Information Card Height
+# Shrink-Wrap Lead Information Card (Structural Fixes Only)
 
-## 1. Chat with Borrower chevron: Use ChevronRight with rotation (not ChevronDown)
+## Changes
 
-The other three sections (Quick Actions, DTI, Third Party Items) use `ChevronRight` with a CSS rotation on open:
-```tsx
-<ChevronRight className="h-4 w-4 transition-transform data-[state=open]:rotate-90" />
+### File 1: `src/components/ClientDetailDrawer.tsx`
+
+**Line 2674** -- Add `items-start` to center column wrapper:
+```
+"space-y-4 overflow-y-auto flex flex-col"
+-->
+"space-y-4 overflow-y-auto flex flex-col items-start"
 ```
 
-Chat with Borrower currently uses `ChevronDown` which always points down. Both instances (lines 2250 and 2630) will be changed to match the right-arrow pattern.
-
-**File**: `src/components/ClientDetailDrawer.tsx`
-
-- **Line 2250**: Change `<ChevronDown className="h-4 w-4 text-muted-foreground" />` to `<ChevronRight className="h-4 w-4 transition-transform data-[state=open]:rotate-90" />`
-- **Line 2630**: Same change for the Active/PastClient instance
-- The `CollapsibleTrigger` wrapping also needs to match the pattern used by Quick Actions (using `className="flex items-center gap-2 ..."` directly on CollapsibleTrigger rather than on CardHeader > CardTitle)
-
-Both instances will be updated to use the same trigger structure as Quick Actions:
-```tsx
-<CardHeader className="pb-3">
-  <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity w-full">
-    <ChevronRight className="h-4 w-4 transition-transform data-[state=open]:rotate-90" />
-    <CardTitle className="text-sm font-semibold">Chat with Borrower</CardTitle>
-  </CollapsibleTrigger>
-</CardHeader>
+**Line 2677** -- Remove `flex-1 min-h-0`, use `w-full`:
+```
+"flex-1 min-h-0"
+-->
+"w-full"
 ```
 
-## 2. Reduce Lead Information card height
+### File 2: `src/components/lead-details/LeadCenterTabs.tsx`
 
-The card is currently too tall with excessive white space at the bottom. The height will be reduced from `h-[calc(100vh-280px)]` to `h-[calc(100vh-340px)]`, which removes roughly 60px of white space, bringing the bottom edge closer to where Stage History ends on the right.
+**Line 38** -- Remove fixed viewport height, shrink-wrap:
+```
+"mb-4 h-[calc(100vh-400px)]"
+-->
+"mb-4 w-full"
+```
 
-**File**: `src/components/lead-details/LeadCenterTabs.tsx` (line 38)
+**Line 42** -- Remove calculated height from CardContent:
+```
+"h-[calc(100%-80px)]"
+-->
+""  (no className needed, or just remove the prop)
+```
 
-## Summary
+**Line 43** -- Remove `h-full` from Tabs:
+```
+"w-full h-full"
+-->
+"w-full"
+```
 
-| File | Change |
-|------|--------|
-| `ClientDetailDrawer.tsx` | Both Chat with Borrower instances: replace `ChevronDown` with `ChevronRight` + rotation pattern, restructure trigger to match Quick Actions |
-| `LeadCenterTabs.tsx` | Height from `calc(100vh-280px)` to `calc(100vh-340px)` |
+**Lines 77, 90, 94, 104, 119** -- Remove `h-[calc(100%-56px)]` from all TabsContent elements. Keep `overflow-hidden`/`overflow-auto` as-is:
+```
+Line 77:  "mt-0 h-[calc(100%-56px)] overflow-hidden"  -->  "mt-0 overflow-hidden"
+Line 90:  "mt-0 h-[calc(100%-56px)] overflow-auto"    -->  "mt-0 overflow-auto"
+Line 94:  "mt-0 h-[calc(100%-56px)] overflow-auto"    -->  "mt-0 overflow-auto"
+Line 104: "mt-0 h-[calc(100%-56px)] overflow-auto"    -->  "mt-0 overflow-auto"
+Line 119: "mt-0 h-[calc(100%-56px)] overflow-auto"    -->  "mt-0 overflow-auto"
+```
+
+## Result
+
+The Card sizes itself to its content. The center column container (`overflow-y-auto`) handles scrolling if content exceeds the viewport. No magic-number height caps are introduced.
