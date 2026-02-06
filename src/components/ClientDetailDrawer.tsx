@@ -2244,14 +2244,12 @@ export function ClientDetailDrawer({
                 {isLeadsOrPendingApp && (
                   <Collapsible defaultOpen={false}>
                     <Card>
-                      <CollapsibleTrigger asChild>
-                        <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
-                          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            Chat with Borrower
-                          </CardTitle>
+                        <CardHeader className="pb-3">
+                          <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity w-full">
+                            <ChevronRight className="h-4 w-4 transition-transform data-[state=open]:rotate-90" />
+                            <CardTitle className="text-sm font-semibold">Chat with Borrower</CardTitle>
+                          </CollapsibleTrigger>
                         </CardHeader>
-                      </CollapsibleTrigger>
                       <CollapsibleContent>
                         <CardContent className="space-y-3">
                           <div className="space-y-2 min-h-[200px] max-h-[200px] overflow-y-auto border rounded p-2 bg-muted/30">
@@ -2624,14 +2622,12 @@ export function ClientDetailDrawer({
                 {isActiveOrPastClient && (
                   <Collapsible defaultOpen={false}>
                     <Card>
-                      <CollapsibleTrigger asChild>
-                        <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
-                          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            Chat with Borrower
-                          </CardTitle>
+                        <CardHeader className="pb-3">
+                          <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity w-full">
+                            <ChevronRight className="h-4 w-4 transition-transform data-[state=open]:rotate-90" />
+                            <CardTitle className="text-sm font-semibold">Chat with Borrower</CardTitle>
+                          </CollapsibleTrigger>
                         </CardHeader>
-                      </CollapsibleTrigger>
                       <CollapsibleContent>
                         <CardContent className="space-y-3">
                           <div className="space-y-2 min-h-[300px] max-h-[300px] overflow-y-auto border rounded p-2 bg-muted/30">

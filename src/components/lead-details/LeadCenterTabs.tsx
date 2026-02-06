@@ -35,7 +35,7 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
   const visibleTabCount = 4 + (showAllFieldsTab ? 1 : 0);
   
   return (
-    <Card className="mb-4 h-[calc(100vh-280px)]">
+    <Card className="mb-4 h-[calc(100vh-340px)]">
       <CardHeader className="pb-0">
         <CardTitle className="text-base font-medium">Lead Information</CardTitle>
       </CardHeader>
