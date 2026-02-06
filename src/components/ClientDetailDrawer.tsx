@@ -2473,14 +2473,7 @@ export function ClientDetailDrawer({
                   <LeadThirdPartyItemsCard leadId={leadId || ""} />
                 )}
 
-                {/* DTI / Address / PITI - Only for Active/Past Clients in left column */}
-                {isActiveOrPastClient && (
-                  <LeadTeamContactsDatesCard 
-                    leadId={leadId || ""} 
-                    onLeadUpdated={onLeadUpdated} 
-                    defaultCollapsed={false}
-                  />
-                )}
+                {/* DTI / Address / PITI - Moved to right column for Active/Past Clients */}
 
                 {/* Chat with Borrower - For Active/Past Clients only in left column */}
                 {isActiveOrPastClient && (
@@ -2634,7 +2627,13 @@ export function ClientDetailDrawer({
                   <DialogDescription>Historical pipeline review notes for this file.</DialogDescription>
                 </DialogHeader>
                 <div className="overflow-y-auto max-h-[50vh] text-sm whitespace-pre-wrap">
-                  {(client as any).latest_file_updates || <span className="text-muted-foreground italic">No pipeline review notes yet.</span>}
+                  {(client as any).latest_file_updates ? (
+                    (client as any).latest_file_updates.split(/(\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\])/gi).map((part: string, i: number) => 
+                      /^\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\]$/i.test(part) 
+                        ? <span key={i} className="font-bold underline bg-yellow-100">{part}</span>
+                        : <span key={i}>{part}</span>
+                    )
+                  ) : <span className="text-muted-foreground italic">No pipeline review notes yet.</span>}
                 </div>
                 {(client as any).latest_file_updates_updated_at && (
                   <div className="pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
@@ -2696,6 +2695,20 @@ export function ClientDetailDrawer({
                     </div>) : <p className="text-xs text-muted-foreground">No tasks yet</p>}
               </CardContent>
             </Card>
+
+            {/* DTI, Address & PITI - For Active/Past Clients in right column */}
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
+              if (!isActiveOrPastClient) return null;
+              return (
+                <LeadTeamContactsDatesCard 
+                  leadId={leadId || ""} 
+                  onLeadUpdated={onLeadUpdated} 
+                  defaultCollapsed={true}
+                />
+              );
+            })()}
 
             {/* About the Borrower Section - Only show for Active/Past Clients in right column */}
             {(() => {
