@@ -1,73 +1,63 @@
 
 
-# Equalize Top Row Card Heights: 2-Row Structural Layout
+# Move Quick Actions, DTI/PITI, and Third Party Items to Left Column + Unify Styles + Extend Lead Information Height
 
 ## Overview
 
-Split the current single 3-column grid into a `flex flex-col gap-4` parent with two child grids: a top row for the three cards (equal height via `items-stretch`) and a bottom area for scrollable content.
+Three changes:
+1. Move "Quick Actions", "DTI, Address & PITI", and "Third Party Items" from the right column to the left column, positioned after "Chat with Borrower"
+2. Unify the collapsible header style across all three so they look identical
+3. Increase the Lead Information card height to show ~6 activity items instead of 5
 
-## Changes
+## 1. Move sections to left column (after Chat with Borrower)
 
 **File**: `src/components/ClientDetailDrawer.tsx`
 
-### 1. Replace outer container (line 2052)
+Currently for Leads/Pending App stage:
+- Quick Actions is in the **right column** (~line 3091)
+- DTI, Address & PITI is in the **right column** (~line 3141)
+- Third Party Items is in the **right column** (~line 3156)
 
-**Before:**
-```tsx
-<div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-80px)] p-4 pt-0">
-```
+These will be **removed** from the right column and **added** to the left column, immediately after the "Chat with Borrower" section (~line 2285), in this order:
+1. Quick Actions
+2. DTI, Address & PITI
+3. Third Party Items
 
-**After:**
-```tsx
-<div className="flex flex-col h-[calc(100vh-80px)] min-h-0 p-4 pt-0 gap-4">
-  {/* Top Row - equal height cards */}
-  <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] items-stretch gap-4">
-```
+The stage-conditional logic (`isLeadsOrPendingApp`) will be preserved.
 
-Uses `gap-4` on the flex parent for consistent spacing between rows (no `mb-4`).
+## 2. Unify collapsible header styles
 
-### 2. Extract the three top cards into the top row
+Currently the three sections use inconsistent patterns:
 
-Move these three components out of their respective scrollable columns and place them as direct children of the top-row grid:
+| Section | Title class | Icon | Icon position |
+|---------|------------|------|---------------|
+| Quick Actions | `text-sm font-bold` | ChevronDown only | Right side |
+| DTI, Address & PITI | `text-base font-medium` | ChevronRight/Down toggle | Left side |
+| Third Party Items | `text-base font-medium` | ChevronRight/Down toggle | Left side |
 
-- **Left**: `ContactInfoCard` (currently line 2063) -- wrap with `h-full flex flex-col` on the Card root
-- **Center**: Pipeline/Status `Card` (currently line 2553) -- change `h-[360px]` to `h-full`, keep `flex flex-col`
-- **Right**: `SendEmailTemplatesCard` (currently line 2659) -- ensure Card root has `h-full flex flex-col`
+All three will be unified to use the **left-arrow** pattern (matching DTI and Third Party Items):
 
-No `overflow-y-auto` on any top-row CardContent. Cards grow naturally to match the tallest sibling.
+- `CardTitle` with `text-sm font-semibold`
+- `ChevronRight` when collapsed, `ChevronDown` when expanded, positioned to the **left** of the title
+- Same `CardHeader` padding: `pb-3`
+- Same hover behavior on the trigger
 
-### 3. Close top row, open bottom area
+**Files modified**:
+- `src/components/ClientDetailDrawer.tsx` -- Quick Actions header will be updated inline
+- `src/components/lead-details/LeadTeamContactsDatesCard.tsx` -- Update `text-base font-medium` to `text-sm font-semibold`
+- `src/components/lead-details/LeadThirdPartyItemsCard.tsx` -- Update `text-base font-medium` to `text-sm font-semibold`
 
-```tsx
-  </div>
-  {/* Bottom Area - scrollable columns */}
-  <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 flex-1 min-h-0">
-```
+## 3. Extend Lead Information card height
 
-### 4. Bottom columns retain existing behavior
+**File**: `src/components/lead-details/LeadCenterTabs.tsx`
 
-- **Left column**: `overflow-y-auto`, contains About the Borrower, Latest File Update, etc. (ContactInfoCard removed)
-- **Center column**: `overflow-y-auto flex flex-col`, contains LeadCenterTabs + activity buttons (Pipeline Card removed)
-- **Right column**: `overflow-y-auto`, contains Quick Actions, Stage History, etc. (SendEmailTemplatesCard removed)
+Currently uses `h-[calc(100vh-300px)]` (line 38). This will be changed to `h-[calc(100vh-240px)]` to add approximately 60px more vertical space, enough to show ~6 activity entries before needing to scroll instead of the current ~5.
 
-### 5. Center Card sizing fix (line 2553)
+## Summary of file changes
 
-**Before:** `<Card className="h-[360px] flex flex-col">`
-**After:** `<Card className="h-full flex flex-col">`
-
-### 6. Mobile behavior
-
-`grid-cols-1 lg:grid-cols-[1fr_2fr_1fr]` on both rows ensures equal-height behavior applies only on `lg+`. On mobile, cards stack naturally.
-
-## Summary
-
-| Detail | Value |
-|--------|-------|
-| Outer wrapper | `flex flex-col gap-4` (no `mb-4`) |
-| Top row grid | `items-stretch gap-4`, 3 card siblings |
-| Each top Card root | `h-full flex flex-col` |
-| Top CardContent | No `overflow-y-auto` |
-| Bottom grid | `flex-1 min-h-0`, columns keep `overflow-y-auto` |
-| Responsive | Equal height on `lg+` only |
-| File modified | `src/components/ClientDetailDrawer.tsx` |
-
+| File | Change |
+|------|--------|
+| `ClientDetailDrawer.tsx` | Move Quick Actions, DTI/PITI, Third Party Items from right column to left column after Chat with Borrower; update Quick Actions header to match unified collapsible style |
+| `LeadTeamContactsDatesCard.tsx` | Change title from `text-base font-medium` to `text-sm font-semibold` |
+| `LeadThirdPartyItemsCard.tsx` | Change title from `text-base font-medium` to `text-sm font-semibold` |
+| `LeadCenterTabs.tsx` | Change height from `calc(100vh-300px)` to `calc(100vh-240px)` |
