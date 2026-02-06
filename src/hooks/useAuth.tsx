@@ -68,15 +68,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    // Safety timeout to prevent infinite loading
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn('Auth loading safety timeout reached');
+        setLoading(false);
+      }
+    }, 5000);
+
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.email);
-      if (!mounted) return;
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        console.log('Initial session check:', session?.user?.email);
+        if (!mounted) return;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('getSession failed:', err);
+        if (!mounted) return;
+        setLoading(false);
+      });
 
     // Listen for storage events to sync auth across contexts (preview/expanded view)
     const handleStorageChange = (e: StorageEvent) => {
@@ -94,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
     };
