@@ -2947,7 +2947,7 @@ export function ClientDetailDrawer({
               <CardHeader className="pb-3 bg-white">
                 <CardTitle className="text-sm font-bold">Stage History</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 bg-gray-50 min-h-[280px] max-h-[280px] overflow-y-auto">
+              <CardContent className="space-y-2 bg-gray-50 min-h-[340px] max-h-[340px] overflow-y-auto">
                 {(() => {
                 const calculateDaysAgo = (dateString: string | null): number | null => {
                   if (!dateString) return null;
