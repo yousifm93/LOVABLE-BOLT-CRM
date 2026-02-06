@@ -297,7 +297,7 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
 
   return (
     <>
-      <Card className={cn("flex flex-col relative", isLocked && "opacity-60")}>
+      <Card className={cn("h-full flex flex-col relative", isLocked && "opacity-60")}>
         {isLocked && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded-lg cursor-not-allowed">
             <Lock className="h-5 w-5 text-muted-foreground" />

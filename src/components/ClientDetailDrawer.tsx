@@ -2048,9 +2048,67 @@ export function ClientDetailDrawer({
         <div className="sticky top-0 z-10 bg-background p-4 pt-2">
         </div>
 
-        {/* Main Three Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-80px)] p-4 pt-0">
-          {/* Left Column - Contact Info & core content by stage */}
+        {/* Main Two-Row Layout */}
+        <div className="flex flex-col h-[calc(100vh-80px)] min-h-0 p-4 pt-0 gap-4">
+          {/* Top Row - equal height cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] items-stretch gap-4">
+            {/* Left: Contact Info Card */}
+            <ContactInfoCard client={client} onClose={handleDrawerClose} leadId={leadId} onLeadUpdated={onLeadUpdated} />
+
+            {/* Center: Pipeline/Status Card */}
+            <Card className="h-full flex flex-col">
+              <CardContent className="flex-1 pt-4">
+              {(pipelineType === 'leads' || pipelineType === 'active' || pipelineType === 'past-clients') && (() => {
+                const pipelineStageName = (client as any).pipeline_stage?.name || '';
+                const isActiveStage = pipelineStageName.toLowerCase() === 'active' || 
+                  (client as any).pipeline_stage_id === '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
+                const isPastClientsStage = pipelineStageName.toLowerCase() === 'past clients' || 
+                  (client as any).pipeline_stage_id === 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd';
+                const effectivePipelineType = isActiveStage ? 'active' : isPastClientsStage ? 'past-clients' : pipelineType;
+                
+                return (
+                  <PipelineStageBar 
+                    stages={PIPELINE_CONFIGS[effectivePipelineType]?.map(stage => stage.label.replace(/([a-z])([A-Z])/g, '$1 $2')) || []} 
+                    currentStage={effectivePipelineType === 'active' || isActiveStage ? (() => {
+                      const raw = (client as any).loanStatus || (client as any).loan_status || client.ops.status || '';
+                      const upper = String(raw).toUpperCase();
+                      return upper === 'SUV' ? 'SUB' : upper;
+                    })() : effectivePipelineType === 'past-clients' || isPastClientsStage ? (() => {
+                      const loanStatus = (client as any).loanStatus || (client as any).loan_status || 'Closed';
+                      if (loanStatus === 'Closed') return 'Closed';
+                      if (loanStatus === 'Needs Support' || loanStatus === 'Need Support') return 'Needs Support';
+                      if (loanStatus === 'New Lead') return 'New Lead';
+                      return 'Closed';
+                    })() : (() => {
+                      const s = client.ops.stage;
+                      const config = PIPELINE_CONFIGS['leads'];
+                      if (!s) return 'New';
+                      const byKey = config.find(st => st.key === s);
+                      if (byKey) return byKey.label;
+                      const byLabel = config.find(st => st.label.toLowerCase() === String(s).toLowerCase());
+                      return byLabel ? byLabel.label : 'New';
+                    })()} 
+                    size="md" 
+                    clickable={true} 
+                    onStageClick={effectivePipelineType === 'active' || isActiveStage ? handleActiveLoanStatusClick : effectivePipelineType === 'past-clients' || isPastClientsStage ? handlePastClientsStatusClick : handlePipelineStageClick} 
+                  />
+                );
+              })()}
+
+                {/* Critical Status Information - Dynamic based on stage */}
+                <div className="mt-4">
+                  {renderCriticalStatusInfo()}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Right: Send Email Templates Card */}
+            <SendEmailTemplatesCard leadId={leadId || ""} />
+          </div>
+
+          {/* Bottom Area - scrollable columns */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 flex-1 min-h-0">
+          {/* Left Column - core content by stage */}
           {(() => {
             const opsStage = client.ops?.stage?.toLowerCase() || '';
             const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
@@ -2059,8 +2117,6 @@ export function ClientDetailDrawer({
             
             return (
               <div className="space-y-4 overflow-y-auto">
-                {/* Contact Info Card - Always first */}
-                <ContactInfoCard client={client} onClose={handleDrawerClose} leadId={leadId} onLeadUpdated={onLeadUpdated} />
 
                 {/* For Leads/Pending App: About the Borrower in left column */}
                 {isLeadsOrPendingApp && (
@@ -2547,62 +2603,8 @@ export function ClientDetailDrawer({
             );
           })()}
 
-          {/* Center Column - Status Tracker & Lead Information */}
+          {/* Center Column - Lead Information */}
           <div className="space-y-4 overflow-y-auto flex flex-col">
-            {/* Status Tracker Pills - Condensed gray box */}
-            <Card className="h-[360px] flex flex-col">
-              <CardContent className="flex-1 overflow-y-auto pt-4">
-              {(pipelineType === 'leads' || pipelineType === 'active' || pipelineType === 'past-clients') && (() => {
-                // Check if lead is in Active pipeline stage by checking pipeline_stage.name or pipeline_stage_id
-                const pipelineStageName = (client as any).pipeline_stage?.name || '';
-                const isActiveStage = pipelineStageName.toLowerCase() === 'active' || 
-                  (client as any).pipeline_stage_id === '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
-                
-                // Check if lead is in Past Clients pipeline stage
-                const isPastClientsStage = pipelineStageName.toLowerCase() === 'past clients' || 
-                  (client as any).pipeline_stage_id === 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd';
-                
-                // Determine which stages to show based on actual pipeline stage (not pipelineType prop)
-                const effectivePipelineType = isActiveStage ? 'active' : isPastClientsStage ? 'past-clients' : pipelineType;
-                
-                return (
-                  <PipelineStageBar 
-                    stages={PIPELINE_CONFIGS[effectivePipelineType]?.map(stage => stage.label.replace(/([a-z])([A-Z])/g, '$1 $2')) || []} 
-                    currentStage={effectivePipelineType === 'active' || isActiveStage ? (() => {
-                      const raw = (client as any).loanStatus || (client as any).loan_status || client.ops.status || '';
-                      const upper = String(raw).toUpperCase();
-                      return upper === 'SUV' ? 'SUB' : upper;
-                    })() : effectivePipelineType === 'past-clients' || isPastClientsStage ? (() => {
-                      const loanStatus = (client as any).loanStatus || (client as any).loan_status || 'Closed';
-                      // Map loan_status to stage labels
-                      if (loanStatus === 'Closed') return 'Closed';
-                      if (loanStatus === 'Needs Support' || loanStatus === 'Need Support') return 'Needs Support';
-                      if (loanStatus === 'New Lead') return 'New Lead';
-                      return 'Closed'; // default
-                    })() : (() => {
-                      const s = client.ops.stage;
-                      const config = PIPELINE_CONFIGS['leads'];
-                      if (!s) return 'New';
-                      // Try key match (e.g., 'leads', 'pending-app', etc.)
-                      const byKey = config.find(st => st.key === s);
-                      if (byKey) return byKey.label;
-                      // Try label match (e.g., 'Pending App', 'Pre-Approved')
-                      const byLabel = config.find(st => st.label.toLowerCase() === String(s).toLowerCase());
-                      return byLabel ? byLabel.label : 'New';
-                    })()} 
-                    size="md" 
-                    clickable={true} 
-                    onStageClick={effectivePipelineType === 'active' || isActiveStage ? handleActiveLoanStatusClick : effectivePipelineType === 'past-clients' || isPastClientsStage ? handlePastClientsStatusClick : handlePipelineStageClick} 
-                  />
-                );
-              })()}
-
-                {/* Critical Status Information - Dynamic based on stage */}
-                <div className="mt-4">
-                  {renderCriticalStatusInfo()}
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Lead Information Tabs */}
             <div className="flex-1 min-h-0">
@@ -2655,8 +2657,6 @@ export function ClientDetailDrawer({
 
           {/* Right Column - Notes, Documents, Stage History */}
           <div className="space-y-4 overflow-y-auto">
-            {/* Send Email Templates */}
-            <SendEmailTemplatesCard leadId={leadId || ""} />
 
             {/* Quick Actions - For Pre-Qualified/Pre-Approved ONLY, positioned after Send Email Templates */}
             {(() => {
@@ -3164,6 +3164,7 @@ export function ClientDetailDrawer({
             })()}
 
             {/* About the Borrower removed from Pre-Qual/Pre-Approved right column - now at top of left column */}
+          </div>
           </div>
         </div>
       </div>
