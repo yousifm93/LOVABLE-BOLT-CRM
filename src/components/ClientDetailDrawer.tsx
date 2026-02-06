@@ -166,6 +166,7 @@ export function ClientDetailDrawer({
   const [isEditingFileUpdates, setIsEditingFileUpdates] = useState(false);
   const [hasUnsavedFileUpdates, setHasUnsavedFileUpdates] = useState(false);
   const [isSavingFileUpdates, setIsSavingFileUpdates] = useState(false);
+  const [stageHistoryOpen, setStageHistoryOpen] = useState(false);
 
   const [isRecordingFileUpdates, setIsRecordingFileUpdates] = useState(false);
   const [isSummarizingTranscript, setIsSummarizingTranscript] = useState(false);
@@ -2948,11 +2949,54 @@ export function ClientDetailDrawer({
               );
             })()}
 
+            {/* Quick Actions - Screening stage, right column */}
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              if (opsStage !== 'screening') return null;
+              return (
+                <Card>
+                  <CardHeader className="pb-3 bg-white">
+                    <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="bg-gray-50">
+                    <div className="flex gap-3">
+                      <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                        onClick={() => setShowPreApprovalModal(true)}>
+                        <FileText className="h-4 w-4" />
+                        <span className="font-semibold text-sm">Pre-Approval</span>
+                      </Button>
+                      <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                        onClick={() => setShowLoanEstimateModal(true)}>
+                        <FileCheck className="h-4 w-4" />
+                        <span className="font-semibold text-sm">Loan Estimate</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
             {/* Stage History */}
-            <Card>
-              <CardHeader className="pb-3 bg-white">
-                <CardTitle className="text-sm font-bold">Stage History</CardTitle>
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              const isScreening = opsStage === 'screening';
+              return (
+              <Card>
+              <CardHeader 
+                className={cn("pb-3 bg-white", isScreening && "cursor-pointer")}
+                onClick={() => isScreening && setStageHistoryOpen(!stageHistoryOpen)}
+              >
+                <div className="flex items-center gap-2">
+                  {isScreening && (
+                    <ChevronRight className={cn(
+                      "h-4 w-4 transition-transform",
+                      stageHistoryOpen && "rotate-90"
+                    )} />
+                  )}
+                  <CardTitle className="text-sm font-semibold">Stage History</CardTitle>
+                </div>
               </CardHeader>
+              {(isScreening ? stageHistoryOpen : true) && (
               <CardContent className="space-y-2 bg-gray-50 min-h-[360px] max-h-[360px] overflow-y-auto">
                 {(() => {
                 const calculateDaysAgo = (dateString: string | null): number | null => {
@@ -3000,7 +3044,6 @@ export function ClientDetailDrawer({
                       daysAgo: null
                     }];
                   } else if (pipelineType === 'past-clients') {
-                    // Live data for past clients - same as leads pipeline
                     const leadOnDate = (client as any).lead_on_date || null;
                     const createdAt = leadOnDate || (client as any).created_at;
                     const pendingAppAt = (client as any).pending_app_at;
@@ -3040,7 +3083,6 @@ export function ClientDetailDrawer({
                       daysAgo: calculateDaysAgo(activeAt)
                     }];
                   } else {
-                    // Live data for leads pipeline
                     const leadOnDate = (client as any).lead_on_date || null;
                     const createdAt = leadOnDate || (client as any).created_at;
                     const pendingAppAt = (client as any).pending_app_at;
@@ -3087,7 +3129,6 @@ export function ClientDetailDrawer({
                   const isCompleted = index <= currentStageIndex;
                   const isCurrent = index === currentStageIndex;
                   
-                  // Format timestamp for hover (e.g., "Nov 15, 2024 at 2:30 PM")
                   const formatTimestamp = (dateStr: string | null) => {
                     if (!dateStr) return '';
                     const date = new Date(dateStr);
@@ -3155,32 +3196,8 @@ return <div key={stage.key} className="flex items-center gap-3 text-xs">
                 });
               })()}
               </CardContent>
+              )}
             </Card>
-
-            {/* Quick Actions - Screening stage, right column */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              if (opsStage !== 'screening') return null;
-              return (
-                <Card>
-                  <CardHeader className="pb-3 bg-white">
-                    <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="bg-gray-50">
-                    <div className="flex gap-3">
-                      <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-                        onClick={() => setShowPreApprovalModal(true)}>
-                        <FileText className="h-4 w-4" />
-                        <span className="font-semibold text-sm">Pre-Approval</span>
-                      </Button>
-                      <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-                        onClick={() => setShowLoanEstimateModal(true)}>
-                        <FileCheck className="h-4 w-4" />
-                        <span className="font-semibold text-sm">Loan Estimate</span>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
               );
             })()}
           </div>
