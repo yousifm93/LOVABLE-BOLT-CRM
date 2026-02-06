@@ -2671,10 +2671,10 @@ export function ClientDetailDrawer({
           })()}
 
           {/* Center Column - Lead Information */}
-          <div className="space-y-4 overflow-y-auto flex flex-col">
+          <div className="space-y-4 overflow-y-auto flex flex-col items-start">
 
             {/* Lead Information Tabs */}
-            <div className="flex-1 min-h-0">
+            <div className="w-full">
               <LeadCenterTabs leadId={leadId} activities={activities} documents={documents} client={client} onLeadUpdated={onLeadUpdated} onActivityUpdated={loadActivities} onClientPatched={patch => {
               // Merge patch into client object for immediate UI update
               Object.assign(client, patch);
