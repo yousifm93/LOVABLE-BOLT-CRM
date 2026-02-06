@@ -1186,22 +1186,22 @@ export function ClientDetailDrawer({
               </div>
               
               {/* Middle Column: Last Communication */}
-              <div className="self-start inline-flex flex-col gap-1.5 border border-border rounded-md px-3 py-2 bg-background">
-                <div className="flex justify-between items-center gap-4">
+              <div className="self-stretch inline-flex flex-col gap-1.5 border border-border rounded-md px-3 py-2 bg-background">
+                <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Last Call</span>
                   <span className="text-sm font-medium">
                     {lastCall || '—'}
                   </span>
                 </div>
                 
-                <div className="flex justify-between items-center gap-4">
+                <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Last Text</span>
                   <span className="text-sm font-medium">
                     {lastText || '—'}
                   </span>
                 </div>
                 
-                <div className="flex justify-between items-center gap-4">
+                <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Last Email</span>
                   <span className="text-sm font-medium">
                     {lastEmail || '—'}
@@ -1210,7 +1210,7 @@ export function ClientDetailDrawer({
               </div>
               
               {/* Right Column: Monthly Payment Goal only */}
-              <div className="space-y-3 min-w-[160px]">
+              <div className="self-stretch space-y-3 min-w-[160px]">
                 <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
                   <div className="text-xs text-muted-foreground mb-1">Monthly Payment Goal</div>
                   <InlineEditCurrency 
