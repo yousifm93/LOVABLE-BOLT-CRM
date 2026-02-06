@@ -2060,7 +2060,9 @@ export function ClientDetailDrawer({
             return (
               <div className="space-y-4 overflow-y-auto">
                 {/* Contact Info Card - Always first */}
-                <ContactInfoCard client={client} onClose={handleDrawerClose} leadId={leadId} onLeadUpdated={onLeadUpdated} />
+                <div className={isLeadsOrPendingApp ? "min-h-[360px]" : ""}>
+                  <ContactInfoCard client={client} onClose={handleDrawerClose} leadId={leadId} onLeadUpdated={onLeadUpdated} />
+                </div>
 
                 {/* For Leads/Pending App: About the Borrower in left column */}
                 {isLeadsOrPendingApp && (
@@ -2656,7 +2658,12 @@ export function ClientDetailDrawer({
           {/* Right Column - Notes, Documents, Stage History */}
           <div className="space-y-4 overflow-y-auto">
             {/* Send Email Templates */}
-            <SendEmailTemplatesCard leadId={leadId || ""} />
+            <div className={(() => {
+              const stage = client.ops?.stage?.toLowerCase() || '';
+              return (stage === 'leads' || stage === 'pending-app') ? "min-h-[360px]" : "";
+            })()}>
+              <SendEmailTemplatesCard leadId={leadId || ""} />
+            </div>
 
             {/* Quick Actions - For Pre-Qualified/Pre-Approved ONLY, positioned after Send Email Templates */}
             {(() => {
@@ -2791,7 +2798,7 @@ export function ClientDetailDrawer({
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 bg-gray-50 max-h-[280px] overflow-y-auto">
+              <CardContent className="space-y-2 bg-gray-50 h-[220px] overflow-y-auto">
                 {loadingTasks ? <p className="text-xs text-muted-foreground">Loading tasks...</p> : leadTasks.length > 0 ? [...leadTasks].sort((a, b) => {
                   // Open tasks (not Done) first
                   if (a.status === 'Done' && b.status !== 'Done') return 1;
