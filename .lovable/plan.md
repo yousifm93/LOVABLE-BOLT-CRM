@@ -1,20 +1,25 @@
 
-# Fix Right Column Width (Tasks & Stage History)
 
-The `items-start` added to the right column (line 2722) causes children to shrink to their content width instead of filling the column. This is only needed on the center column (where it prevents the LeadCenterTabs card from stretching vertically). The right column doesn't need it.
+# Fixed-Height Tasks Box
+
+Make the Tasks card content area always display at a fixed height equivalent to exactly 2 task rows, regardless of how many tasks exist (0, 1, 2, or more). If there are more than 2, the user scrolls within the box.
 
 ## Change
 
 ### File: `src/components/ClientDetailDrawer.tsx`
 
-**Line 2722** -- Remove `flex flex-col items-start` from the right column, restoring its original classes:
+**Line 2857** -- Update the `CardContent` className to use both a fixed min-height and max-height so the box is always the same size:
 
 ```
 // Before:
-"space-y-4 overflow-y-auto flex flex-col items-start"
+<CardContent className="space-y-2 bg-gray-50 max-h-[280px] overflow-y-auto">
 
 // After:
-"space-y-4 overflow-y-auto"
+<CardContent className="space-y-2 bg-gray-50 min-h-[112px] max-h-[112px] overflow-y-auto">
 ```
 
-This restores the Tasks and Stage History cards to their full column width while keeping the center column fix intact.
+The `112px` value accommodates exactly 2 task rows (each ~44px for the title line + due date/assignee line + spacing) plus the card content padding. This ensures:
+- 0 tasks: empty box stays the same height
+- 1 task: box stays the same height with whitespace below
+- 2 tasks: box fits perfectly
+- 3+ tasks: vertical scroll appears within the fixed-height box
