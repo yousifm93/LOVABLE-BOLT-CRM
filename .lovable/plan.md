@@ -1,71 +1,45 @@
 
 
-# Move Quick Actions to Right Column and Remove Third Party Items (Screening Page)
+# Move DTI/Address/PITI to Right Column for Screening
 
 ## Overview
-On the Screening page, Quick Actions currently appears in the left column and Third Party Items also appears in the left column. We will move Quick Actions to the right column (underneath Stage History) and completely remove Third Party Items from the Screening stage.
+Move the DTI/Address/PITI card from the left column to the right column, positioning it above Stage History, for the Screening stage only.
 
 ## Changes
 
 ### File: `src/components/ClientDetailDrawer.tsx`
 
-**1. Exclude Screening from left-column Quick Actions (Line ~2284-2287)**
+**1. Exclude Screening from left-column DTI/Address/PITI (Line ~2526)**
 
-Update the condition so that the left-column Quick Actions also returns null for the screening stage, preventing it from rendering there.
-
-```
-Before:
-const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
-if (isPreQualOrPreApproved) return null;
-
-After:
-const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
-if (isPreQualOrPreApproved || opsStage === 'screening') return null;
-```
-
-**2. Exclude Screening from Third Party Items (Line ~2346)**
-
-Add screening to the exclusion list so Third Party Items no longer renders on the Screening page.
+Update the condition to no longer include screening:
 
 ```
 Before:
-if (isActiveOrPastClient || opsStage === 'leads' || opsStage === 'pending-app') return null;
+{(opsStage === 'screening' || opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
 
 After:
-if (isActiveOrPastClient || opsStage === 'leads' || opsStage === 'pending-app' || opsStage === 'screening') return null;
+{(opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
 ```
 
-**3. Add Quick Actions to right column after Stage History (after Line ~3152)**
+**2. Add DTI/Address/PITI to right column above Stage History (before Line ~2945)**
 
-Insert the Quick Actions card (Pre-Approval and Loan Estimate buttons) in the right column, right after the Stage History card and before the closing div. This will only render when the stage is "screening."
+Insert the component right before the Stage History card, only for the screening stage:
 
 ```tsx
-{/* Quick Actions - Screening stage, right column */}
-{opsStage === 'screening' && (
-  <Card>
-    <CardHeader className="pb-3 bg-white">
-      <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
-    </CardHeader>
-    <CardContent className="bg-gray-50">
-      <div className="flex gap-3">
-        <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-          onClick={() => setShowPreApprovalModal(true)}>
-          <FileText className="h-4 w-4" />
-          <span className="font-semibold text-sm">Pre-Approval</span>
-        </Button>
-        <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-          onClick={() => setShowLoanEstimateModal(true)}>
-          <FileCheck className="h-4 w-4" />
-          <span className="font-semibold text-sm">Loan Estimate</span>
-        </Button>
-      </div>
-    </CardContent>
-  </Card>
-)}
+{/* DTI / Address / PITI - Screening stage, right column */}
+{(() => {
+  const opsStage = client.ops?.stage?.toLowerCase() || '';
+  if (opsStage !== 'screening') return null;
+  return (
+    <LeadTeamContactsDatesCard 
+      leadId={leadId || ""} 
+      onLeadUpdated={onLeadUpdated} 
+    />
+  );
+})()}
 ```
 
 ## Result
-- Stage History remains at the top of the right column
-- Quick Actions appears directly below Stage History (screening only)
-- Third Party Items is completely removed from the Screening page
+- Right column order for Screening: DTI/Address/PITI -> Stage History -> Quick Actions
+- Pre-Qualified and Pre-Approved stages remain unchanged (DTI stays in left column)
 
