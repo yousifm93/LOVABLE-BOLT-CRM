@@ -35,12 +35,12 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
   const visibleTabCount = 4 + (showAllFieldsTab ? 1 : 0);
   
   return (
-    <Card className="mb-4 h-[calc(100vh-400px)]">
+    <Card className="mb-4 w-full">
       <CardHeader className="pb-0">
         <CardTitle className="text-base font-medium">Lead Information</CardTitle>
       </CardHeader>
-      <CardContent className="h-[calc(100%-80px)]">
-        <Tabs defaultValue="activity" className="w-full h-full">
+      <CardContent>
+        <Tabs defaultValue="activity" className="w-full">
           <TabsList className={`grid w-full mb-4`} style={{ gridTemplateColumns: `repeat(${visibleTabCount}, 1fr)` }}>
             <TabsTrigger value="activity" className="text-xs flex items-center gap-1">
               <Activity className="h-3 w-3" />
@@ -74,7 +74,7 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
             )}
           </TabsList>
           
-          <TabsContent value="activity" className="mt-0 h-[calc(100%-56px)] overflow-hidden">
+          <TabsContent value="activity" className="mt-0 overflow-hidden">
             <ActivityTab 
               activities={activities}
               onCallClick={onCallClick}
@@ -87,11 +87,11 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
             />
           </TabsContent>
           
-          <TabsContent value="loan-property" className="mt-0 h-[calc(100%-56px)] overflow-auto">
+          <TabsContent value="loan-property" className="mt-0 overflow-auto">
             <DetailsTab client={client} leadId={leadId} onLeadUpdated={onLeadUpdated} />
           </TabsContent>
           
-          <TabsContent value="documents" className="mt-0 h-[calc(100%-56px)] overflow-auto">
+          <TabsContent value="documents" className="mt-0 overflow-auto">
             <DocumentsTab 
               leadId={leadId} 
               documents={documents} 
@@ -101,7 +101,7 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
             />
           </TabsContent>
           
-          <TabsContent value="conditions" className="mt-0 h-[calc(100%-56px)] overflow-auto">
+          <TabsContent value="conditions" className="mt-0 overflow-auto">
             {leadId ? (
               <ConditionsTab 
                 leadId={leadId} 
@@ -116,7 +116,7 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
           </TabsContent>
           
           {showAllFieldsTab && (
-            <TabsContent value="all-fields" className="mt-0 h-[calc(100%-56px)] overflow-auto">
+            <TabsContent value="all-fields" className="mt-0 overflow-auto">
               {isAllFieldsLocked ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                   <Lock className="h-8 w-8 mb-2" />
