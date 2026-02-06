@@ -166,6 +166,7 @@ export function ClientDetailDrawer({
   const [isEditingFileUpdates, setIsEditingFileUpdates] = useState(false);
   const [hasUnsavedFileUpdates, setHasUnsavedFileUpdates] = useState(false);
   const [isSavingFileUpdates, setIsSavingFileUpdates] = useState(false);
+
   const [isRecordingFileUpdates, setIsRecordingFileUpdates] = useState(false);
   const [isSummarizingTranscript, setIsSummarizingTranscript] = useState(false);
   const hasAutoStartedRecording = React.useRef(false);
@@ -206,7 +207,60 @@ export function ClientDetailDrawer({
   } = useToast();
   const { isAdmin } = usePermissions();
 
-  // Default interest rate constant
+  // Reusable save functions for auto-save on blur and drawer close
+  const saveNotes = useCallback(async (silent = false) => {
+    if (!leadId || !hasUnsavedNotes || isSavingNotes) return;
+    const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
+    if (localNotes === currentNotes) {
+      setHasUnsavedNotes(false);
+      setIsEditingNotes(false);
+      return;
+    }
+    setIsSavingNotes(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: crmUser } = await supabase
+        .from('users').select('id').eq('auth_user_id', user?.id).single();
+      await databaseService.updateLead(leadId, {
+        notes: localNotes,
+        notes_updated_by: crmUser?.id || null,
+        notes_updated_at: new Date().toISOString()
+      });
+      if (onLeadUpdated) await onLeadUpdated();
+      setHasUnsavedNotes(false);
+      setIsEditingNotes(false);
+      if (!silent) toast({ title: "Saved", description: "About the Borrower section has been updated." });
+    } catch (error: any) {
+      console.error('Error saving notes:', error);
+      if (!silent) toast({ title: "Error", description: `Failed to save: ${error?.message || 'Unknown error'}`, variant: "destructive" });
+    } finally {
+      setIsSavingNotes(false);
+    }
+  }, [leadId, hasUnsavedNotes, isSavingNotes, localNotes, client, onLeadUpdated, toast]);
+
+  const saveFileUpdates = useCallback(async (silent = false) => {
+    if (!leadId || !hasUnsavedFileUpdates || isSavingFileUpdates) return;
+    setIsSavingFileUpdates(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: crmUser } = await supabase
+        .from('users').select('id').eq('auth_user_id', user?.id).single();
+      await databaseService.updateLead(leadId, {
+        latest_file_updates: localFileUpdates,
+        latest_file_updates_updated_by: crmUser?.id || null,
+        latest_file_updates_updated_at: new Date().toISOString()
+      });
+      if (onLeadUpdated) await onLeadUpdated();
+      setHasUnsavedFileUpdates(false);
+      setIsEditingFileUpdates(false);
+      if (!silent) toast({ title: "Saved", description: "Latest File Update has been saved." });
+    } catch (error: any) {
+      console.error('Error saving file updates:', error);
+      if (!silent) toast({ title: "Error", description: `Failed to save: ${error?.message || 'Unknown error'}`, variant: "destructive" });
+    } finally {
+      setIsSavingFileUpdates(false);
+    }
+  }, [leadId, hasUnsavedFileUpdates, isSavingFileUpdates, localFileUpdates, onLeadUpdated, toast]);
   const DEFAULT_INTEREST_RATE = 7.0;
   const DEFAULT_TERM = 360;
 
@@ -1963,12 +2017,19 @@ export function ClientDetailDrawer({
   }, []);
   const [leadTasks, setLeadTasks] = useState<any[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const handleOverlayClick = (e: React.MouseEvent) => {
+  const handleOverlayClick = async (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
+      // Auto-save unsaved notes/file updates before closing
+      if (hasUnsavedNotes) await saveNotes(true);
+      if (hasUnsavedFileUpdates) await saveFileUpdates(true);
       onClose();
     }
   };
   const handleDrawerClose = async () => {
+    // Auto-save unsaved notes/file updates before closing
+    if (hasUnsavedNotes) await saveNotes(true);
+    if (hasUnsavedFileUpdates) await saveFileUpdates(true);
+
     setNewNote("");
     setShowCreateTaskModal(false);
     setShowCallLogModal(false);
@@ -2034,43 +2095,10 @@ export function ClientDetailDrawer({
                           <Textarea key="notes-textarea-left" value={localNotes} onChange={e => {
                         setLocalNotes(e.target.value);
                         setHasUnsavedNotes(true);
-                      }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
-                          {hasUnsavedNotes && <div className="flex gap-2">
-                              <Button size="sm" onClick={async () => {
-                          const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
-                          if (localNotes === currentNotes) {
-                            toast({ title: "No Changes", description: "Notes haven't changed." });
-                            setHasUnsavedNotes(false);
-                            setIsEditingNotes(false);
-                            return;
-                          }
-                          setIsSavingNotes(true);
-                          try {
-                            const { data: { user } } = await supabase.auth.getUser();
-                            // Get CRM user ID (not auth user ID)
-                            const { data: crmUser } = await supabase
-                              .from('users')
-                              .select('id')
-                              .eq('auth_user_id', user?.id)
-                              .single();
-                            await databaseService.updateLead(leadId!, {
-                              notes: localNotes,
-                              notes_updated_by: crmUser?.id || null,
-                              notes_updated_at: new Date().toISOString()
-                            });
-                            if (onLeadUpdated) await onLeadUpdated();
-                            setHasUnsavedNotes(false);
-                            setIsEditingNotes(false);
-                            toast({ title: "Saved", description: "About the Borrower section has been updated." });
-                          } catch (error: any) {
-                            console.error('Error saving notes:', error);
-                            const errorMessage = error?.message || error?.details || 'Unknown error';
-                            console.error('Error details:', { message: error?.message, details: error?.details, code: error?.code });
-                            toast({ title: "Error", description: `Failed to save: ${errorMessage}`, variant: "destructive" });
-                          } finally {
-                            setIsSavingNotes(false);
-                          }
-                        }} disabled={isSavingNotes}>
+                      }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
+                          {hasUnsavedNotes && <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
+                              <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
                                 {isSavingNotes ? 'Saving...' : 'Save'}
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => {
@@ -2119,37 +2147,15 @@ export function ClientDetailDrawer({
                             onChange={e => {
                               setLocalFileUpdates(e.target.value);
                               setHasUnsavedFileUpdates(true);
-                            }} 
+                            }}
+                            onBlur={() => { if (hasUnsavedFileUpdates) saveFileUpdates(); }}
                             placeholder="Enter the latest update on this file..." 
                             className="min-h-[100px] resize-none bg-white mb-2" 
                           />
                           {hasUnsavedFileUpdates && (
-                            <div className="flex gap-2">
-                              <Button size="sm" onClick={async () => {
-                                setIsSavingFileUpdates(true);
-                                try {
-                                  const { data: { user } } = await supabase.auth.getUser();
-                                  const { data: crmUser } = await supabase
-                                    .from('users')
-                                    .select('id')
-                                    .eq('auth_user_id', user?.id)
-                                    .single();
-                                  await databaseService.updateLead(leadId!, {
-                                    latest_file_updates: localFileUpdates,
-                                    latest_file_updates_updated_by: crmUser?.id || null,
-                                    latest_file_updates_updated_at: new Date().toISOString()
-                                  });
-                                  if (onLeadUpdated) await onLeadUpdated();
-                                  setHasUnsavedFileUpdates(false);
-                                  setIsEditingFileUpdates(false);
-                                  toast({ title: "Saved", description: "Latest File Update has been saved." });
-                                } catch (error) {
-                                  console.error('Error saving file updates:', error);
-                                  toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
-                                } finally {
-                                  setIsSavingFileUpdates(false);
-                                }
-                              }} disabled={isSavingFileUpdates}>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
+                              <Button size="sm" onClick={() => saveFileUpdates()} disabled={isSavingFileUpdates}>
                                 {isSavingFileUpdates ? 'Saving...' : 'Save'}
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => {
@@ -2245,41 +2251,10 @@ export function ClientDetailDrawer({
                           <Textarea key="notes-textarea-screening-left" value={localNotes} onChange={e => {
                         setLocalNotes(e.target.value);
                         setHasUnsavedNotes(true);
-                      }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
-                          {hasUnsavedNotes && <div className="flex gap-2">
-                              <Button size="sm" onClick={async () => {
-                          const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
-                          if (localNotes === currentNotes) {
-                            toast({ title: "No Changes", description: "Notes haven't changed." });
-                            setHasUnsavedNotes(false);
-                            setIsEditingNotes(false);
-                            return;
-                          }
-                          setIsSavingNotes(true);
-                          try {
-                            const { data: { user } } = await supabase.auth.getUser();
-                            // Get CRM user ID (not auth user ID)
-                            const { data: crmUser } = await supabase
-                              .from('users')
-                              .select('id')
-                              .eq('auth_user_id', user?.id)
-                              .single();
-                            await databaseService.updateLead(leadId!, {
-                              notes: localNotes,
-                              notes_updated_by: crmUser?.id || null,
-                              notes_updated_at: new Date().toISOString()
-                            });
-                            if (onLeadUpdated) await onLeadUpdated();
-                            setHasUnsavedNotes(false);
-                            setIsEditingNotes(false);
-                            toast({ title: "Saved", description: "About the Borrower section has been updated." });
-                          } catch (error) {
-                            console.error('Error saving notes:', error);
-                            toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
-                          } finally {
-                            setIsSavingNotes(false);
-                          }
-                        }} disabled={isSavingNotes}>
+                      }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
+                          {hasUnsavedNotes && <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
+                              <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
                                 {isSavingNotes ? 'Saving...' : 'Save'}
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => {
@@ -2328,37 +2303,15 @@ export function ClientDetailDrawer({
                             onChange={e => {
                               setLocalFileUpdates(e.target.value);
                               setHasUnsavedFileUpdates(true);
-                            }} 
+                            }}
+                            onBlur={() => { if (hasUnsavedFileUpdates) saveFileUpdates(); }}
                             placeholder="Enter the latest update on this file..." 
                             className="min-h-[100px] resize-none bg-white mb-2" 
                           />
                           {hasUnsavedFileUpdates && (
-                            <div className="flex gap-2">
-                              <Button size="sm" onClick={async () => {
-                                setIsSavingFileUpdates(true);
-                                try {
-                                  const { data: { user } } = await supabase.auth.getUser();
-                                  const { data: crmUser } = await supabase
-                                    .from('users')
-                                    .select('id')
-                                    .eq('auth_user_id', user?.id)
-                                    .single();
-                                  await databaseService.updateLead(leadId!, {
-                                    latest_file_updates: localFileUpdates,
-                                    latest_file_updates_updated_by: crmUser?.id || null,
-                                    latest_file_updates_updated_at: new Date().toISOString()
-                                  });
-                                  if (onLeadUpdated) await onLeadUpdated();
-                                  setHasUnsavedFileUpdates(false);
-                                  setIsEditingFileUpdates(false);
-                                  toast({ title: "Saved", description: "Latest File Update has been saved." });
-                                } catch (error) {
-                                  console.error('Error saving file updates:', error);
-                                  toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
-                                } finally {
-                                  setIsSavingFileUpdates(false);
-                                }
-                              }} disabled={isSavingFileUpdates}>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
+                              <Button size="sm" onClick={() => saveFileUpdates()} disabled={isSavingFileUpdates}>
                                 {isSavingFileUpdates ? 'Saving...' : 'Save'}
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => {
@@ -2409,40 +2362,10 @@ export function ClientDetailDrawer({
                           <Textarea key={`notes-textarea-${opsStage}-top`} value={localNotes} onChange={e => {
                         setLocalNotes(e.target.value);
                         setHasUnsavedNotes(true);
-                      }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
-                          {hasUnsavedNotes && <div className="flex gap-2">
-                              <Button size="sm" onClick={async () => {
-                          const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
-                          if (localNotes === currentNotes) {
-                            toast({ title: "No Changes", description: "Notes haven't changed." });
-                            setHasUnsavedNotes(false);
-                            setIsEditingNotes(false);
-                            return;
-                          }
-                          setIsSavingNotes(true);
-                          try {
-                            const { data: { user } } = await supabase.auth.getUser();
-                            const { data: crmUser } = await supabase
-                              .from('users')
-                              .select('id')
-                              .eq('auth_user_id', user?.id)
-                              .single();
-                            await databaseService.updateLead(leadId!, {
-                              notes: localNotes,
-                              notes_updated_by: crmUser?.id || null,
-                              notes_updated_at: new Date().toISOString()
-                            });
-                            if (onLeadUpdated) await onLeadUpdated();
-                            setHasUnsavedNotes(false);
-                            setIsEditingNotes(false);
-                            toast({ title: "Saved", description: "About the Borrower section has been updated." });
-                          } catch (error) {
-                            console.error('Error saving notes:', error);
-                            toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
-                          } finally {
-                            setIsSavingNotes(false);
-                          }
-                        }} disabled={isSavingNotes}>
+                      }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
+                          {hasUnsavedNotes && <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
+                              <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
                                 {isSavingNotes ? 'Saving...' : 'Save'}
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => {
@@ -2500,37 +2423,15 @@ export function ClientDetailDrawer({
                             onChange={e => {
                               setLocalFileUpdates(e.target.value);
                               setHasUnsavedFileUpdates(true);
-                            }} 
+                            }}
+                            onBlur={() => { if (hasUnsavedFileUpdates) saveFileUpdates(); }}
                             placeholder="Enter the latest update on this file..." 
                             className="min-h-[100px] resize-none bg-white mb-2" 
                           />
                           {hasUnsavedFileUpdates && (
-                            <div className="flex gap-2">
-                              <Button size="sm" onClick={async () => {
-                                setIsSavingFileUpdates(true);
-                                try {
-                                  const { data: { user } } = await supabase.auth.getUser();
-                                  const { data: crmUser } = await supabase
-                                    .from('users')
-                                    .select('id')
-                                    .eq('auth_user_id', user?.id)
-                                    .single();
-                                  await databaseService.updateLead(leadId!, {
-                                    latest_file_updates: localFileUpdates,
-                                    latest_file_updates_updated_by: crmUser?.id || null,
-                                    latest_file_updates_updated_at: new Date().toISOString()
-                                  });
-                                  if (onLeadUpdated) await onLeadUpdated();
-                                  setHasUnsavedFileUpdates(false);
-                                  setIsEditingFileUpdates(false);
-                                  toast({ title: "Saved", description: "Latest File Update has been saved." });
-                                } catch (error) {
-                                  console.error('Error saving file updates:', error);
-                                  toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
-                                } finally {
-                                  setIsSavingFileUpdates(false);
-                                }
-                              }} disabled={isSavingFileUpdates}>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
+                              <Button size="sm" onClick={() => saveFileUpdates()} disabled={isSavingFileUpdates}>
                                 {isSavingFileUpdates ? 'Saving...' : 'Save'}
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => {
@@ -2924,58 +2825,10 @@ export function ClientDetailDrawer({
                     <Textarea key="notes-textarea" value={localNotes} onChange={e => {
                   setLocalNotes(e.target.value);
                   setHasUnsavedNotes(true);
-                }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[210px] resize-none bg-white mb-2" />
-                    {hasUnsavedNotes && <div className="flex gap-2">
-                        <Button size="sm" onClick={async () => {
-                    const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
-                    if (localNotes === currentNotes) {
-                      toast({
-                        title: "No Changes",
-                        description: "Notes haven't changed."
-                      });
-                      setHasUnsavedNotes(false);
-                      setIsEditingNotes(false);
-                      return;
-                    }
-                    setIsSavingNotes(true);
-                    console.log('[ClientDetailDrawer] Saving notes. leadId:', leadId, 'notes:', localNotes);
-                    try {
-                      const {
-                        data: {
-                          user
-                        }
-                      } = await supabase.auth.getUser();
-
-                      // Batch update to prevent multiple toasts
-                      await databaseService.updateLead(leadId!, {
-                        notes: localNotes,
-                        notes_updated_by: user?.id || null,
-                        notes_updated_at: new Date().toISOString()
-                      });
-                      console.log('[ClientDetailDrawer] Notes saved successfully to database');
-                      if (onLeadUpdated) {
-                        await onLeadUpdated();
-                        console.log('[ClientDetailDrawer] Parent refreshed with new data');
-                      }
-                      setHasUnsavedNotes(false);
-                      setIsEditingNotes(false);
-                      toast({
-                        title: "Saved",
-                        description: "About the Borrower section has been updated."
-                      });
-                    } catch (error: any) {
-                      console.error('[ClientDetailDrawer] Error saving notes:', error);
-                      const errorMessage = error?.message || error?.details || 'Unknown error';
-                      console.error('Error details:', { message: error?.message, details: error?.details, code: error?.code });
-                      toast({
-                        title: "Error",
-                        description: `Failed to save: ${errorMessage}`,
-                        variant: "destructive"
-                      });
-                    } finally {
-                      setIsSavingNotes(false);
-                    }
-                  }} disabled={isSavingNotes}>
+                }} onBlur={() => { if (hasUnsavedNotes) saveNotes(); }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[210px] resize-none bg-white mb-2" />
+                    {hasUnsavedNotes && <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
+                        <Button size="sm" onClick={() => saveNotes()} disabled={isSavingNotes}>
                           {isSavingNotes ? 'Saving...' : 'Save'}
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => {
