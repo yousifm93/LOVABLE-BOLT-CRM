@@ -44,6 +44,7 @@ import Feedback from "@/pages/Feedback";
 import FeedbackReview from "@/pages/admin/FeedbackReview";
 import UpdatePassword from "@/pages/UpdatePassword";
 import { Toaster } from "@/components/ui/toaster";
+import { useEffect } from "react";
 import "./App.css";
 
 // Default landing redirect component
@@ -159,6 +160,15 @@ function AppRoutes() {
   );
 }
 function App() {
+  useEffect(() => {
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      console.error("Unhandled rejection:", event.reason);
+      event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", handleRejection);
+    return () => window.removeEventListener("unhandledrejection", handleRejection);
+  }, []);
+
   return (
     <Router>
       <AuthProvider>
