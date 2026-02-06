@@ -21,6 +21,7 @@ import { databaseService, Lead, BuyerAgent, User } from "@/services/database";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 // Main view default columns
 const MAIN_VIEW_COLUMNS = [
@@ -694,6 +695,27 @@ export function LeadsModern() {
           pipelineType="leads"
           onLeadUpdated={async () => {
             await loadData();
+            if (selectedLead) {
+              const leadId = (selectedLead as any).databaseId || (selectedLead as any).id;
+              if (leadId) {
+                const { data: freshLead } = await supabase
+                  .from('leads')
+                  .select('*')
+                  .eq('id', leadId)
+                  .maybeSingle();
+                if (freshLead) {
+                  const agentMap = new Map(buyerAgents.map(a => [a.id, a]));
+                  const userMap = new Map(users.map(u => [u.id, u]));
+                  const enriched = {
+                    ...freshLead,
+                    buyer_agent: freshLead.buyer_agent_id ? agentMap.get(freshLead.buyer_agent_id) : null,
+                    teammate: freshLead.teammate_assigned ? userMap.get(freshLead.teammate_assigned) : null,
+                  };
+                  const crmClient = transformLeadToClient(enriched);
+                  setSelectedLead(crmClient as any);
+                }
+              }
+            }
           }}
         />
       )}
