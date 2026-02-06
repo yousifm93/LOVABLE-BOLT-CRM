@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import * as React from "react";
 import { format } from "date-fns";
 import { calculatePrincipalAndInterest } from "@/hooks/usePITICalculation";
-import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle, Mic, Loader2, AlertCircle, ChevronDown } from "lucide-react";
+import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle, Mic, Loader2, AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -2284,6 +2284,76 @@ export function ClientDetailDrawer({
                   </Collapsible>
                 )}
 
+                {/* Quick Actions - For Leads/Pending App in left column */}
+                {(() => {
+                  const opsStage = client.ops?.stage?.toLowerCase() || '';
+                  const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
+                  const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
+                  if (isPreQualOrPreApproved) return null;
+                  return (
+                    <Collapsible defaultOpen={!isLeadsOrPendingApp}>
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity w-full">
+                            <ChevronRight className="h-4 w-4 transition-transform data-[state=open]:rotate-90" />
+                            <CardTitle className="text-sm font-semibold">Quick Actions</CardTitle>
+                          </CollapsibleTrigger>
+                        </CardHeader>
+                        <CollapsibleContent>
+                          <CardContent className="bg-gray-50">
+                            <div className="flex gap-3">
+                              <Button 
+                                variant="outline" 
+                                size="default" 
+                                className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                                onClick={() => setShowPreApprovalModal(true)}
+                              >
+                                <FileText className="h-4 w-4" />
+                                <span className="font-semibold text-sm">Pre-Approval</span>
+                              </Button>
+                              
+                              <Button 
+                                variant="outline" 
+                                size="default" 
+                                className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                                onClick={() => setShowLoanEstimateModal(true)}
+                              >
+                                <FileCheck className="h-4 w-4" />
+                                <span className="font-semibold text-sm">Loan Estimate</span>
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
+                  );
+                })()}
+
+                {/* DTI / Address / PITI - For Leads/Pending App in left column */}
+                {(() => {
+                  const opsStage = client.ops?.stage?.toLowerCase() || '';
+                  const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
+                  const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
+                  if (isActiveOrPastClient || !isLeadsOrPendingApp) return null;
+                  return (
+                    <LeadTeamContactsDatesCard 
+                      leadId={leadId || ""} 
+                      onLeadUpdated={onLeadUpdated} 
+                      defaultCollapsed={true}
+                    />
+                  );
+                })()}
+
+                {/* Third Party Items - For early stages in left column */}
+                {(() => {
+                  const opsStage = client.ops?.stage?.toLowerCase() || '';
+                  const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
+                  if (isActiveOrPastClient) return null;
+                  return (
+                    <LeadThirdPartyItemsCard leadId={leadId || ""} defaultCollapsed={true} />
+                  );
+                })()}
+
                 {/* About the Borrower - For Screening stage ONLY in left column (above DTI) */}
                 {opsStage === 'screening' && (
                   <Card>
@@ -3088,82 +3158,7 @@ export function ClientDetailDrawer({
               </CardContent>
             </Card>
 
-            {/* Quick Actions - Collapsed by default for Leads/Pending App, shown after Stage History (NOT Pre-Qualified/Pre-Approved - they have it earlier) */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
-              const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
-              // Skip for Pre-Qual/Pre-Approved - they have Quick Actions after Send Email Templates
-              if (isPreQualOrPreApproved) return null;
-              return (
-                <Collapsible defaultOpen={!isLeadsOrPendingApp}>
-                  <Card>
-                    <CardHeader className="pb-3 bg-white">
-                      <CollapsibleTrigger className="flex items-center justify-between w-full">
-                        <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      </CollapsibleTrigger>
-                    </CardHeader>
-                    <CollapsibleContent>
-                      <CardContent className="bg-gray-50">
-                        <div className="flex gap-3">
-                          <Button 
-                            variant="outline" 
-                            size="default" 
-                            className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-                            onClick={() => setShowPreApprovalModal(true)}
-                          >
-                            <FileText className="h-4 w-4" />
-                            <span className="font-semibold text-sm">Pre-Approval</span>
-                          </Button>
-                          
-                          <Button 
-                            variant="outline" 
-                            size="default" 
-                            className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-                            onClick={() => setShowLoanEstimateModal(true)}
-                          >
-                            <FileCheck className="h-4 w-4" />
-                            <span className="font-semibold text-sm">Loan Estimate</span>
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              );
-            })()}
-
-            {/* Pipeline Review removed from Screening stage - now using Latest File Update in left column */}
-
-            {/* Chat with Borrower - REMOVED from right column for Leads/Pending App (now in left column) */}
-
-            {/* DTI / Address / PITI - Only for Leads/Pending App in right column */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-              const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
-              if (isActiveOrPastClient || !isLeadsOrPendingApp) return null;
-              return (
-                <LeadTeamContactsDatesCard 
-                  leadId={leadId || ""} 
-                  onLeadUpdated={onLeadUpdated} 
-                  defaultCollapsed={true}
-                />
-              );
-            })()}
-
-            {/* Third Party Items - For early stages in right column */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-              if (isActiveOrPastClient) return null;
-              return (
-                <LeadThirdPartyItemsCard leadId={leadId || ""} defaultCollapsed={true} />
-              );
-            })()}
-
-            {/* About the Borrower removed from Pre-Qual/Pre-Approved right column - now at top of left column */}
+            {/* Quick Actions, DTI/PITI, Third Party Items moved to left column */}
           </div>
           </div>
         </div>
