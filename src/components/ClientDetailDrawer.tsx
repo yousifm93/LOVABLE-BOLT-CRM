@@ -1053,23 +1053,6 @@ export function ClientDetailDrawer({
                 </div>
                 
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Likely to Apply:</span>
-                  <InlineEditSelect 
-                    value={localLikelyToApply || (client as any).likely_to_apply || ''} 
-                    onValueChange={value => {
-                      setLocalLikelyToApply(value);
-                      handleLeadUpdate('likely_to_apply', value);
-                    }} 
-                    options={[
-                      { value: 'High', label: 'High' },
-                      { value: 'Medium', label: 'Medium' },
-                      { value: 'Low', label: 'Low' }
-                    ]} 
-                    placeholder="Select likelihood" 
-                  />
-                </div>
-                
-                <div className="flex flex-col gap-1 col-span-2">
                   <span className="text-xs text-muted-foreground">Referral Source:</span>
                   <InlineEditSelect 
                     value={(client as any).referral_source || ''} 
@@ -1088,7 +1071,7 @@ export function ClientDetailDrawer({
               </div>
               
               {/* Middle Column: Last Communication */}
-              <div className="self-start inline-flex flex-col gap-1.5 border border-border rounded-md px-3 py-2 bg-background">
+              <div className="self-stretch inline-flex flex-col gap-1.5 border border-border rounded-md px-3 py-2 bg-background">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Last Call</span>
                   <span className="text-sm font-medium">
@@ -1112,7 +1095,7 @@ export function ClientDetailDrawer({
               </div>
               
               {/* Right Column: Financial Goals - Cash to Close Goal removed */}
-              <div className="space-y-3 min-w-[160px]">
+              <div className="self-stretch space-y-3 min-w-[160px]">
                 <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
                   <div className="text-xs text-muted-foreground mb-1">Monthly Payment Goal</div>
                   <InlineEditCurrency 
