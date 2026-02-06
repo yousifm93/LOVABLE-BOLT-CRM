@@ -2523,7 +2523,7 @@ export function ClientDetailDrawer({
                 )}
 
                 {/* DTI / Address / PITI - For Screening/Pre-Qualified/Pre-Approved in left column */}
-                {(opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
+                {(opsStage === 'screening' || opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
                   <LeadTeamContactsDatesCard 
                     leadId={leadId || ""} 
                     onLeadUpdated={onLeadUpdated} 
@@ -2942,17 +2942,7 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* DTI / Address / PITI - Screening stage, right column */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              if (opsStage !== 'screening') return null;
-              return (
-                <LeadTeamContactsDatesCard 
-                  leadId={leadId || ""} 
-                  onLeadUpdated={onLeadUpdated} 
-                />
-              );
-            })()}
+            {/* DTI / Address / PITI removed from right column for Screening - now in left column */}
 
             {/* Stage History */}
             <Card>
