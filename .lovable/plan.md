@@ -1,22 +1,53 @@
 
 
-# Active Stage: Align Latest File Update and Collapse About the Borrower
+# Pipeline Review: Mic Button + Minimal View with History Popup
 
 ## Overview
-Three changes to make the active stage layout consistent with screening/pre-qualified/pre-approved.
+Redesign the Pipeline Review section to be a minimal header with a microphone button. No text/notes visible inline. Clicking "Pipeline Review" opens a dialog showing historical review data.
 
-## Changes (all in `src/components/ClientDetailDrawer.tsx`)
+## Changes
 
-### 1. Remove the Active-only "Latest File Update" from the center column
-The center column (lines ~2593-2632) has an active-only "Latest File Update" section that uses `MentionableInlineEditNotes` with a gray background. This will be deleted entirely.
+### File: `src/components/ClientDetailDrawer.tsx`
 
-### 2. Add "active" to the right-column Latest File Update
-The right-column "Latest File Update" block (lines ~2770-2841) currently only shows for `['screening', 'pre-qualified', 'pre-approved']`. Add `'active'` to that array so the active stage uses the same Textarea-based Latest File Update section as the other stages.
+**1. Replace the Pipeline Review Card content (lines ~2595-2630)**
 
-### 3. Make "About the Borrower" collapsed by default for active stage
-The "About the Borrower" section in the right column (lines ~2713-2768) currently renders as a plain Card for active/past-clients. Wrap it in a `Collapsible` component with `defaultOpen={false}`, using the same collapsible header pattern (ChevronRight icon with rotation) used elsewhere in the drawer.
+Replace the current Pipeline Review section (which shows `MentionableInlineEditNotes` with text, metadata footer, and gray background) with a minimal card containing:
+- "Pipeline Review" title on the left
+- Mic button on the right that toggles recording (red pulsing when active, spinner when transcribing)
+- Clicking the title text opens a dialog with the historical `latest_file_updates` content
+- No text content visible inline
 
-## Result
-- Active stage right column order: Tasks, About the Borrower (collapsed), Latest File Update (matching other stages), Quick Actions (collapsed), Stage History (collapsed)
-- The gray-background `MentionableInlineEditNotes` version of Latest File Update is removed from center column
-- All early stages now share the same Latest File Update component in the right column
+**2. Add Pipeline Review History Dialog**
+
+Add a new state `showPipelineReviewHistory` and render a `Dialog` that:
+- Shows the full `latest_file_updates` content in a scrollable read-only view
+- Displays the timestamp and user metadata footer
+- Opened when clicking "Pipeline Review" title
+
+**3. Wire the Mic button to existing recording logic**
+
+The recording functions already exist (`handleVoiceRecordingStart`, `handleVoiceRecordingStop`, `processVoiceRecording`). The mic button will:
+- Call `handleVoiceRecordingStart()` on first click
+- Call `handleVoiceRecordingStop()` on second click (turns red while recording)
+- Show a `Loader2` spinner while `isSummarizingTranscript` is true
+- After processing, the `VoiceUpdateConfirmationModal` opens automatically (existing behavior)
+
+### Visual Layout
+
+The Pipeline Review section will look like:
+```
++------------------------------------------+
+| Pipeline Review              [Mic Button] |
++------------------------------------------+
+```
+
+- Mic button: default gray, red pulsing when recording, spinner when processing
+- "Pipeline Review" text is clickable to open the history dialog
+
+## Technical Details
+
+- New state: `const [showPipelineReviewHistory, setShowPipelineReviewHistory] = useState(false)`
+- Mic button uses `isRecordingFileUpdates` state for red styling
+- Uses `isSummarizingTranscript` state for spinner
+- History dialog uses existing `Dialog` component
+- All voice processing logic (transcribe, summarize, parse-field-updates) remains unchanged
