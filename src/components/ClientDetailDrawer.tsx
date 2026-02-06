@@ -2285,7 +2285,7 @@ export function ClientDetailDrawer({
                   const opsStage = client.ops?.stage?.toLowerCase() || '';
                   const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
                   const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
-                  if (isPreQualOrPreApproved || opsStage === 'screening') return null;
+                  if (isPreQualOrPreApproved || opsStage === 'screening' || opsStage === 'active') return null;
                   return (
                     <Collapsible defaultOpen={!isLeadsOrPendingApp}>
                       <Card>
@@ -2840,37 +2840,45 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* Quick Actions - Screening stage, right column */}
+            {/* Quick Actions - Right column for screening/pre-qualified/pre-approved/active */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
-              if (!['screening', 'pre-qualified', 'pre-approved'].includes(opsStage)) return null;
+              if (!['screening', 'pre-qualified', 'pre-approved', 'active'].includes(opsStage)) return null;
+              const isActive = opsStage === 'active';
               return (
-                <Card>
-                  <CardHeader className="pb-3 bg-white">
-                    <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="bg-gray-50">
-                    <div className="flex gap-3">
-                      <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-                        onClick={() => setShowPreApprovalModal(true)}>
-                        <FileText className="h-4 w-4" />
-                        <span className="font-semibold text-sm">Pre-Approval</span>
-                      </Button>
-                      <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-                        onClick={() => setShowLoanEstimateModal(true)}>
-                        <FileCheck className="h-4 w-4" />
-                        <span className="font-semibold text-sm">Loan Estimate</span>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <Collapsible defaultOpen={!isActive}>
+                  <Card>
+                    <CardHeader className="pb-3 bg-white">
+                      <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity w-full">
+                        <ChevronRight className="h-4 w-4 transition-transform data-[state=open]:rotate-90" />
+                        <CardTitle className="text-sm font-semibold">Quick Actions</CardTitle>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="bg-gray-50">
+                        <div className="flex gap-3">
+                          <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                            onClick={() => setShowPreApprovalModal(true)}>
+                            <FileText className="h-4 w-4" />
+                            <span className="font-semibold text-sm">Pre-Approval</span>
+                          </Button>
+                          <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                            onClick={() => setShowLoanEstimateModal(true)}>
+                            <FileCheck className="h-4 w-4" />
+                            <span className="font-semibold text-sm">Loan Estimate</span>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               );
             })()}
 
             {/* Stage History */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isCollapsibleStage = ['screening', 'pre-qualified', 'pre-approved'].includes(opsStage);
+              const isCollapsibleStage = ['screening', 'pre-qualified', 'pre-approved', 'active'].includes(opsStage);
               return (
               <Card>
               <CardHeader 
