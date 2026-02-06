@@ -2465,74 +2465,7 @@ export function ClientDetailDrawer({
                   />
                 )}
 
-                {/* Latest File Update - For Pre-Qualified/Pre-Approved in left column (at bottom) */}
-                {(opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
-                  <Card>
-                    <CardHeader className="pb-3 bg-white">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
-                        {!isEditingFileUpdates && localFileUpdates && (
-                          <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
-                            Edit
-                          </Button>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="bg-gray-50">
-                      {isEditingFileUpdates || !localFileUpdates ? (
-                        <>
-                          <Textarea 
-                            key={`file-updates-textarea-${opsStage}`}
-                            value={localFileUpdates} 
-                            onChange={e => {
-                              setLocalFileUpdates(e.target.value);
-                              setHasUnsavedFileUpdates(true);
-                            }}
-                            onBlur={() => { if (hasUnsavedFileUpdates) saveFileUpdates(); }}
-                            placeholder="Enter the latest update on this file..." 
-                            className="h-[110px] resize-none bg-white mb-2 overflow-y-auto" 
-                          />
-                          {hasUnsavedFileUpdates && (
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs">Unsaved</Badge>
-                              <Button size="sm" onClick={() => saveFileUpdates()} disabled={isSavingFileUpdates}>
-                                {isSavingFileUpdates ? 'Saving...' : 'Save'}
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => {
-                                setLocalFileUpdates((client as any).latest_file_updates || '');
-                                setHasUnsavedFileUpdates(false);
-                                setIsEditingFileUpdates(false);
-                              }}>
-                                Cancel
-                              </Button>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors h-[110px] overflow-y-auto" onClick={() => setIsEditingFileUpdates(true)}>
-                          {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0 leading-relaxed">{line || <br />}</p>)}
-                        </div>
-                      )}
-                      <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        {(client as any).latest_file_updates_updated_at ? (
-                          <>
-                            Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
-                            {fileUpdatesUpdatedByUser && (
-                              <>
-                                <span>•</span>
-                                <User className="h-3 w-3" />
-                                {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
-                              </>
-                            )}
-                          </>
-                        ) : (
-                          <span className="italic">No updates yet</span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                {/* Latest File Update removed from left column for pre-qualified/pre-approved - now in right column */}
 
                 {/* For Active/Past Clients: Third Party Items at top */}
                 {isActiveOrPastClient && (
@@ -2655,49 +2588,7 @@ export function ClientDetailDrawer({
           {/* Right Column - Notes, Documents, Stage History */}
           <div className="space-y-4 overflow-y-auto">
 
-            {/* Quick Actions - For Pre-Qualified/Pre-Approved ONLY, positioned after Send Email Templates */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
-              if (!isPreQualOrPreApproved) return null;
-              return (
-                <Collapsible defaultOpen={true}>
-                  <Card>
-                    <CardHeader className="pb-3 bg-white">
-                      <CollapsibleTrigger className="flex items-center justify-between w-full">
-                        <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      </CollapsibleTrigger>
-                    </CardHeader>
-                    <CollapsibleContent>
-                      <CardContent className="bg-gray-50">
-                        <div className="flex gap-3">
-                          <Button 
-                            variant="outline" 
-                            size="default" 
-                            className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-                            onClick={() => setShowPreApprovalModal(true)}
-                          >
-                            <FileText className="h-4 w-4" />
-                            <span className="font-semibold text-sm">Pre-Approval</span>
-                          </Button>
-                          
-                          <Button 
-                            variant="outline" 
-                            size="default" 
-                            className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-                            onClick={() => setShowLoanEstimateModal(true)}
-                          >
-                            <FileCheck className="h-4 w-4" />
-                            <span className="font-semibold text-sm">Loan Estimate</span>
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              );
-            })()}
+            {/* Quick Actions removed from center column for pre-qualified/pre-approved - now in right column */}
 
             {/* Latest File Update Section - For Active stage ONLY, between Email Templates and Pipeline Review */}
             {(() => {
@@ -2879,7 +2770,7 @@ export function ClientDetailDrawer({
             {/* Latest File Update - Screening stage, right column (between Tasks and Stage History) */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
-              if (opsStage !== 'screening') return null;
+              if (!['screening', 'pre-qualified', 'pre-approved'].includes(opsStage)) return null;
               return (
                 <Card>
                   <CardHeader className="pb-3 bg-white">
@@ -2952,7 +2843,7 @@ export function ClientDetailDrawer({
             {/* Quick Actions - Screening stage, right column */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
-              if (opsStage !== 'screening') return null;
+              if (!['screening', 'pre-qualified', 'pre-approved'].includes(opsStage)) return null;
               return (
                 <Card>
                   <CardHeader className="pb-3 bg-white">
@@ -2979,15 +2870,15 @@ export function ClientDetailDrawer({
             {/* Stage History */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isScreening = opsStage === 'screening';
+              const isCollapsibleStage = ['screening', 'pre-qualified', 'pre-approved'].includes(opsStage);
               return (
               <Card>
               <CardHeader 
-                className={cn("pb-3 bg-white", isScreening && "cursor-pointer")}
-                onClick={() => isScreening && setStageHistoryOpen(!stageHistoryOpen)}
+                className={cn("pb-3 bg-white", isCollapsibleStage && "cursor-pointer")}
+                onClick={() => isCollapsibleStage && setStageHistoryOpen(!stageHistoryOpen)}
               >
                 <div className="flex items-center gap-2">
-                  {isScreening && (
+                  {isCollapsibleStage && (
                     <ChevronRight className={cn(
                       "h-4 w-4 transition-transform",
                       stageHistoryOpen && "rotate-90"
@@ -2996,7 +2887,7 @@ export function ClientDetailDrawer({
                   <CardTitle className="text-sm font-semibold">Stage History</CardTitle>
                 </div>
               </CardHeader>
-              {(isScreening ? stageHistoryOpen : true) && (
+              {(isCollapsibleStage ? stageHistoryOpen : true) && (
               <CardContent className="space-y-2 bg-gray-50 min-h-[360px] max-h-[360px] overflow-y-auto">
                 {(() => {
                 const calculateDaysAgo = (dateString: string | null): number | null => {
