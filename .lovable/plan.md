@@ -1,81 +1,65 @@
 
 
-# Fix CRM App Stuck in Loading State
+# Reorder Quick Actions and Make Stage History Collapsible (Screening)
 
-## Problem
-The app is stuck showing "Loading..." indefinitely. The console logs show `AuthRetryableFetchError: Failed to fetch` when trying to refresh the auth token. When the Supabase `getSession()` call hangs due to a failed token refresh, the `loading` state in `useAuth` never transitions to `false`, leaving the app frozen.
-
-## Root Cause
-In `src/hooks/useAuth.tsx`, the `supabase.auth.getSession()` call can hang indefinitely if the underlying token refresh fails. There is no timeout or error handling to guarantee `setLoading(false)` is called.
+## Overview
+For the screening stage right column, reorder sections and make Stage History collapsible. New order: Tasks -> Latest File Update -> Quick Actions -> Stage History (collapsible).
 
 ## Changes
 
-### File: `src/hooks/useAuth.tsx`
+### File: `src/components/ClientDetailDrawer.tsx`
 
-**1. Add a safety timeout for the loading state**
+**1. Move Quick Actions above Stage History (swap blocks at lines 2951-3185)**
 
-Add a `setTimeout` that forces `setLoading(false)` after 5 seconds, preventing infinite loading if auth initialization hangs.
+Cut the Quick Actions block (lines 3160-3185) and paste it before the Stage History card (before line 2951). This changes the right column order to:
+- Tasks
+- Latest File Update
+- Quick Actions
+- Stage History
 
-**2. Add error handling for `getSession()`**
+**2. Make Stage History collapsible for screening**
 
-Wrap the `getSession()` call with `.catch()` to ensure loading is set to false even on network failures.
-
-**3. Add global unhandled rejection handler in `src/App.tsx`**
-
-Add a `useEffect` in the `App` component that listens for `unhandledrejection` events and logs them, preventing silent crashes.
+Wrap the Stage History card in a collapsible pattern (matching the unified header style from the memory context). For the screening stage only, replace the static CardHeader with a clickable header using ChevronRight that rotates 90 degrees when open. The content area toggles visibility based on a local state variable.
 
 ### Technical Details
 
-```tsx
-// useAuth.tsx - Add safety timeout inside the useEffect
-const safetyTimeout = setTimeout(() => {
-  if (mounted) {
-    console.warn('Auth loading safety timeout reached');
-    setLoading(false);
-  }
-}, 5000);
-
-// Add .catch to getSession
-supabase.auth.getSession()
-  .then(({ data: { session } }) => {
-    if (!mounted) return;
-    setSession(session);
-    setUser(session?.user ?? null);
-    setLoading(false);
-  })
-  .catch((err) => {
-    console.error('getSession failed:', err);
-    if (!mounted) return;
-    setLoading(false);
-  });
-
-// Clear timeout in cleanup
-return () => {
-  mounted = false;
-  clearTimeout(safetyTimeout);
-  subscription.unsubscribe();
-  window.removeEventListener('storage', handleStorageChange);
-};
-```
+The Stage History card (lines 2951-3158) will be updated:
 
 ```tsx
-// App.tsx - Add unhandled rejection handler
-function App() {
-  useEffect(() => {
-    const handleRejection = (event: PromiseRejectionEvent) => {
-      console.error("Unhandled rejection:", event.reason);
-      event.preventDefault();
-    };
-    window.addEventListener("unhandledrejection", handleRejection);
-    return () => window.removeEventListener("unhandledrejection", handleRejection);
-  }, []);
-
-  return ( ... );
-}
+{(() => {
+  const opsStage = client.ops?.stage?.toLowerCase() || '';
+  const isScreening = opsStage === 'screening';
+  // For screening, use collapsible state; for others, always open
+  return (
+    <Card>
+      <CardHeader 
+        className={cn("pb-3 bg-white", isScreening && "cursor-pointer")}
+        onClick={() => isScreening && setStageHistoryOpen(!stageHistoryOpen)}
+      >
+        <div className="flex items-center gap-2">
+          {isScreening && (
+            <ChevronRight className={cn(
+              "h-4 w-4 transition-transform",
+              stageHistoryOpen && "rotate-90"
+            )} />
+          )}
+          <CardTitle className="text-sm font-semibold">Stage History</CardTitle>
+        </div>
+      </CardHeader>
+      {(isScreening ? stageHistoryOpen : true) && (
+        <CardContent ...>
+          {/* existing stage history content */}
+        </CardContent>
+      )}
+    </Card>
+  );
+})()}
 ```
+
+A new state variable `stageHistoryOpen` (defaulting to `false`) will be added near the top of the component with the other state declarations.
 
 ## Result
-- If auth initialization fails or hangs, the app will stop loading after 5 seconds and redirect to the login page instead of showing "Loading..." forever.
-- Network errors during session refresh are caught gracefully.
-- Unhandled promise rejections no longer crash the app silently.
+- Right column order for Screening: Tasks -> Latest File Update -> Quick Actions -> Stage History (collapsed by default)
+- Other stages are unaffected -- Stage History remains non-collapsible
+- Collapsible header follows the unified pattern (ChevronRight rotating 90 degrees, text-sm font-semibold)
 
