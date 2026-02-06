@@ -3088,8 +3088,8 @@ export function ClientDetailDrawer({
                     return format(date, 'MMM dd, yyyy \'at\' h:mm a');
                   };
                   
-                  return <div key={stage.key} className="flex items-center gap-3 text-sm">
-                        <div className={cn("flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold", isCompleted ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-400")}>
+return <div key={stage.key} className="flex items-center gap-3 text-xs">
+                        <div className={cn("flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold", isCompleted ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-400")}>
                           {isCompleted ? "✓" : "•"}
                         </div>
                         <div className="flex-1">
@@ -3137,7 +3137,7 @@ export function ClientDetailDrawer({
                             />
                             {stage.date && stage.daysAgo !== null && (
                               <p 
-                                className="text-xs text-muted-foreground mt-1 cursor-help" 
+                                className="text-[10px] text-muted-foreground mt-1 cursor-help" 
                                 title={formatTimestamp(stage.date)}
                               >
                                 {stage.daysAgo} days ago
