@@ -1162,8 +1162,8 @@ export function ClientDetailDrawer({
                 </div>
                 
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">LTV:</span>
-                  <span className="text-sm font-medium">{ltvPendingApp ? `${ltvPendingApp}%` : '—'}</span>
+                  <span className="text-xs text-muted-foreground">Credit Score:</span>
+                  <span className="text-sm font-medium">{localFicoScore ?? (client as any).fico_score ?? '—'}</span>
                 </div>
                 
                 <div className="flex flex-col gap-1">
@@ -1183,10 +1183,6 @@ export function ClientDetailDrawer({
                   />
                 </div>
                 
-                <div className="flex flex-col gap-1 col-span-2">
-                  <span className="text-xs text-muted-foreground">Credit Score:</span>
-                  <span className="text-sm font-medium">{localFicoScore ?? (client as any).fico_score ?? '—'}</span>
-                </div>
               </div>
               
               {/* Middle Column: Last Communication */}
@@ -2332,7 +2328,7 @@ export function ClientDetailDrawer({
                 {(() => {
                   const opsStage = client.ops?.stage?.toLowerCase() || '';
                   const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-                  const isLeadsOrPendingApp = opsStage === 'pending-app';
+                  const isLeadsOrPendingApp = false;
                   if (isActiveOrPastClient || !isLeadsOrPendingApp) return null;
                   return (
                     <LeadTeamContactsDatesCard 
@@ -2347,7 +2343,7 @@ export function ClientDetailDrawer({
                 {(() => {
                   const opsStage = client.ops?.stage?.toLowerCase() || '';
                   const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-                  if (isActiveOrPastClient || opsStage === 'leads') return null;
+                  if (isActiveOrPastClient || opsStage === 'leads' || opsStage === 'pending-app') return null;
                   return (
                     <LeadThirdPartyItemsCard leadId={leadId || ""} defaultCollapsed={true} />
                   );
@@ -2723,7 +2719,7 @@ export function ClientDetailDrawer({
           </div>
 
           {/* Right Column - Notes, Documents, Stage History */}
-          <div className="space-y-4 overflow-y-auto">
+          <div className="space-y-4 overflow-y-auto flex flex-col items-start">
 
             {/* Quick Actions - For Pre-Qualified/Pre-Approved ONLY, positioned after Send Email Templates */}
             {(() => {
