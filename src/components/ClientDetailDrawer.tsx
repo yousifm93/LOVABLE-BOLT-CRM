@@ -2284,7 +2284,7 @@ export function ClientDetailDrawer({
                   const opsStage = client.ops?.stage?.toLowerCase() || '';
                   const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
                   const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
-                  if (isPreQualOrPreApproved) return null;
+                  if (isPreQualOrPreApproved || opsStage === 'screening') return null;
                   return (
                     <Collapsible defaultOpen={!isLeadsOrPendingApp}>
                       <Card>
@@ -2343,7 +2343,7 @@ export function ClientDetailDrawer({
                 {(() => {
                   const opsStage = client.ops?.stage?.toLowerCase() || '';
                   const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-                  if (isActiveOrPastClient || opsStage === 'leads' || opsStage === 'pending-app') return null;
+                  if (isActiveOrPastClient || opsStage === 'leads' || opsStage === 'pending-app' || opsStage === 'screening') return null;
                   return (
                     <LeadThirdPartyItemsCard leadId={leadId || ""} defaultCollapsed={true} />
                   );
@@ -3151,7 +3151,32 @@ return <div key={stage.key} className="flex items-center gap-3 text-xs">
               </CardContent>
             </Card>
 
-            {/* Quick Actions, DTI/PITI, Third Party Items moved to left column */}
+            {/* Quick Actions - Screening stage, right column */}
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              if (opsStage !== 'screening') return null;
+              return (
+                <Card>
+                  <CardHeader className="pb-3 bg-white">
+                    <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="bg-gray-50">
+                    <div className="flex gap-3">
+                      <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                        onClick={() => setShowPreApprovalModal(true)}>
+                        <FileText className="h-4 w-4" />
+                        <span className="font-semibold text-sm">Pre-Approval</span>
+                      </Button>
+                      <Button variant="outline" size="default" className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                        onClick={() => setShowLoanEstimateModal(true)}>
+                        <FileCheck className="h-4 w-4" />
+                        <span className="font-semibold text-sm">Loan Estimate</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
           </div>
         </div>
