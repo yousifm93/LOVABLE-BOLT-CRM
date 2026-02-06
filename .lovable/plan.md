@@ -1,65 +1,48 @@
 
 
-# Reorder Quick Actions and Make Stage History Collapsible (Screening)
+# Match Pre-Qualified and Pre-Approved Layout to Screening
 
 ## Overview
-For the screening stage right column, reorder sections and make Stage History collapsible. New order: Tasks -> Latest File Update -> Quick Actions -> Stage History (collapsible).
+Replicate the screening stage's right-column layout for pre-qualified and pre-approved stages. This means moving certain sections from the center column to the right column and making Stage History collapsible.
+
+## Current vs Target Layout
+
+### Right Column (target for all three stages)
+1. Tasks
+2. Latest File Update
+3. Quick Actions
+4. Stage History (collapsible, collapsed by default)
 
 ## Changes
 
 ### File: `src/components/ClientDetailDrawer.tsx`
 
-**1. Move Quick Actions above Stage History (swap blocks at lines 2951-3185)**
+**1. Remove Quick Actions from center column for pre-qualified/pre-approved**
 
-Cut the Quick Actions block (lines 3160-3185) and paste it before the Stage History card (before line 2951). This changes the right column order to:
-- Tasks
-- Latest File Update
-- Quick Actions
-- Stage History
+Delete the Quick Actions block in the center column (lines ~2658-2700) that currently renders only for pre-qualified/pre-approved. These will be handled by the right-column block instead.
 
-**2. Make Stage History collapsible for screening**
+**2. Remove Latest File Update from left column for pre-qualified/pre-approved**
 
-Wrap the Stage History card in a collapsible pattern (matching the unified header style from the memory context). For the screening stage only, replace the static CardHeader with a clickable header using ChevronRight that rotates 90 degrees when open. The content area toggles visibility based on a local state variable.
+The Latest File Update card at lines ~2468-2530 currently renders for pre-qualified/pre-approved in the left column. Remove those stages from its condition so it no longer appears there.
 
-### Technical Details
+**3. Expand the right-column Latest File Update to include pre-qualified/pre-approved**
 
-The Stage History card (lines 2951-3158) will be updated:
+The screening-only Latest File Update block in the right column (lines ~2860-2950) currently checks `if (opsStage !== 'screening') return null`. Change this to also include pre-qualified and pre-approved stages.
 
+**4. Expand the right-column Quick Actions to include pre-qualified/pre-approved**
+
+The screening-only Quick Actions block (lines ~2952-2977) currently checks `if (opsStage !== 'screening') return null`. Change this to also include pre-qualified and pre-approved stages.
+
+**5. Make Stage History collapsible for pre-qualified/pre-approved**
+
+Update the Stage History card's `isScreening` variable (line ~2982) to also match pre-qualified and pre-approved stages:
 ```tsx
-{(() => {
-  const opsStage = client.ops?.stage?.toLowerCase() || '';
-  const isScreening = opsStage === 'screening';
-  // For screening, use collapsible state; for others, always open
-  return (
-    <Card>
-      <CardHeader 
-        className={cn("pb-3 bg-white", isScreening && "cursor-pointer")}
-        onClick={() => isScreening && setStageHistoryOpen(!stageHistoryOpen)}
-      >
-        <div className="flex items-center gap-2">
-          {isScreening && (
-            <ChevronRight className={cn(
-              "h-4 w-4 transition-transform",
-              stageHistoryOpen && "rotate-90"
-            )} />
-          )}
-          <CardTitle className="text-sm font-semibold">Stage History</CardTitle>
-        </div>
-      </CardHeader>
-      {(isScreening ? stageHistoryOpen : true) && (
-        <CardContent ...>
-          {/* existing stage history content */}
-        </CardContent>
-      )}
-    </Card>
-  );
-})()}
+const isCollapsibleStage = ['screening', 'pre-qualified', 'pre-approved'].includes(opsStage);
 ```
-
-A new state variable `stageHistoryOpen` (defaulting to `false`) will be added near the top of the component with the other state declarations.
+Replace all `isScreening` references in the Stage History block with `isCollapsibleStage`.
 
 ## Result
-- Right column order for Screening: Tasks -> Latest File Update -> Quick Actions -> Stage History (collapsed by default)
-- Other stages are unaffected -- Stage History remains non-collapsible
-- Collapsible header follows the unified pattern (ChevronRight rotating 90 degrees, text-sm font-semibold)
-
+- Pre-qualified and pre-approved right columns will match screening: Tasks, Latest File Update, Quick Actions, Stage History (collapsible, collapsed by default)
+- Center column will no longer have Quick Actions for these stages
+- Left column will no longer have Latest File Update for these stages
+- All other stages remain unaffected
