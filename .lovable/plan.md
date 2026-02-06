@@ -1,57 +1,37 @@
 
 
-# Shrink-Wrap Lead Information Card (Structural Fixes Only)
+# Hide DTI/PITI and Third Party Items in Leads Stage
+
+The user wants to hide the "DTI, Address & PITI" and "Third Party Items" collapsible sections when viewing a lead that is in the "leads" stage (i.e., from the /leads page).
 
 ## Changes
 
-### File 1: `src/components/ClientDetailDrawer.tsx`
+### File: `src/components/ClientDetailDrawer.tsx`
 
-**Line 2674** -- Add `items-start` to center column wrapper:
-```
-"space-y-4 overflow-y-auto flex flex-col"
--->
-"space-y-4 overflow-y-auto flex flex-col items-start"
-```
+**1. DTI / Address / PITI section (lines 2331-2344)**
 
-**Line 2677** -- Remove `flex-1 min-h-0`, use `w-full`:
+Currently shows for `leads` and `pending-app` stages. Change the condition so it only shows for `pending-app`:
+
 ```
-"flex-1 min-h-0"
--->
-"w-full"
+// Before (line 2335):
+const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
+
+// After:
+const isLeadsOrPendingApp = opsStage === 'pending-app';
 ```
 
-### File 2: `src/components/lead-details/LeadCenterTabs.tsx`
+**2. Third Party Items section (lines 2346-2354)**
 
-**Line 38** -- Remove fixed viewport height, shrink-wrap:
-```
-"mb-4 h-[calc(100vh-400px)]"
--->
-"mb-4 w-full"
-```
+Currently shows for all non-Active/Past-Client stages (including leads). Add an exclusion for the `leads` stage:
 
-**Line 42** -- Remove calculated height from CardContent:
 ```
-"h-[calc(100%-80px)]"
--->
-""  (no className needed, or just remove the prop)
-```
+// Before (line 2350):
+if (isActiveOrPastClient) return null;
 
-**Line 43** -- Remove `h-full` from Tabs:
-```
-"w-full h-full"
--->
-"w-full"
-```
-
-**Lines 77, 90, 94, 104, 119** -- Remove `h-[calc(100%-56px)]` from all TabsContent elements. Keep `overflow-hidden`/`overflow-auto` as-is:
-```
-Line 77:  "mt-0 h-[calc(100%-56px)] overflow-hidden"  -->  "mt-0 overflow-hidden"
-Line 90:  "mt-0 h-[calc(100%-56px)] overflow-auto"    -->  "mt-0 overflow-auto"
-Line 94:  "mt-0 h-[calc(100%-56px)] overflow-auto"    -->  "mt-0 overflow-auto"
-Line 104: "mt-0 h-[calc(100%-56px)] overflow-auto"    -->  "mt-0 overflow-auto"
-Line 119: "mt-0 h-[calc(100%-56px)] overflow-auto"    -->  "mt-0 overflow-auto"
+// After:
+if (isActiveOrPastClient || opsStage === 'leads') return null;
 ```
 
 ## Result
 
-The Card sizes itself to its content. The center column container (`overflow-y-auto`) handles scrolling if content exceeds the viewport. No magic-number height caps are introduced.
+Both sections will be hidden when viewing a lead in the "leads" stage. They will continue to appear for Pending App, Screening, Pre-Qualified, Pre-Approved, Active, and Past Clients stages as appropriate.
