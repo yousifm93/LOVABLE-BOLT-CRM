@@ -967,8 +967,9 @@ export function ClientDetailDrawer({
     
     const date = new Date(createdAt);
     const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffInDays = Math.round((todayStart.getTime() - dateStart.getTime()) / (1000 * 60 * 60 * 24));
     
     // Format date as "Nov 19, 2:34p"
     const formattedDate = date.toLocaleDateString('en-US', { 
@@ -984,7 +985,7 @@ export function ClientDetailDrawer({
     // Calculate relative time
     let relativeTime = '';
     if (diffInDays === 0) relativeTime = 'today';
-    else if (diffInDays === 1) relativeTime = '1 day ago';
+    else if (diffInDays === 1) relativeTime = 'yesterday';
     else relativeTime = `${diffInDays} days ago`;
     
     return `${formattedDate}, ${formattedTime} (${relativeTime})`;
@@ -2245,9 +2246,9 @@ export function ClientDetailDrawer({
                     <Card>
                       <CollapsibleTrigger asChild>
                         <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
-                          <CardTitle className="text-sm font-bold flex items-center justify-between">
-                            Chat with Borrower
+                          <CardTitle className="text-sm font-semibold flex items-center gap-2">
                             <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            Chat with Borrower
                           </CardTitle>
                         </CardHeader>
                       </CollapsibleTrigger>
@@ -2625,9 +2626,9 @@ export function ClientDetailDrawer({
                     <Card>
                       <CollapsibleTrigger asChild>
                         <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
-                          <CardTitle className="text-sm font-bold flex items-center justify-between">
-                            Chat with Borrower
+                          <CardTitle className="text-sm font-semibold flex items-center gap-2">
                             <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            Chat with Borrower
                           </CardTitle>
                         </CardHeader>
                       </CollapsibleTrigger>
