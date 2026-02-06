@@ -1,25 +1,30 @@
 
+# Match Pending App Gray Section to Leads Formatting
 
-# Fixed-Height Tasks Box
+## Problem
+The Pending App gray header section has slightly different CSS than the Leads section, causing:
+- Extra cushion/padding in the communication box (middle column)
+- Stage History extending lower than on Leads
 
-Make the Tasks card content area always display at a fixed height equivalent to exactly 2 task rows, regardless of how many tasks exist (0, 1, 2, or more). If there are more than 2, the user scrolls within the box.
+## Changes (all in `src/components/ClientDetailDrawer.tsx`)
 
-## Change
+### 1. Fix Middle Column (Last Communication box) -- Line 1189
+The Leads version uses `self-stretch` with no extra gap in rows. The Pending App version uses `self-start` and adds `gap-4` to each row, creating extra spacing.
 
-### File: `src/components/ClientDetailDrawer.tsx`
+- Change `self-start` to `self-stretch` on the communication box container
+- Remove `gap-4` from each "Last Call/Text/Email" row (lines 1190, 1197, 1204) to match leads
 
-**Line 2857** -- Update the `CardContent` className to use both a fixed min-height and max-height so the box is always the same size:
+### 2. Fix Right Column (Monthly Payment Goal) -- Line 1213
+The Leads version uses `self-stretch` on the right column. Pending App is missing it.
 
-```
-// Before:
-<CardContent className="space-y-2 bg-gray-50 max-h-[280px] overflow-y-auto">
+- Add `self-stretch` to the right column wrapper
 
-// After:
-<CardContent className="space-y-2 bg-gray-50 min-h-[112px] max-h-[112px] overflow-y-auto">
-```
+### Summary
 
-The `112px` value accommodates exactly 2 task rows (each ~44px for the title line + due date/assignee line + spacing) plus the card content padding. This ensures:
-- 0 tasks: empty box stays the same height
-- 1 task: box stays the same height with whitespace below
-- 2 tasks: box fits perfectly
-- 3+ tasks: vertical scroll appears within the fixed-height box
+| Location | Current (Pending App) | Target (Match Leads) |
+|----------|----------------------|---------------------|
+| Line 1189 (middle col) | `self-start inline-flex flex-col gap-1.5 ...` | `self-stretch inline-flex flex-col gap-1.5 ...` |
+| Lines 1190, 1197, 1204 (rows) | `flex justify-between items-center gap-4` | `flex justify-between items-center` |
+| Line 1213 (right col) | `space-y-3 min-w-[160px]` | `self-stretch space-y-3 min-w-[160px]` |
+
+These small CSS alignment changes will make the gray section heights and spacing identical between Leads and Pending App.
