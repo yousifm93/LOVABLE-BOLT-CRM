@@ -2590,46 +2590,7 @@ export function ClientDetailDrawer({
 
             {/* Quick Actions removed from center column for pre-qualified/pre-approved - now in right column */}
 
-            {/* Latest File Update Section - For Active stage ONLY, between Email Templates and Pipeline Review */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isActive = opsStage === 'active';
-              if (!isActive) return null;
-              return (
-                <Card>
-                  <CardHeader className="pb-3 bg-white">
-                    <CardTitle className="text-sm font-bold">Latest File Update</CardTitle>
-                  </CardHeader>
-                  <CardContent className="bg-gray-50">
-                    <div className="h-[110px] overflow-y-auto">
-                      <MentionableInlineEditNotes
-                        value={(client as any).latest_file_updates || ''}
-                        onValueChange={(value) => handleLeadUpdate('latest_file_updates', value)}
-                        placeholder="Add status updates, notes, or important information..."
-                        className="h-full"
-                      />
-                    </div>
-                    <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                      <Clock className="h-3 w-3" />
-                      {(client as any).latest_file_updates_updated_at ? (
-                        <>
-                          Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
-                          {fileUpdatesUpdatedByUser && (
-                            <>
-                              <span>•</span>
-                              <User className="h-3 w-3" />
-                              {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <span className="italic">No updates yet</span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })()}
+            {/* Latest File Update removed from center column for active - now uses right-column version */}
 
             {/* Pipeline Review Section - Only show for Active/Past Clients in right column */}
             {(() => {
@@ -2715,16 +2676,21 @@ export function ClientDetailDrawer({
               const opsStage = client.ops?.stage?.toLowerCase() || '';
               const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
               if (!isActiveOrPastClient) return null;
+              const isActive = opsStage === 'active';
               return (
+            <Collapsible defaultOpen={!isActive}>
             <Card>
               <CardHeader className="pb-3 bg-white">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
-                  {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(true)} className="h-7 text-xs">
+                <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                  <ChevronRight className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-90" />
+                  <CardTitle className="text-sm font-semibold">About the Borrower</CardTitle>
+                  <div className="flex-1" />
+                  {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setIsEditingNotes(true); }} className="h-7 text-xs">
                       Edit
                     </Button>}
-                </div>
+                </CollapsibleTrigger>
               </CardHeader>
+              <CollapsibleContent>
               <CardContent className="bg-gray-50">
                 {isEditingNotes || !localNotes ? <>
                     <Textarea key="notes-textarea" value={localNotes} onChange={e => {
@@ -2763,14 +2729,16 @@ export function ClientDetailDrawer({
                   )}
                 </div>
               </CardContent>
+              </CollapsibleContent>
             </Card>
+            </Collapsible>
               );
             })()}
 
             {/* Latest File Update - Screening stage, right column (between Tasks and Stage History) */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
-              if (!['screening', 'pre-qualified', 'pre-approved'].includes(opsStage)) return null;
+              if (!['screening', 'pre-qualified', 'pre-approved', 'active'].includes(opsStage)) return null;
               return (
                 <Card>
                   <CardHeader className="pb-3 bg-white">
