@@ -81,7 +81,7 @@ export function LeadThirdPartyItemsCard({ leadId, defaultCollapsed = false }: Le
             ) : (
               <ChevronRight className="h-4 w-4" />
             )}
-            <CardTitle className="text-base font-medium">Third Party Items</CardTitle>
+            <CardTitle className="text-sm font-semibold">Third Party Items</CardTitle>
           </CollapsibleTrigger>
         </CardHeader>
         <CollapsibleContent>

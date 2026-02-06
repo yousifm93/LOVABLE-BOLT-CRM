@@ -26,7 +26,7 @@ export function LeadTeamContactsDatesCard({ leadId, onLeadUpdated, defaultCollap
             ) : (
               <ChevronRight className="h-4 w-4" />
             )}
-            <CardTitle className="text-base font-medium">DTI, Address & PITI</CardTitle>
+            <CardTitle className="text-sm font-semibold">DTI, Address & PITI</CardTitle>
           </CollapsibleTrigger>
         </CardHeader>
         <CollapsibleContent>
