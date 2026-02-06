@@ -1001,7 +1001,7 @@ export function ClientDetailDrawer({
         
         return (
           <div className="flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="grid grid-cols-[1fr_1fr_auto] gap-6 items-start">
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-6 flex-1">
               {/* Left Column: Lead Details - 2x2 grid layout */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                 <div className="flex flex-col gap-1">
@@ -1071,7 +1071,7 @@ export function ClientDetailDrawer({
               </div>
               
               {/* Middle Column: Last Communication */}
-              <div className="self-start inline-flex flex-col gap-1.5 border border-border rounded-md px-3 py-2 bg-background">
+              <div className="self-stretch inline-flex flex-col gap-1.5 border border-border rounded-md px-3 py-2 bg-background">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Last Call</span>
                   <span className="text-sm font-medium">
@@ -1095,7 +1095,7 @@ export function ClientDetailDrawer({
               </div>
               
               {/* Right Column: Financial Goals - Cash to Close Goal removed */}
-              <div className="self-start space-y-3 min-w-[160px]">
+              <div className="self-stretch space-y-3 min-w-[160px]">
                 <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
                   <div className="text-xs text-muted-foreground mb-1">Monthly Payment Goal</div>
                   <InlineEditCurrency 
@@ -1109,7 +1109,7 @@ export function ClientDetailDrawer({
             </div>
             
             {/* Bottom: Lead Creation Date */}
-            <div className="mt-2 pt-2 border-t border-border">
+            <div className="mt-3 pt-3 border-t border-border">
               <span className="text-xs text-muted-foreground italic">
                 Lead Creation Date: {formatLeadCreationDate()}
               </span>
