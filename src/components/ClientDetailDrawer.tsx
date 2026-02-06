@@ -2344,7 +2344,7 @@ export function ClientDetailDrawer({
                 {(() => {
                   const opsStage = client.ops?.stage?.toLowerCase() || '';
                   const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-                  if (isActiveOrPastClient || opsStage === 'leads' || opsStage === 'pending-app' || opsStage === 'screening') return null;
+                  if (isActiveOrPastClient || opsStage === 'leads' || opsStage === 'pending-app' || opsStage === 'screening' || opsStage === 'pre-qualified' || opsStage === 'pre-approved') return null;
                   return (
                     <LeadThirdPartyItemsCard leadId={leadId || ""} defaultCollapsed={true} />
                   );
